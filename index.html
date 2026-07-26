@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>OrganizaAI</title>
+    <script>
+      // Suppress benign Vite websocket errors in development
+      const originalConsoleError = console.error;
+      console.error = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('[vite] failed to connect to websocket')) {
+          return;
+        }
+        originalConsoleError.apply(console, args);
+      };
+
+      function clearSupabaseAndReload(error) {
+        console.warn('Clearing Supabase session due to error:', error);
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.startsWith('supabase'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+        sessionStorage.clear();
+        window.location.reload();
+      }
+      
+      function checkError(msg) {
+        const m = (msg || '').toLowerCase();
+        return m.includes('refresh token') || m.includes('refresh_token');
+      }
+
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason) {
+          const msg = event.reason.message || String(event.reason);
+          if (checkError(msg)) {
+            event.preventDefault();
+            clearSupabaseAndReload(event.reason);
+            return;
+          }
+          if (event.reason.message === 'WebSocket closed without opened.' ||
+            (typeof event.reason === 'string' && event.reason.includes('WebSocket closed without opened'))
+          ) {
+            event.preventDefault();
+          }
+        }
+      });
+
+      window.addEventListener('error', function(event) {
+        const e = event.error || event.message;
+        if (e && checkError(String(e))) {
+          event.preventDefault();
+          clearSupabaseAndReload(e);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

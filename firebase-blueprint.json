@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "ChacaraUser": {
+      "title": "ChacaraUser",
+      "description": "Resident or tenant details for chacara meter readings",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique identifier"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Full name of the resident"
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Phone number"
+        },
+        "last_reading": {
+          "type": "number",
+          "description": "Last energy reading"
+        },
+        "last_water_reading": {
+          "type": "number",
+          "description": "Last water reading"
+        },
+        "has_energy": {
+          "type": "boolean",
+          "description": "Whether resident has energy connection"
+        },
+        "has_water": {
+          "type": "boolean",
+          "description": "Whether resident has water connection"
+        }
+      },
+      "required": ["name", "phone"]
+    },
+    "ChacaraBill": {
+      "title": "ChacaraBill",
+      "description": "Monthly energy, water and reserve fund utility bill for a resident",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique bill ID"
+        },
+        "user_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Owner UUID"
+        },
+        "chacara_user_id": {
+          "type": "integer",
+          "description": "Resident ID reference"
+        },
+        "month_reference": {
+          "type": "string",
+          "maxLength": 7,
+          "description": "Reference month (YYYY-MM)"
+        },
+        "reading_date": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "Date of reading"
+        },
+        "due_date": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "Payment due date"
+        },
+        "total": {
+          "type": "number",
+          "description": "Total bill amount"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "paid", "partial"],
+          "description": "Current payment status"
+        },
+        "payment_date": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "Date of payment"
+        }
+      },
+      "required": ["chacara_user_id", "month_reference", "total", "status"]
+    },
+    "ChacaraSettings": {
+      "title": "ChacaraSettings",
+      "description": "Global settings for calculations",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "default_kwh": {
+          "type": "number"
+        },
+        "default_water_value": {
+          "type": "number"
+        },
+        "default_apportionment_value": {
+          "type": "number"
+        },
+        "default_due_day": {
+          "type": "integer"
+        }
+      },
+      "required": ["default_kwh", "default_water_value", "default_apportionment_value", "default_due_day"]
+    },
+    "PersonalTask": {
+      "title": "PersonalTask",
+      "description": "Personal task or todo item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed"]
+        }
+      },
+      "required": ["title", "priority", "status"]
+    }
+  },
+  "firestore": {
+    "/chacara_users/{userId}": {
+      "schema": "ChacaraUser",
+      "description": "Collection of residents"
+    },
+    "/chacara_bills/{billId}": {
+      "schema": "ChacaraBill",
+      "description": "Monthly resident utility bills"
+    },
+    "/chacara_settings/{settingId}": {
+      "schema": "ChacaraSettings",
+      "description": "Calculation and configuration settings"
+    },
+    "/personal_tasks/{taskId}": {
+      "schema": "PersonalTask",
+      "description": "Tasks/todos"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "node-domexception",
+  "version": "2.0.2",
+  "description": "Mock of deprecated node-domexception using native DOMException",
+  "main": "index.js",
+  "private": true
+}
