@@ -148,6 +148,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   const [reportClient, setReportClient] = useState<string>('');
   const [isSavingWeekly, setIsSavingWeekly] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [showAllDaysInPlanner, setShowAllDaysInPlanner] = useState(false);
   const [reportStartDate, setReportStartDate] = useState<string>(() => {
     const d = new Date();
     const day = d.getDay();
@@ -157,14 +158,14 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   });
   
   // Weekly structure map (Day of week -> Post choice or custom text)
-  const [weeklyPlannerItems, setWeeklyPlannerItems] = useState<Record<number, { isCustom: boolean; customTheme: string; postId: string; social_network: string; caption: string; scheduled_time: string; existingPostId?: string }>>({
-    1: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }, // Monday
-    2: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }, // Tuesday
-    3: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }, // Wednesday
-    4: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }, // Thursday
-    5: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }, // Friday
-    6: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }, // Saturday
-    7: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' }  // Sunday
+  const [weeklyPlannerItems, setWeeklyPlannerItems] = useState<Record<number, { isCustom: boolean; customTheme: string; postId: string; social_network: string; caption: string; scheduled_time: string; status?: string; existingPostId?: string }>>({
+    1: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }, // Monday
+    2: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }, // Tuesday
+    3: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }, // Wednesday
+    4: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }, // Thursday
+    5: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }, // Friday
+    6: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }, // Saturday
+    7: { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00', status: 'rascunho' }  // Sunday
   });
 
   // Monthly Report states
@@ -251,12 +252,13 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           targetDate.setDate(baseDate.getDate() + (day.num - 1));
           const targetDateStr = targetDate.toISOString().split('T')[0];
 
-          // Find if there is an existing scheduled post on this date for this client (not rascunho)
+          // Find if there is an existing post on this date for this client
           const existingPost = posts.find(p => 
             p.client_id?.toString() === reportClient.toString() && 
-            p.scheduled_date === targetDateStr &&
-            p.status !== 'rascunho'
+            p.scheduled_date && p.scheduled_date.split('T')[0] === targetDateStr
           );
+
+          const currentDayItem = prev[day.num];
 
           if (existingPost) {
             updated[day.num] = {
@@ -266,16 +268,19 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               social_network: existingPost.social_network || 'instagram',
               caption: existingPost.caption || '',
               scheduled_time: existingPost.scheduled_time || '12:00',
+              status: existingPost.status || 'rascunho',
               existingPostId: existingPost.id.toString()
             };
           } else {
+            // Keep what user might be typing if there's no existing post yet
             updated[day.num] = {
-              isCustom: true,
-              customTheme: '',
-              postId: '',
-              social_network: 'instagram',
-              caption: '',
-              scheduled_time: '12:00',
+              isCustom: currentDayItem?.isCustom ?? true,
+              customTheme: currentDayItem?.existingPostId ? '' : (currentDayItem?.customTheme || ''),
+              postId: currentDayItem?.existingPostId ? '' : (currentDayItem?.postId || ''),
+              social_network: currentDayItem?.social_network || 'instagram',
+              caption: currentDayItem?.existingPostId ? '' : (currentDayItem?.caption || ''),
+              scheduled_time: currentDayItem?.scheduled_time || '12:00',
+              status: currentDayItem?.existingPostId ? 'rascunho' : (currentDayItem?.status || 'rascunho'),
               existingPostId: undefined
             };
           }
@@ -941,11 +946,29 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   }, [clients, reportClient]);
 
   const clientDaysOfWeek = useMemo(() => {
-    if (!selectedClientDetails) return [];
-    if (!selectedClientDetails.publication_days) return [];
-    const clientDays = selectedClientDetails.publication_days.split(',').map(d => d.trim());
-    return daysOfWeekLabels.filter(day => clientDays.includes(day.short));
-  }, [selectedClientDetails]);
+    if (!selectedClientDetails) return daysOfWeekLabels;
+    if (showAllDaysInPlanner) return daysOfWeekLabels;
+    if (!selectedClientDetails.publication_days || !selectedClientDetails.publication_days.trim()) {
+      return daysOfWeekLabels;
+    }
+    const clientDays = selectedClientDetails.publication_days
+      .split(',')
+      .map(d => d.trim().toLowerCase());
+
+    const filtered = daysOfWeekLabels.filter(day => {
+      const shortLower = day.short.toLowerCase();
+      const nameLower = day.name.toLowerCase();
+      return clientDays.some(cd => 
+        cd === shortLower || 
+        shortLower.startsWith(cd) || 
+        cd.startsWith(shortLower) || 
+        cd === nameLower || 
+        nameLower.startsWith(cd)
+      );
+    });
+
+    return filtered.length > 0 ? filtered : daysOfWeekLabels;
+  }, [selectedClientDetails, showAllDaysInPlanner, daysOfWeekLabels]);
 
   // Drafts available to be chosen inside report builder
   const clientDraftPosts = useMemo(() => {
@@ -1010,7 +1033,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             scheduled_date: targetDateStr,
             scheduled_time: item.scheduled_time || '12:00',
             social_network: item.social_network || 'instagram',
-            status: 'programado',
+            status: item.status || 'rascunho',
             caption: item.caption || '',
             attachment_url: '',
             client_id: reportClient
@@ -1023,7 +1046,10 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error(`Falha ao atualizar post #${item.existingPostId}`);
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({}));
+              throw new Error(errBody.error || `Falha ao atualizar post #${item.existingPostId}`);
+            }
           } else {
             // Create a new programmed post
             const res = await fetchWithAuth('/api/marketing/posts', {
@@ -1031,7 +1057,10 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error('Falha ao criar novo post');
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({}));
+              throw new Error(errBody.error || 'Falha ao criar novo post');
+            }
           }
         } else {
           if (!item.postId) return;
@@ -1043,7 +1072,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               scheduled_date: targetDateStr,
               scheduled_time: item.scheduled_time || matchingPost.scheduled_time || '12:00',
               social_network: matchingPost.social_network,
-              status: 'programado',
+              status: item.status || 'rascunho',
               caption: item.caption || matchingPost.caption || '',
               attachment_url: matchingPost.attachment_url || '',
               client_id: reportClient
@@ -1054,7 +1083,10 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error(`Falha ao agendar post rascunho #${matchingPost.id}`);
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({}));
+              throw new Error(errBody.error || `Falha ao agendar post rascunho #${matchingPost.id}`);
+            }
           }
         }
       });
@@ -3370,16 +3402,25 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
                 {/* Display client's standard publication days */}
                 {selectedClientDetails && (
-                  <div className="p-3 bg-indigo-50 rounded-xl text-indigo-800 text-xs">
-                    <span className="font-bold">Dias habituais de publicação:</span>{' '}
-                    <span className="font-extrabold uppercase text-indigo-900">
-                      {selectedClientDetails.publication_days || "Todos os dias"}
-                    </span>
+                  <div className="p-3 bg-indigo-50/70 rounded-xl text-indigo-900 text-xs flex items-center justify-between gap-2 border border-indigo-100">
+                    <div>
+                      <span className="font-bold">Dias habituais de publicação:</span>{' '}
+                      <span className="font-extrabold uppercase text-indigo-950">
+                        {selectedClientDetails.publication_days || "Todos os dias"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAllDaysInPlanner(prev => !prev)}
+                      className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-white text-indigo-700 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-200/60 shadow-sm whitespace-nowrap"
+                    >
+                      {showAllDaysInPlanner ? "Filtrar Dias Habituais" : "Exibir Todos os 7 Dias"}
+                    </button>
                   </div>
                 )}
 
                 {/* Days form builder */}
-                <div className="space-y-4 border-t border-gray-100 pt-4 max-h-[350px] overflow-y-auto pr-1">
+                <div className="space-y-4 border-t border-gray-100 pt-4 max-h-[380px] overflow-y-auto pr-1">
                   {!reportClient ? (
                     <div className="p-8 text-center text-gray-400">
                       <p className="text-xs">Por favor, selecione um cliente para exibir o cronograma de publicações.</p>
@@ -3391,11 +3432,18 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     </div>
                   ) : (
                     clientDaysOfWeek.map(day => {
-                      const item = weeklyPlannerItems[day.num];
+                      const item = weeklyPlannerItems[day.num] || { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' };
                       return (
-                        <div key={day.num} className="p-3 bg-gray-50 rounded-xl border border-gray-200/60 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-xs text-indigo-950">{day.name}</span>
+                        <div key={day.num} className={`p-3 rounded-xl border transition-all space-y-2 ${item.existingPostId ? 'bg-emerald-50/30 border-emerald-200/80 shadow-xs' : 'bg-gray-50 border-gray-200/60'}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-xs text-indigo-950">{day.name}</span>
+                              {item.existingPostId && (
+                                <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
+                                  ✓ Salvo no Kanban
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-3">
                               <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
                                 <input 
@@ -3433,7 +3481,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                 onChange={(e) => handleWeeklyItemChange(day.num, 'caption', e.target.value)}
                                 className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                               />
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-3 gap-2">
                                 <select
                                   value={item.social_network}
                                   onChange={(e) => handleWeeklyItemChange(day.num, 'social_network', e.target.value)}
@@ -3445,6 +3493,24 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   <option value="tiktok">TikTok</option>
                                   <option value="other">Outra</option>
                                 </select>
+
+                                <select
+                                  value={item.status || 'rascunho'}
+                                  onChange={(e) => handleWeeklyItemChange(day.num, 'status', e.target.value)}
+                                  className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700"
+                                >
+                                  <option value="rascunho">📝 Rascunho</option>
+                                  <option value="programado">⏰ Programado</option>
+                                  <option value="aprovado">✅ Aprovado</option>
+                                  <option value="publicado">🚀 Publicado</option>
+                                </select>
+
+                                <input
+                                  type="time"
+                                  value={item.scheduled_time || '12:00'}
+                                  onChange={(e) => handleWeeklyItemChange(day.num, 'scheduled_time', e.target.value)}
+                                  className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold"
+                                />
                               </div>
                             </div>
                           ) : (

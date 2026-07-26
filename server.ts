@@ -1429,6 +1429,20 @@ app.get("/api/config", (req, res) => {
     }
   });
 
+  // Helper for status mapping with database constraints
+  const mapStatusToDb = (statusStr: string | undefined) => {
+    if (!statusStr) return 'rascunho';
+    if (statusStr === 'programado' || statusStr === 'feito' || statusStr === 'aprovado') {
+      return 'agendado';
+    }
+    return statusStr;
+  };
+
+  const mapStatusFromDb = (statusStr: string | undefined) => {
+    if (statusStr === 'agendado') return 'programado';
+    return statusStr || 'rascunho';
+  };
+
   // Marketing Posts
   app.get("/api/marketing/posts", async (req, res) => {
     try {
@@ -1442,7 +1456,13 @@ app.get("/api/config", (req, res) => {
         console.error("marketing_posts select error:", error);
         return res.json([]);
       }
-      res.json(data || []);
+      
+      const mapped = (data || []).map((post: any) => ({
+        ...post,
+        status: mapStatusFromDb(post.status)
+      }));
+
+      res.json(mapped);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -1452,7 +1472,8 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const { title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id } = req.body;
-      const { data, error } = await supabase.from("marketing_posts").insert([{
+      
+      const payload = {
         user_id: user.id,
         title,
         scheduled_date,
@@ -1462,9 +1483,27 @@ app.get("/api/config", (req, res) => {
         caption,
         attachment_url,
         client_id: client_id || null
-      }]).select().single();
+      };
+
+      let { data, error } = await supabase.from("marketing_posts").insert([payload]).select().single();
       
-      if (error) return res.status(500).json(error);
+      // Handle status check constraint violation if DB has restricted status ENUM/CHECK
+      if (error && error.code === '23514') {
+        payload.status = mapStatusToDb(status);
+        const retryResult = await supabase.from("marketing_posts").insert([payload]).select().single();
+        data = retryResult.data;
+        error = retryResult.error;
+      }
+
+      if (error) {
+        console.error("marketing_posts insert error:", error);
+        return res.status(500).json({ error: error.message || "Erro ao salvar post no banco de dados" });
+      }
+
+      if (data) {
+        data.status = mapStatusFromDb(data.status);
+      }
+
       res.json(data);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1475,12 +1514,37 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const { title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id } = req.body;
-      const { error } = await supabase.from("marketing_posts")
-        .update({ title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id: client_id || null })
+      
+      const updateData: any = { 
+        title, 
+        scheduled_date, 
+        scheduled_time, 
+        social_network, 
+        status: status || 'rascunho', 
+        caption, 
+        attachment_url, 
+        client_id: client_id || null 
+      };
+
+      let { error } = await supabase.from("marketing_posts")
+        .update(updateData)
         .eq("id", req.params.id)
         .eq("user_id", user.id);
       
-      if (error) return res.status(500).json(error);
+      if (error && error.code === '23514') {
+        updateData.status = mapStatusToDb(status);
+        const retryResult = await supabase.from("marketing_posts")
+          .update(updateData)
+          .eq("id", req.params.id)
+          .eq("user_id", user.id);
+        error = retryResult.error;
+      }
+
+      if (error) {
+        console.error("marketing_posts update error:", error);
+        return res.status(500).json({ error: error.message || "Erro ao atualizar post" });
+      }
+
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
