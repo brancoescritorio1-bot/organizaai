@@ -290,8 +290,8 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     const element = ref.current;
     
     // Show preview first (PdfPreviewModal clones the element and applies its own cleaning)
-    const confirmed = await preview(element, 'Visualização do Extrato');
-    if (!confirmed) return;
+    const pdfAction = await preview(element, 'Visualização do Extrato');
+    if (!pdfAction) return;
 
     setIsGeneratingPdf(true);
     // Give a small delay for the preview modal to fully close
@@ -334,7 +334,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
 
       container.appendChild(clone);
 
-      await PdfService.exportToPDF(clone, fileName, 'p', action, shareText);
+      await PdfService.exportToPDF(clone, fileName, 'p', pdfAction, shareText);
     } catch (err) {
       console.error('Export failed:', err);
     } finally {

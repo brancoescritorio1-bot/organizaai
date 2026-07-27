@@ -1472,6 +1472,7 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const { title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id } = req.body;
+      console.log("POST request body:", req.body);
       
       const payload = {
         user_id: user.id,
@@ -1514,6 +1515,7 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const { title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id } = req.body;
+      console.log("PUT request body:", req.body);
       
       const updateData: any = { 
         title, 

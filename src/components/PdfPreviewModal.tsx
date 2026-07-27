@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, X } from 'lucide-react';
+import { Download, X, Share2 } from 'lucide-react';
 
 interface PdfPreviewModalProps {
   element: HTMLElement;
   title: string;
-  onClose: (confirmed: boolean) => void;
+  onClose: (action: 'save' | 'share' | null) => void;
 }
 
 export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ element, title, onClose }) => {
@@ -51,7 +51,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ element, title
         <div className="bg-slate-900 text-white px-4 md:px-6 py-4 flex items-center justify-between shadow-lg z-20 sticky top-0 shrink-0">
           <div className="flex items-center gap-4 md:gap-6">
             <button 
-              onClick={() => onClose(false)} 
+              onClick={() => onClose(null)} 
               className="p-2 hover:bg-slate-800 rounded-full transition-colors shrink-0"
             >
               <X size={24} />
@@ -62,14 +62,25 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ element, title
             </div>
           </div>
           
-          <button 
-            onClick={() => onClose(true)} 
-            className="bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 px-4 md:px-6 py-2.5 rounded-xl font-black text-xs md:text-sm flex items-center gap-2 transition-all shadow-md active:scale-95 shrink-0"
-          >
-            <Download size={18} className="md:w-5 md:h-5" />
-            <span className="hidden sm:inline">Confirmar e Salvar</span>
-            <span className="sm:hidden">Salvar PDF</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {navigator.share && (
+                <button 
+                onClick={() => onClose('share')} 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-6 py-2.5 rounded-xl font-black text-xs md:text-sm flex items-center gap-2 transition-all shadow-md active:scale-95 shrink-0"
+                >
+                <Share2 size={18} className="md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Compartilhar</span>
+                </button>
+            )}
+            <button 
+                onClick={() => onClose('save')} 
+                className="bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 px-4 md:px-6 py-2.5 rounded-xl font-black text-xs md:text-sm flex items-center gap-2 transition-all shadow-md active:scale-95 shrink-0"
+            >
+                <Download size={18} className="md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Confirmar e Salvar</span>
+                <span className="sm:hidden">Salvar</span>
+            </button>
+          </div>
         </div>
 
         {/* Preview Area */}

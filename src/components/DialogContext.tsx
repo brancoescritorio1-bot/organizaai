@@ -136,7 +136,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     key={dialog.id}
                     element={dialog.element}
                     title={dialog.title}
-                    onClose={(confirmed) => handleClose(dialog.id, confirmed)}
+                    onClose={(action) => handleClose(dialog.id, action)}
                 />
             ) : (
           <motion.div
