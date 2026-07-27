@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialog } from './DialogContext';
+import { PdfService } from '../lib/PdfService';
 import { 
   Calendar as CalendarIcon, 
   Users, 
@@ -147,6 +148,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   // Weekly Planner Report states
   const [reportClient, setReportClient] = useState<string>('');
   const [isSavingWeekly, setIsSavingWeekly] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
   const [showAllDaysInPlanner, setShowAllDaysInPlanner] = useState(false);
   const [reportStartDate, setReportStartDate] = useState<string>(() => {
@@ -1112,348 +1114,145 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
       return;
     }
 
-    const mondayDate = new Date(reportStartDate + 'T12:00:00');
-    const fridayDate = new Date(mondayDate.getTime());
-    fridayDate.setDate(mondayDate.getDate() + 4);
-    const formattedPeriod = `${mondayDate.toLocaleDateString('pt-BR')} a ${fridayDate.toLocaleDateString('pt-BR')} (Segunda a Sexta)`;
+    setIsGeneratingPdf(true);
+    try {
+      const success = await handleSaveWeeklyToKanban(true);
+      if (!success) return;
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert("O bloqueador de pop-ups bloqueou a impressão. Por favor, libere os pop-ups.");
-      return;
-    }
-    
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Salvando e Gerando PDF...</title>
-          <style>
-            body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #fafafa; color: #4f46e5; }
-            .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 12px auto; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            .container { text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="spinner"></div>
-            <div style="font-weight: bold; font-size: 16px;">Salvando programação no Kanban e gerando PDF...</div>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">Por favor, aguarde um instante.</div>
-          </div>
-        </body>
-      </html>
-    `);
+      const mondayDate = new Date(reportStartDate + 'T12:00:00');
+      const fridayDate = new Date(mondayDate.getTime());
+      fridayDate.setDate(mondayDate.getDate() + 4);
+      const formattedPeriod = `${mondayDate.toLocaleDateString('pt-BR')} a ${fridayDate.toLocaleDateString('pt-BR')} (Segunda a Sexta)`;
 
-    const success = await handleSaveWeeklyToKanban(true);
-    if (!success) {
-      printWindow.close();
-      return;
-    }
+      const clientLogo = selectedClientDetails.logo_url || '';
+      const scheduledDays = clientDaysOfWeek.filter(day => {
+        const item = weeklyPlannerItems[day.num];
+        if (!item) return false;
+        if (item.isCustom) {
+          return item.customTheme && item.customTheme.trim() !== '';
+        } else {
+          return item.postId && item.postId !== '';
+        }
+      });
 
-    const clientLogo = selectedClientDetails.logo_url || '';
-    const scheduledDays = clientDaysOfWeek.filter(day => {
-      const item = weeklyPlannerItems[day.num];
-      if (!item) return false;
-      if (item.isCustom) {
-        return item.customTheme && item.customTheme.trim() !== '';
-      } else {
-        return item.postId && item.postId !== '';
-      }
-    });
+      const rowsHtml = scheduledDays.length > 0 ? scheduledDays.map(day => {
+        const item = weeklyPlannerItems[day.num];
+        if (!item) return '';
+        const theme = item.isCustom ? item.customTheme : (clientDraftPosts.find(p => p.id.toString() === item.postId)?.title || 'Sem post programado');
+        const network = item.isCustom ? item.social_network : (clientDraftPosts.find(p => p.id.toString() === item.postId)?.social_network || 'instagram');
+        const caption = item.isCustom ? item.caption : (clientDraftPosts.find(p => p.id.toString() === item.postId)?.caption || '');
+        const time = item.scheduled_time || '12:00';
 
-    const rowsHtml = scheduledDays.length > 0 ? scheduledDays.map(day => {
-      const item = weeklyPlannerItems[day.num];
-      if (!item) return '';
-      const theme = item.isCustom ? item.customTheme : (clientDraftPosts.find(p => p.id.toString() === item.postId)?.title || 'Sem post programado');
-      const network = item.isCustom ? item.social_network : (clientDraftPosts.find(p => p.id.toString() === item.postId)?.social_network || 'instagram');
-      const caption = item.isCustom ? item.caption : (clientDraftPosts.find(p => p.id.toString() === item.postId)?.caption || '');
-      const time = item.scheduled_time || '12:00';
+        const networkColors = {
+          instagram: { bg: '#fdf2f8', text: '#db2777' },
+          facebook: { bg: '#eff6ff', text: '#1d4ed8' },
+          linkedin: { bg: '#f0f9ff', text: '#0369a1' },
+          tiktok: { bg: '#f3f4f6', text: '#111827' },
+          youtube: { bg: '#fef2f2', text: '#b91c1c' }
+        }[network.toLowerCase()] || { bg: '#f3f4f6', text: '#4b5563' };
 
-      const networkColors = {
-        instagram: { bg: '#fdf2f8', text: '#db2777' },
-        facebook: { bg: '#eff6ff', text: '#1d4ed8' },
-        linkedin: { bg: '#f0f9ff', text: '#0369a1' },
-        tiktok: { bg: '#f3f4f6', text: '#111827' },
-        youtube: { bg: '#fef2f2', text: '#b91c1c' }
-      }[network.toLowerCase()] || { bg: '#f3f4f6', text: '#4b5563' };
-
-      return `
-        <div class="post-card">
-          <div class="post-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="day-badge">${day.name}</span>
-              <span class="network-badge" style="background-color: ${networkColors.bg}; color: ${networkColors.text};">
-                ${network}
-              </span>
-            </div>
-            <div class="post-time">Horário Planejado: <strong>${time}</strong></div>
-          </div>
-          <div class="post-body">
-            <div class="post-left">
-              <div>
-                <div class="section-label">Tema / Conteúdo do Post</div>
-                <div class="post-theme">${theme || 'Tema Livre / Não Informado'}</div>
+        return `
+          <div class="post-card">
+            <div class="post-header">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="day-badge">${day.name}</span>
+                <span class="network-badge" style="background-color: ${networkColors.bg}; color: ${networkColors.text};">
+                  ${network}
+                </span>
               </div>
-              <div class="approval-box">
-                <span class="approval-title">Status da Aprovação</span>
-                <div class="approval-options">
-                  <span>[ ] APROVADO</span>
-                  <span>[ ] AJUSTAR</span>
+              <div class="post-time">Horário Planejado: <strong>${time}</strong></div>
+            </div>
+            <div class="post-body">
+              <div class="post-left">
+                <div>
+                  <div class="section-label">Tema / Conteúdo do Post</div>
+                  <div class="post-theme">${theme || 'Tema Livre / Não Informado'}</div>
+                </div>
+                <div class="approval-box">
+                  <span class="approval-title">Status da Aprovação</span>
+                  <div class="approval-options">
+                    <span>[ ] APROVADO</span>
+                    <span>[ ] AJUSTAR</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="post-right">
-              <div class="section-label">Legenda & Direcionamento</div>
-              <div class="post-caption">${caption || '<span style="color: #cbd5e1; font-style: italic;">Nenhuma legenda inserida.</span>'}</div>
+              <div class="post-right">
+                <div class="section-label">Legenda & Direcionamento</div>
+                <div class="post-caption">${caption || '<span style="color: #cbd5e1; font-style: italic;">Nenhuma legenda inserida.</span>'}</div>
+              </div>
             </div>
           </div>
+        `;
+      }).join('') : `
+        <div style="padding: 40px; text-align: center; color: #64748b; font-style: italic; font-size: 14px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+          Nenhuma postagem programada para esta semana. Por favor, adicione temas ou rascunhos para os dias desejados.
         </div>
       `;
-    }).join('') : `
-      <div style="padding: 40px; text-align: center; color: #64748b; font-style: italic; font-size: 14px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
-        Nenhuma postagem programada para esta semana. Por favor, adicione temas ou rascunhos para os dias desejados.
-      </div>
-    `;
 
-    printWindow.document.open();
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Programação Semanal - ${selectedClientDetails.name}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-            body {
-              font-family: 'Inter', sans-serif;
-              color: #1e293b;
-              margin: 0;
-              padding: 40px;
-              background-color: #ffffff;
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 3px solid #4338ca;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
-            }
-            .title {
-              font-size: 24px;
-              font-weight: 800;
-              color: #1e1b4b;
-              margin: 0;
-            }
-            .subtitle {
-              font-size: 13px;
-              color: #4f46e5;
-              font-weight: bold;
-              margin-top: 5px;
-            }
-            .meta-box {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 20px;
-              margin-bottom: 30px;
-              background-color: #f8fafc;
-              padding: 15px 20px;
-              border-radius: 12px;
-              border: 1px solid #e2e8f0;
-            }
-            .meta-item {
-              display: flex;
-              flex-direction: column;
-            }
-            .meta-label {
-              font-size: 9px;
-              text-transform: uppercase;
-              font-weight: 800;
-              color: #64748b;
-              letter-spacing: 0.05em;
-              margin-bottom: 4px;
-            }
-            .meta-val {
-              font-size: 13px;
-              font-weight: 700;
-              color: #0f172a;
-            }
-            .posts-container {
-              display: flex;
-              flex-direction: column;
-              gap: 24px;
-            }
-            .post-card {
-              background: #ffffff;
-              border: 1px solid #e2e8f0;
-              border-radius: 16px;
-              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02);
-              overflow: hidden;
-              margin-bottom: 24px;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .post-header {
-              background: #f8fafc;
-              padding: 14px 20px;
-              border-bottom: 1px solid #e2e8f0;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .day-badge {
-              font-size: 15px;
-              font-weight: 800;
-              color: #1e1b4b;
-            }
-            .network-badge {
-              font-size: 10px;
-              font-weight: 900;
-              padding: 4px 10px;
-              border-radius: 8px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              display: inline-block;
-            }
-            .post-body {
-              padding: 20px;
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 24px;
-            }
-            .post-left {
-              border-right: 1px solid #f1f5f9;
-              padding-right: 20px;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-            }
-            .post-right {
-              display: flex;
-              flex-direction: column;
-            }
-            .section-label {
-              font-size: 9px;
-              text-transform: uppercase;
-              font-weight: 800;
-              color: #64748b;
-              letter-spacing: 0.05em;
-              margin-bottom: 8px;
-            }
-            .post-theme {
-              font-weight: 800;
-              color: #1e1b4b;
-              font-size: 15px;
-              line-height: 1.4;
-            }
-            .post-time {
-              font-size: 11px;
-              color: #64748b;
-              font-family: monospace;
-              font-weight: 500;
-            }
-            .post-caption {
-              color: #334155;
-              font-size: 12px;
-              line-height: 1.6;
-              white-space: pre-wrap;
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              padding: 16px;
-              border-radius: 12px;
-              flex-grow: 1;
-              min-height: 80px;
-            }
-            .approval-box {
-              border: 1px dashed #cbd5e1;
-              border-radius: 10px;
-              padding: 12px;
-              background-color: #f8fafc;
-              margin-top: 16px;
-            }
-            .approval-title {
-              display: block;
-              font-weight: 800;
-              font-size: 9px;
-              text-transform: uppercase;
-              color: #64748b;
-              margin-bottom: 6px;
-              letter-spacing: 0.05em;
-            }
-            .approval-options {
-              display: flex;
-              gap: 15px;
-              font-size: 11px;
-              font-weight: bold;
-              color: #475569;
-              font-family: monospace;
-            }
-            .footer {
-              margin-top: 50px;
-              text-align: center;
-              font-size: 11px;
-              color: #64748b;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 20px;
-            }
-            @media print {
-              body { padding: 0; }
-              button { display: none; }
-              .no-print { display: none !important; }
-              .post-card { box-shadow: none; border: 1px solid #cbd5e1; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div style="display: flex; align-items: center; gap: 15px;">
-              ${clientLogo ? `
-                <img src="${clientLogo}" style="max-height: 55px; max-width: 150px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px; background: #fff;" />
-              ` : `
-                <div style="background-color: #4338ca; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(67, 56, 202, 0.25);">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                  </svg>
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+              body { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; padding: 40px; background-color: #ffffff; }
+              .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #4338ca; padding-bottom: 20px; margin-bottom: 30px; }
+              .title { font-size: 24px; font-weight: 800; color: #1e1b4b; margin: 0; }
+              .subtitle { font-size: 13px; color: #4f46e5; font-weight: bold; margin-top: 5px; }
+              .meta-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; background-color: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
+              .meta-item { display: flex; flex-direction: column; }
+              .meta-label { font-size: 9px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 4px; }
+              .meta-val { font-size: 13px; font-weight: 700; color: #0f172a; }
+              .posts-container { display: flex; flex-direction: column; gap: 24px; }
+              .post-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02); overflow: hidden; margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid; }
+              .post-header { background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+              .day-badge { font-size: 15px; font-weight: 800; color: #1e1b4b; }
+              .network-badge { font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
+              .post-body { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+              .post-left { border-right: 1px solid #f1f5f9; padding-right: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+              .post-right { display: flex; flex-direction: column; }
+              .section-label { font-size: 9px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 8px; }
+              .post-theme { font-weight: 800; color: #1e1b4b; font-size: 15px; line-height: 1.4; }
+              .post-time { font-size: 11px; color: #64748b; font-family: monospace; font-weight: 500; }
+              .post-caption { color: #334155; font-size: 12px; line-height: 1.6; white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; flex-grow: 1; min-height: 80px; }
+              .approval-box { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; background-color: #f8fafc; margin-top: 16px; }
+              .approval-title { display: block; font-weight: 800; font-size: 9px; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.05em; }
+              .approval-options { display: flex; gap: 15px; font-size: 11px; font-weight: bold; color: #475569; font-family: monospace; }
+              .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div style="display: flex; align-items: center; gap: 15px;">
+                ${clientLogo ? `<img src="${clientLogo}" style="max-height: 55px; max-width: 150px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px; background: #fff;" />` : `<div style="background-color: #4338ca; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(67, 56, 202, 0.25);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></div>`}
+                <div>
+                  <h1 class="title">Cronograma de Conteúdo Semanal</h1>
+                  <div class="subtitle" style="font-size: 12px; color: #4f46e5; font-weight: 700; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Gestão de Marketing & Presença de Marca</div>
                 </div>
-              `}
-              <div>
-                <h1 class="title">Cronograma de Conteúdo Semanal</h1>
-                <div class="subtitle" style="font-size: 12px; color: #4f46e5; font-weight: 700; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Gestão de Marketing & Presença de Marca</div>
+              </div>
+              <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: center;">
+                ${clientLogo ? `<div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Logo do Cliente</div>` : ''}
+                <span style="font-weight: 800; color: #1e1b4b; font-size: 16px;">${selectedClientDetails.company || 'Geral / Não Informado'}</span>
+                <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-top: 4px;">Cliente: ${selectedClientDetails.name}</div>
               </div>
             </div>
-            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: center;">
-              ${clientLogo ? `<div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Logo do Cliente</div>` : ''}
-              <span style="font-weight: 800; color: #1e1b4b; font-size: 16px;">${selectedClientDetails.company || 'Geral / Não Informado'}</span>
-              <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-top: 4px;">Cliente: ${selectedClientDetails.name}</div>
+            <div class="meta-box">
+              <div class="meta-item"><span class="meta-label">Cliente</span><span class="meta-val">${selectedClientDetails.name}</span></div>
+              <div class="meta-item"><span class="meta-label">Semana de Referência</span><span class="meta-val">${formattedPeriod}</span></div>
+              <div class="meta-item"><span class="meta-label">Data de Geração</span><span class="meta-val" style="color: #4338ca;">${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>
             </div>
-          </div>
+            <div class="posts-container">${rowsHtml}</div>
+            <div class="footer"><p>Programação de Marketing gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} por MarketingManager. Todos os direitos reservados.</p></div>
+          </body>
+        </html>
+      `;
 
-          <div class="meta-box">
-            <div class="meta-item">
-              <span class="meta-label">Cliente</span>
-              <span class="meta-val">${selectedClientDetails.name}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Semana de Referência</span>
-              <span class="meta-val">${formattedPeriod}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Data de Geração</span>
-              <span class="meta-val" style="color: #4338ca;">${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-          </div>
-
-          <div class="posts-container">
-            ${rowsHtml}
-          </div>
-
-          <div class="footer">
-            <p>Programação de Marketing gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} por MarketingManager. Todos os direitos reservados.</p>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+      await PdfService.exportHTMLToPDF(htmlContent, 'p', `Cronograma_${selectedClientDetails.name}_${formattedPeriod.replace(/\s+/g, '_')}`, 'save');
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Erro ao gerar PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleShareWeeklyWhatsApp = () => {
