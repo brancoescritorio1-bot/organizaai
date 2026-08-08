@@ -12,7 +12,7 @@ export const PdfService = {
     postProcess?: (el: HTMLElement) => void,
   ) => {
     // Wait for the browser layout engine to finish styling and painting the elements
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const element = typeof elementOrId === 'string' 
       ? document.getElementById(elementOrId) 
@@ -40,8 +40,7 @@ export const PdfService = {
         const canvas = await toPng(element, {
             quality: 1.0,
             pixelRatio: 2,
-            backgroundColor: '#ffffff',
-            skipFonts: true
+            backgroundColor: '#ffffff'
         });
         
         element.style.cssText = originalStyle;
@@ -51,8 +50,8 @@ export const PdfService = {
         const vScale = pdfWidth / element.offsetWidth;
         const scaledHeight = element.offsetHeight * vScale;
         
-        // Find all cards to detect their positions for intelligent breaking
-        const cards = element.querySelectorAll('.report-card');
+        // Find all cards or report items to detect their positions for intelligent breaking
+        const cards = element.querySelectorAll('.report-card, .post-card, .stat-card, [class*="card"], [class*="-card"], tr, .post-item');
         const cardPositions = Array.from(cards).map(card => {
             const rect = (card as HTMLElement).getBoundingClientRect();
             const parentRect = element.getBoundingClientRect();
@@ -60,7 +59,7 @@ export const PdfService = {
                 top: (rect.top - parentRect.top) * vScale,
                 bottom: (rect.bottom - parentRect.top) * vScale
             };
-        });
+        }).filter(pos => pos.bottom > pos.top);
 
         let yOffset = 0;
         while (yOffset < scaledHeight - 1) { // -1 to avoid tiny slivers at the end
@@ -73,7 +72,7 @@ export const PdfService = {
             // We only care if the cut-off is NOT at the very end of the document
             if (nextYOffset < scaledHeight) {
                 const splittingCard = cardPositions.find(pos => 
-                    pos.top < nextYOffset && pos.bottom > nextYOffset
+                    pos.top < nextYOffset - 1 && pos.bottom > nextYOffset + 1
                 );
                 
                 // If we are splitting a card, try to move the cut-off point to just before it
@@ -156,8 +155,9 @@ export const PdfService = {
     wrapper.style.left = '0';
     wrapper.style.top = '0';
     wrapper.style.width = '100vw';
-    wrapper.style.height = '100vh';
-    wrapper.style.overflow = 'hidden';
+    wrapper.style.height = 'auto';
+    wrapper.style.maxHeight = 'none';
+    wrapper.style.overflow = 'visible';
     wrapper.style.zIndex = '-9999';
     wrapper.style.opacity = '1';
     wrapper.style.pointerEvents = 'none';
@@ -167,7 +167,8 @@ export const PdfService = {
     container.style.width = orientation === 'p' ? '800px' : '1120px';
     container.style.backgroundColor = 'white';
     container.style.padding = '40px';
-    container.innerHTML = `<div style="font-family: 'Inter', sans-serif; color: #111827;">${htmlContent}</div>`;
+    container.style.boxSizing = 'border-box';
+    container.innerHTML = `<div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; box-sizing: border-box; word-break: break-word; overflow-wrap: anywhere;">${htmlContent}</div>`;
     
     wrapper.appendChild(container);
     document.body.appendChild(wrapper);
@@ -200,8 +201,9 @@ export const PdfService = {
     wrapper.style.left = '0';
     wrapper.style.top = '0';
     wrapper.style.width = '100vw';
-    wrapper.style.height = '100vh';
-    wrapper.style.overflow = 'hidden';
+    wrapper.style.height = 'auto';
+    wrapper.style.maxHeight = 'none';
+    wrapper.style.overflow = 'visible';
     wrapper.style.zIndex = '-9999';
     wrapper.style.opacity = '1';
     wrapper.style.pointerEvents = 'none';

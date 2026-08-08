@@ -1152,7 +1152,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
         }[network.toLowerCase()] || { bg: '#f3f4f6', text: '#4b5563' };
 
         return `
-          <div class="post-card">
+          <div class="post-card report-card">
             <div class="post-header">
               <div style="display: flex; align-items: center; gap: 12px;">
                 <span class="day-badge">${day.name}</span>
@@ -1193,31 +1193,31 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
         <html>
           <head>
             <style>
-              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-              body { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; padding: 40px; background-color: #ffffff; }
-              .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #4338ca; padding-bottom: 20px; margin-bottom: 30px; }
-              .title { font-size: 24px; font-weight: 800; color: #1e1b4b; margin: 0; }
-              .subtitle { font-size: 13px; color: #4f46e5; font-weight: bold; margin-top: 5px; }
-              .meta-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; background-color: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
-              .meta-item { display: flex; flex-direction: column; }
+              * { box-sizing: border-box; }
+              body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; padding: 25px; background-color: #ffffff; width: 100%; }
+              .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #4338ca; padding-bottom: 16px; margin-bottom: 24px; width: 100%; }
+              .title { font-size: 22px; font-weight: 800; color: #1e1b4b; margin: 0; word-break: break-word; overflow-wrap: anywhere; }
+              .subtitle { font-size: 12px; color: #4f46e5; font-weight: bold; margin-top: 4px; }
+              .meta-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; background-color: #f8fafc; padding: 14px 18px; border-radius: 12px; border: 1px solid #e2e8f0; width: 100%; }
+              .meta-item { display: flex; flex-direction: column; min-width: 0; word-break: break-word; }
               .meta-label { font-size: 9px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 4px; }
-              .meta-val { font-size: 13px; font-weight: 700; color: #0f172a; }
-              .posts-container { display: flex; flex-direction: column; gap: 24px; }
-              .post-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02); overflow: hidden; margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid; }
-              .post-header { background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-              .day-badge { font-size: 15px; font-weight: 800; color: #1e1b4b; }
-              .network-badge { font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
-              .post-body { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-              .post-left { border-right: 1px solid #f1f5f9; padding-right: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-              .post-right { display: flex; flex-direction: column; }
-              .section-label { font-size: 9px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 8px; }
-              .post-theme { font-weight: 800; color: #1e1b4b; font-size: 15px; line-height: 1.4; }
+              .meta-val { font-size: 12.5px; font-weight: 700; color: #0f172a; word-break: break-word; }
+              .posts-container { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+              .post-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden; margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid; width: 100%; box-sizing: border-box; }
+              .post-header { background: #f8fafc; padding: 12px 18px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+              .day-badge { font-size: 14px; font-weight: 800; color: #1e1b4b; }
+              .network-badge { font-size: 9.5px; font-weight: 900; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
+              .post-body { padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; box-sizing: border-box; }
+              .post-left { border-right: 1px solid #f1f5f9; padding-right: 18px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
+              .post-right { display: flex; flex-direction: column; min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
+              .section-label { font-size: 9px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 6px; }
+              .post-theme { font-weight: 800; color: #1e1b4b; font-size: 14px; line-height: 1.4; word-break: break-word; overflow-wrap: anywhere; margin-bottom: 12px; }
               .post-time { font-size: 11px; color: #64748b; font-family: monospace; font-weight: 500; }
-              .post-caption { color: #334155; font-size: 12px; line-height: 1.6; white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; flex-grow: 1; min-height: 80px; }
-              .approval-box { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; background-color: #f8fafc; margin-top: 16px; }
-              .approval-title { display: block; font-weight: 800; font-size: 9px; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.05em; }
-              .approval-options { display: flex; gap: 15px; font-size: 11px; font-weight: bold; color: #475569; font-family: monospace; }
-              .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+              .post-caption { color: #334155; font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 10px; flex-grow: 1; min-height: 70px; box-sizing: border-box; }
+              .approval-box { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px; background-color: #f8fafc; margin-top: 12px; box-sizing: border-box; }
+              .approval-title { display: block; font-weight: 800; font-size: 9px; text-transform: uppercase; color: #64748b; margin-bottom: 4px; letter-spacing: 0.05em; }
+              .approval-options { display: flex; gap: 15px; font-size: 10.5px; font-weight: bold; color: #475569; font-family: monospace; }
+              .footer { margin-top: 40px; text-align: center; font-size: 10.5px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px; }
             </style>
           </head>
           <body>
@@ -1343,7 +1343,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
       }[network.toLowerCase()] || { bg: '#f3f4f6', text: '#4b5563' };
 
       return `
-        <div class="post-card">
+        <div class="post-card report-card">
           <div class="post-header">
             <div style="display: flex; align-items: center; gap: 12px;">
               <span class="day-badge">${day.name}</span>
@@ -1385,47 +1385,54 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
         <head>
           <title>Programação Semanal - ${selectedClientDetails.name}</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+            * { box-sizing: border-box; }
             body {
-              font-family: 'Inter', sans-serif;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               color: #1e293b;
               margin: 0;
-              padding: 40px;
+              padding: 25px;
               background-color: #ffffff;
+              width: 100%;
             }
             .header {
               display: flex;
               justify-content: space-between;
               align-items: center;
               border-bottom: 3px solid #4338ca;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
+              padding-bottom: 16px;
+              margin-bottom: 24px;
+              width: 100%;
             }
             .title {
-              font-size: 24px;
+              font-size: 22px;
               font-weight: 800;
               color: #1e1b4b;
               margin: 0;
+              word-break: break-word;
+              overflow-wrap: anywhere;
             }
             .subtitle {
-              font-size: 13px;
+              font-size: 12px;
               color: #4f46e5;
               font-weight: bold;
-              margin-top: 5px;
+              margin-top: 4px;
             }
             .meta-box {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
-              gap: 20px;
-              margin-bottom: 30px;
+              gap: 16px;
+              margin-bottom: 24px;
               background-color: #f8fafc;
-              padding: 15px 20px;
+              padding: 14px 18px;
               border-radius: 12px;
               border: 1px solid #e2e8f0;
+              width: 100%;
             }
             .meta-item {
               display: flex;
               flex-direction: column;
+              min-width: 0;
+              word-break: break-word;
             }
             .meta-label {
               font-size: 9px;
@@ -1436,63 +1443,76 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               margin-bottom: 4px;
             }
             .meta-val {
-              font-size: 13px;
+              font-size: 12.5px;
               font-weight: 700;
               color: #0f172a;
+              word-break: break-word;
             }
             .posts-container {
               display: flex;
               flex-direction: column;
-              gap: 24px;
+              gap: 20px;
+              width: 100%;
             }
             .post-card {
               background: #ffffff;
               border: 1px solid #e2e8f0;
-              border-radius: 16px;
-              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02);
+              border-radius: 14px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.02);
               overflow: hidden;
-              margin-bottom: 24px;
+              margin-bottom: 20px;
               page-break-inside: avoid;
               break-inside: avoid;
+              width: 100%;
+              box-sizing: border-box;
             }
             .post-header {
               background: #f8fafc;
-              padding: 14px 20px;
+              padding: 12px 18px;
               border-bottom: 1px solid #e2e8f0;
               display: flex;
               justify-content: space-between;
               align-items: center;
+              width: 100%;
             }
             .day-badge {
-              font-size: 15px;
+              font-size: 14px;
               font-weight: 800;
               color: #1e1b4b;
             }
             .network-badge {
-              font-size: 10px;
+              font-size: 9.5px;
               font-weight: 900;
-              padding: 4px 10px;
-              border-radius: 8px;
+              padding: 4px 8px;
+              border-radius: 6px;
               text-transform: uppercase;
               letter-spacing: 0.5px;
               display: inline-block;
             }
             .post-body {
-              padding: 20px;
+              padding: 18px;
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 24px;
+              gap: 20px;
+              width: 100%;
+              box-sizing: border-box;
             }
             .post-left {
               border-right: 1px solid #f1f5f9;
-              padding-right: 20px;
+              padding-right: 18px;
               display: flex;
               flex-direction: column;
               justify-content: space-between;
+              min-width: 0;
+              word-break: break-word;
+              overflow-wrap: anywhere;
             }
             .post-right {
               display: flex;
               flex-direction: column;
+              min-width: 0;
+              word-break: break-word;
+              overflow-wrap: anywhere;
             }
             .section-label {
               font-size: 9px;
@@ -1500,13 +1520,16 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               font-weight: 800;
               color: #64748b;
               letter-spacing: 0.05em;
-              margin-bottom: 8px;
+              margin-bottom: 6px;
             }
             .post-theme {
               font-weight: 800;
               color: #1e1b4b;
-              font-size: 15px;
+              font-size: 14px;
               line-height: 1.4;
+              word-break: break-word;
+              overflow-wrap: anywhere;
+              margin-bottom: 12px;
             }
             .post-time {
               font-size: 11px;
@@ -1516,22 +1539,26 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             }
             .post-caption {
               color: #334155;
-              font-size: 12px;
-              line-height: 1.6;
+              font-size: 11.5px;
+              line-height: 1.5;
               white-space: pre-wrap;
+              word-break: break-word;
+              overflow-wrap: anywhere;
               background: #f8fafc;
               border: 1px solid #e2e8f0;
-              padding: 16px;
-              border-radius: 12px;
+              padding: 14px;
+              border-radius: 10px;
               flex-grow: 1;
-              min-height: 80px;
+              min-height: 70px;
+              box-sizing: border-box;
             }
             .approval-box {
               border: 1px dashed #cbd5e1;
-              border-radius: 10px;
-              padding: 12px;
+              border-radius: 8px;
+              padding: 10px;
               background-color: #f8fafc;
-              margin-top: 16px;
+              margin-top: 12px;
+              box-sizing: border-box;
             }
             .approval-title {
               display: block;
@@ -1539,7 +1566,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               font-size: 9px;
               text-transform: uppercase;
               color: #64748b;
-              margin-bottom: 6px;
+              margin-bottom: 4px;
               letter-spacing: 0.05em;
             }
             .approval-options {
