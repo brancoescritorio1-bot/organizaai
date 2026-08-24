@@ -295,75 +295,6 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
     }
   }, [reportClient, reportStartDate, posts]);
 
-  // Ref to prevent parallel trigger of automatic updates
-  const isPublishingRef = useRef(false);
-
-  // Automation to publish posts whose scheduled date/time is reached
-  useEffect(() => {
-    if (posts.length === 0 || isPublishingRef.current) return;
-
-    const checkAndPublishPosts = async () => {
-      const now = new Date();
-      const postsToPublish = posts.filter(post => {
-        if (post.status !== 'programado') return false;
-        
-        // Parse the scheduled date & time safely in local time
-        const datePart = post.scheduled_date.split('T')[0];
-        const timePart = post.scheduled_time || '00:00';
-        
-        const dateParts = datePart.split('-');
-        const timeParts = timePart.split(':');
-        const year = parseInt(dateParts[0], 10);
-        const month = parseInt(dateParts[1], 10) - 1; // 0-based
-        const day = parseInt(dateParts[2], 10);
-        const hours = parseInt(timeParts[0], 10) || 0;
-        const minutes = parseInt(timeParts[1], 10) || 0;
-        
-        const scheduledDateTime = new Date(year, month, day, hours, minutes);
-        return scheduledDateTime <= now;
-      });
-
-      if (postsToPublish.length === 0) return;
-
-      isPublishingRef.current = true;
-      try {
-        console.log(`[Auto-Publish] Encontrados ${postsToPublish.length} posts programados com data atingida. Publicando...`);
-        
-        const promises = postsToPublish.map(post => {
-          const updated = { ...post, status: 'publicado' as const };
-          return fetchWithAuth(`/api/marketing/posts/${post.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updated)
-          });
-        });
-
-        const responses = await Promise.all(promises);
-        const successCount = responses.filter(r => r.ok).length;
-        console.log(`[Auto-Publish] Sucesso ao publicar ${successCount} de ${postsToPublish.length} posts.`);
-
-        if (successCount > 0) {
-          // Re-fetch posts so the UI is immediately updated with 'publicado' status
-          await fetchData();
-        }
-      } catch (err) {
-        console.error("Erro na publicação automática de posts agendados:", err);
-      } finally {
-        isPublishingRef.current = false;
-      }
-    };
-
-    // Run immediately on load or when posts update
-    checkAndPublishPosts();
-
-    // Also set up a periodic check every 30 seconds
-    const interval = setInterval(() => {
-      checkAndPublishPosts();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [posts, fetchWithAuth]);
-
   // Handle Drag & Drop & Upload to 50MB Backend
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -3325,8 +3256,9 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   onChange={(e) => handleWeeklyItemChange(day.num, 'status', e.target.value)}
                                   className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700"
                                 >
-                                  <option value="rascunho">📝 Rascunho</option>
+                                  <option value="rascunho">📝 Rascunho / Tema</option>
                                   <option value="programado">⏰ Programado</option>
+                                  <option value="feito">🎨 Post Feito</option>
                                   <option value="aprovado">✅ Aprovado</option>
                                   <option value="publicado">🚀 Publicado</option>
                                 </select>

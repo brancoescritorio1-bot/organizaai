@@ -1,5 +1,6 @@
 {
   "name": "Remix: OrganizaAI",
   "description": "Dashboard financeiro para gestão de receitas, despesas e saldos da chácara.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

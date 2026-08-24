@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" width="600" height="420">
+  <defs>
+    <style>
+      .cs-green {
+        fill: none;
+        stroke: #007a3d;
+        stroke-width: 52;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .cs-gold {
+        fill: none;
+        stroke: #f1a800;
+        stroke-width: 52;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .cs-text {
+        font-family: 'Montserrat', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        font-size: 58px;
+        font-weight: 900;
+        fill: #000000;
+        letter-spacing: -1px;
+      }
+    </style>
+  </defs>
+
+  <!-- Green 'C' on the left -->
+  <path class="cs-green" d="M 230 115 A 82 82 0 1 0 230 235" />
+
+  <!-- Gold Infinity loop interlinked on the right -->
+  <!-- Left lobe of infinity (interlocking through green C) and Right lobe -->
+  <path class="cs-gold" d="M 330 175 C 275 90, 195 95, 195 175 C 195 255, 275 260, 330 175 C 385 90, 465 95, 465 175 C 465 255, 385 260, 330 175 Z" />
+
+  <!-- Click Segurança Text -->
+  <text x="300" y="365" text-anchor="middle" class="cs-text">Click Segurança</text>
+</svg>

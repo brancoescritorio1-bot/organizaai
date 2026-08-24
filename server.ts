@@ -1429,18 +1429,30 @@ app.get("/api/config", (req, res) => {
     }
   });
 
-  // Helper for status mapping with database constraints
-  const mapStatusToDb = (statusStr: string | undefined) => {
-    if (!statusStr) return 'rascunho';
-    if (statusStr === 'programado' || statusStr === 'feito' || statusStr === 'aprovado') {
-      return 'agendado';
-    }
-    return statusStr;
+  // Helper for status encoding and database constraint resilience
+  const encodeStatusInCaption = (caption: string | undefined | null, status: string) => {
+    const cleanCaption = (caption || '').replace(/^\[STATUS:[a-z_]+\]\n?/i, '');
+    return `[STATUS:${status}]\n${cleanCaption}`;
   };
 
-  const mapStatusFromDb = (statusStr: string | undefined) => {
-    if (statusStr === 'agendado') return 'programado';
-    return statusStr || 'rascunho';
+  const decodePostStatus = (post: any) => {
+    if (!post) return post;
+    let status = post.status;
+    let caption = post.caption || '';
+    
+    const match = caption.match(/^\[STATUS:([a-z_]+)\]\n?/i);
+    if (match) {
+      status = match[1];
+      caption = caption.replace(/^\[STATUS:[a-z_]+\]\n?/i, '');
+    } else if (status === 'agendado') {
+      status = 'programado';
+    }
+    
+    return {
+      ...post,
+      status: status || 'rascunho',
+      caption
+    };
   };
 
   // Marketing Posts
@@ -1457,10 +1469,7 @@ app.get("/api/config", (req, res) => {
         return res.json([]);
       }
       
-      const mapped = (data || []).map((post: any) => ({
-        ...post,
-        status: mapStatusFromDb(post.status)
-      }));
+      const mapped = (data || []).map((post: any) => decodePostStatus(post));
 
       res.json(mapped);
     } catch (err: any) {
@@ -1472,16 +1481,19 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const { title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id } = req.body;
-      console.log("POST request body:", req.body);
+      console.log("POST marketing_posts request body:", req.body);
       
-      const payload = {
+      const cleanCaption = (caption || '').replace(/^\[STATUS:[a-z_]+\]\n?/i, '');
+      const desiredStatus = status || 'rascunho';
+
+      const payload: any = {
         user_id: user.id,
         title,
         scheduled_date,
         scheduled_time,
         social_network,
-        status: status || 'rascunho',
-        caption,
+        status: desiredStatus,
+        caption: cleanCaption,
         attachment_url,
         client_id: client_id || null
       };
@@ -1490,7 +1502,9 @@ app.get("/api/config", (req, res) => {
       
       // Handle status check constraint violation if DB has restricted status ENUM/CHECK
       if (error && error.code === '23514') {
-        payload.status = mapStatusToDb(status);
+        const fallbackStatus = desiredStatus === 'rascunho' ? 'rascunho' : (desiredStatus === 'publicado' ? 'publicado' : 'agendado');
+        payload.status = fallbackStatus;
+        payload.caption = encodeStatusInCaption(cleanCaption, desiredStatus);
         const retryResult = await supabase.from("marketing_posts").insert([payload]).select().single();
         data = retryResult.data;
         error = retryResult.error;
@@ -1501,11 +1515,7 @@ app.get("/api/config", (req, res) => {
         return res.status(500).json({ error: error.message || "Erro ao salvar post no banco de dados" });
       }
 
-      if (data) {
-        data.status = mapStatusFromDb(data.status);
-      }
-
-      res.json(data);
+      res.json(decodePostStatus(data));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -1515,15 +1525,18 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const { title, scheduled_date, scheduled_time, social_network, status, caption, attachment_url, client_id } = req.body;
-      console.log("PUT request body:", req.body);
+      console.log("PUT marketing_posts request body:", req.body);
       
+      const cleanCaption = (caption || '').replace(/^\[STATUS:[a-z_]+\]\n?/i, '');
+      const desiredStatus = status || 'rascunho';
+
       const updateData: any = { 
         title, 
         scheduled_date, 
         scheduled_time, 
         social_network, 
-        status: status || 'rascunho', 
-        caption, 
+        status: desiredStatus, 
+        caption: cleanCaption, 
         attachment_url, 
         client_id: client_id || null 
       };
@@ -1533,8 +1546,11 @@ app.get("/api/config", (req, res) => {
         .eq("id", req.params.id)
         .eq("user_id", user.id);
       
+      // If DB has old check constraint on status column, retry with fallback status and encoded caption
       if (error && error.code === '23514') {
-        updateData.status = mapStatusToDb(status);
+        const fallbackStatus = desiredStatus === 'rascunho' ? 'rascunho' : (desiredStatus === 'publicado' ? 'publicado' : 'agendado');
+        updateData.status = fallbackStatus;
+        updateData.caption = encodeStatusInCaption(cleanCaption, desiredStatus);
         const retryResult = await supabase.from("marketing_posts")
           .update(updateData)
           .eq("id", req.params.id)
@@ -2199,160 +2215,340 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     }
   });
 
+  // Helper functions for Safety Reports schema resilience
+  const encodeSafetyLocationMeta = (location: string | undefined | null, meta: { supervisor?: string; status?: string; completed_at?: string | null }) => {
+    const cleanLoc = (location || "").replace(/^\[META:[^\]]+\]\n?/i, "");
+    const jsonMeta = JSON.stringify({
+      supervisor: meta.supervisor || "",
+      status: meta.status || "pending",
+      completed_at: meta.completed_at || null
+    });
+    return `[META:${jsonMeta}]\n${cleanLoc}`;
+  };
+
+  const decodeSafetyReport = (report: any) => {
+    if (!report) return report;
+    let supervisor = report.supervisor;
+    let status = report.status;
+    let completed_at = report.completed_at;
+    let location = report.location || "";
+
+    const match = location.match(/^\[META:([^\]]+)\]\n?/i);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (!supervisor && parsed.supervisor !== undefined) supervisor = parsed.supervisor;
+        if (!status && parsed.status !== undefined) status = parsed.status;
+        if (!completed_at && parsed.completed_at !== undefined) completed_at = parsed.completed_at;
+        location = location.replace(/^\[META:[^\]]+\]\n?/i, "");
+      } catch (e) {
+        console.error("Error parsing safety location metadata:", e);
+      }
+    }
+
+    return {
+      ...report,
+      location,
+      supervisor: supervisor || "",
+      status: status || "pending",
+      completed_at: completed_at || null
+    };
+  };
+
   // Safety Reports
   app.get("/api/safety/reports", async (req, res) => {
-    const user = (req as any).user;
-    const { data, error } = await supabase
-      .from("safety_reports")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching safety reports:", error.message);
-      return res.status(500).json(error);
+    try {
+      const user = (req as any).user;
+      
+      // Attempt join first with non-conformities
+      let { data, error } = await supabase
+        .from("safety_reports")
+        .select(`
+          *,
+          safety_non_conformities (id, due_date, classification, description, normative_items, suggestion)
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        // Fallback without join if foreign key relation is not explicitly mapped
+        const fallbackRes = await supabase
+          .from("safety_reports")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        data = fallbackRes.data;
+      }
+      
+      const mapped = (data || []).map((r: any) => {
+        const decoded = decodeSafetyReport(r);
+        const nonConformities = (r.safety_non_conformities || []).map((nc: any) => ({
+          id: nc.id,
+          description: nc.description || '',
+          suggestion: nc.suggestion || '',
+          normativeItems: nc.normative_items || '',
+          classification: nc.classification || 'GRAVE',
+          dueDate: nc.due_date || '',
+          images: []
+        }));
+        return {
+          ...decoded,
+          nonConformities: nonConformities.length > 0 ? nonConformities : (decoded.nonConformities || [])
+        };
+      });
+      res.json(mapped);
+    } catch (err: any) {
+      console.error("Unexpected error in GET /api/safety/reports:", err);
+      res.status(500).json({ error: err.message || "Erro ao carregar relatórios de segurança" });
     }
-    res.json(data || []);
   });
 
   app.get("/api/safety/reports/:id/non-conformities", async (req, res) => {
-    const user = (req as any).user;
-    const { id } = req.params;
+    try {
+      const user = (req as any).user;
+      const { id } = req.params;
 
-    // Verify ownership
-    const { data: report, error: rError } = await supabase
-      .from("safety_reports")
-      .select("id")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .single();
+      // Verify ownership
+      const { data: report, error: rError } = await supabase
+        .from("safety_reports")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
 
-    if (rError || !report) {
-      return res.status(403).json({ error: "Unauthorized or not found" });
+      if (rError || !report) {
+        return res.status(403).json({ error: "Unauthorized or not found" });
+      }
+
+      const { data, error } = await supabase
+        .from("safety_non_conformities")
+        .select("*")
+        .eq("report_id", id)
+        .order("created_at", { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching non-conformities:", error.message);
+        return res.status(500).json({ error: error.message });
+      }
+      
+      const mapped = (data || []).map((nc: any) => ({
+        ...nc,
+        images: Array.isArray(nc.images) && nc.images.length > 0 
+          ? nc.images 
+          : (nc.image_data ? [nc.image_data] : [])
+      }));
+
+      res.json(mapped);
+    } catch (err: any) {
+      console.error("Unexpected error in GET non-conformities:", err);
+      res.status(500).json({ error: err.message || "Erro ao carregar inconformidades" });
     }
-
-    const { data, error } = await supabase
-      .from("safety_non_conformities")
-      .select("*")
-      .eq("report_id", id)
-      .order("created_at", { ascending: true });
-    
-    if (error) {
-      console.error("Error fetching non-conformities:", error.message);
-      return res.status(500).json(error);
-    }
-    res.json(data || []);
   });
 
   app.post("/api/safety/reports", async (req, res) => {
-    const user = (req as any).user;
-    const { report_number, location, supervisor, logo_1, logo_2, non_conformities } = req.body;
+    try {
+      const user = (req as any).user;
+      const { report_number, location, supervisor, status, completed_at, logo_1, logo_2, non_conformities } = req.body;
 
-    const { data: report, error: rError } = await supabase
-      .from("safety_reports")
-      .insert([{ 
+      let payload: any = { 
         user_id: user.id, 
-        report_number, 
-        location, 
-        supervisor,
-        logo_1,
-        logo_2,
-        status: 'pending'
-      }])
-      .select()
-      .single();
+        report_number: report_number || "", 
+        location: location || "", 
+        supervisor: supervisor || "",
+        logo_1: logo_1 || null,
+        logo_2: logo_2 || null,
+        status: status || 'pending',
+        completed_at: completed_at || null
+      };
 
-    if (rError) {
-      console.error("Error creating safety report:", rError.message);
-      return res.status(500).json(rError);
-    }
+      let { data: report, error: rError } = await supabase
+        .from("safety_reports")
+        .insert([payload])
+        .select()
+        .single();
 
-    if (non_conformities && non_conformities.length > 0) {
-      const ncs = non_conformities.map((nc: any) => ({
-        report_id: report.id,
-        description: nc.description,
-        suggestion: nc.suggestion,
-        normative_items: nc.normative_items || nc.normativeItems,
-        classification: nc.classification,
-        due_date: nc.due_date || nc.dueDate,
-        images: nc.images || (nc.image ? [nc.image] : [])
-      }));
-
-      const { error: nError } = await supabase
-        .from("safety_non_conformities")
-        .insert(ncs);
-
-      if (nError) {
-        console.error("Error creating non-conformities:", nError.message);
+      // If DB doesn't have supervisor, status, or completed_at columns (PGRST204), fallback to encoded location
+      if (rError && (rError.code === 'PGRST204' || rError.message?.includes('column'))) {
+        console.warn("[Safety] Schema fallback: encoding metadata inside location string");
+        payload = {
+          user_id: user.id,
+          report_number: report_number || "",
+          location: encodeSafetyLocationMeta(location, { supervisor, status, completed_at }),
+          logo_1: logo_1 || null,
+          logo_2: logo_2 || null
+        };
+        const retryResult = await supabase
+          .from("safety_reports")
+          .insert([payload])
+          .select()
+          .single();
+        report = retryResult.data;
+        rError = retryResult.error;
       }
-    }
 
-    res.json(report);
+      if (rError || !report) {
+        console.error("Error creating safety report:", rError?.message);
+        return res.status(500).json({ error: rError?.message || "Erro ao salvar relatório no banco de dados" });
+      }
+
+      if (non_conformities && Array.isArray(non_conformities) && non_conformities.length > 0) {
+        const ncs = non_conformities.map((nc: any) => ({
+          report_id: report.id,
+          description: nc.description || "",
+          suggestion: nc.suggestion || "",
+          normative_items: nc.normative_items || nc.normativeItems || "",
+          classification: nc.classification || "GRAVE",
+          due_date: nc.due_date || nc.dueDate || null,
+          images: Array.isArray(nc.images) ? nc.images : (nc.image ? [nc.image] : [])
+        }));
+
+        let { error: nError } = await supabase
+          .from("safety_non_conformities")
+          .insert(ncs);
+
+        // Fallback for image_data column if images array fails
+        if (nError && (nError.code === 'PGRST204' || nError.message?.includes('images'))) {
+          console.warn("[Safety NC] Schema fallback: inserting with image_data");
+          const fallbackNcs = ncs.map(nc => ({
+            report_id: report.id,
+            description: nc.description,
+            suggestion: nc.suggestion,
+            normative_items: nc.normative_items,
+            classification: nc.classification,
+            due_date: nc.due_date,
+            image_data: nc.images?.[0] || null
+          }));
+          await supabase.from("safety_non_conformities").insert(fallbackNcs);
+        } else if (nError) {
+          console.error("Error creating non-conformities:", nError.message);
+        }
+      }
+
+      res.json(decodeSafetyReport(report));
+    } catch (err: any) {
+      console.error("Unexpected error in POST /api/safety/reports:", err);
+      res.status(500).json({ error: err.message || "Erro interno ao cadastrar relatório" });
+    }
   });
 
   app.put("/api/safety/reports/:id", async (req, res) => {
-    const user = (req as any).user;
-    const { id } = req.params;
-    const { report_number, location, supervisor, status, completed_at, logo_1, logo_2, non_conformities } = req.body;
+    try {
+      const user = (req as any).user;
+      const { id } = req.params;
+      const { report_number, location, supervisor, status, completed_at, logo_1, logo_2, non_conformities } = req.body;
 
-    const { data: report, error: rError } = await supabase
-      .from("safety_reports")
-      .update({ 
-        report_number, 
-        location, 
-        supervisor, 
-        status, 
-        completed_at,
-        logo_1,
-        logo_2
-      })
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .select()
-      .single();
+      let updatePayload: any = { 
+        report_number: report_number || "", 
+        location: location || "", 
+        supervisor: supervisor || "", 
+        status: status || 'pending', 
+        completed_at: completed_at || null,
+        logo_1: logo_1 || null,
+        logo_2: logo_2 || null
+      };
 
-    if (rError) {
-      console.error("Error updating safety report:", rError.message);
-      return res.status(500).json(rError);
-    }
+      let { data: report, error: rError } = await supabase
+        .from("safety_reports")
+        .update(updatePayload)
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
 
-    if (non_conformities) {
-      // Simple approach: delete existing and re-insert
-      await supabase.from("safety_non_conformities").delete().eq("report_id", id);
-      
-      if (non_conformities.length > 0) {
-        const ncs = non_conformities.map((nc: any) => ({
-          report_id: id,
-          description: nc.description,
-          suggestion: nc.suggestion,
-          normative_items: nc.normative_items || nc.normativeItems,
-          classification: nc.classification,
-          due_date: nc.due_date || nc.dueDate,
-          images: nc.images || (nc.image ? [nc.image] : [])
-        }));
-
-        await supabase.from("safety_non_conformities").insert(ncs);
+      // If DB doesn't have supervisor, status, or completed_at columns (PGRST204), fallback to encoded location
+      if (rError && (rError.code === 'PGRST204' || rError.message?.includes('column'))) {
+        console.warn("[Safety PUT] Schema fallback: encoding metadata inside location string");
+        updatePayload = {
+          report_number: report_number || "",
+          location: encodeSafetyLocationMeta(location, { supervisor, status, completed_at }),
+          logo_1: logo_1 || null,
+          logo_2: logo_2 || null
+        };
+        const retryResult = await supabase
+          .from("safety_reports")
+          .update(updatePayload)
+          .eq("id", id)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+        report = retryResult.data;
+        rError = retryResult.error;
       }
-    }
 
-    res.json(report);
+      if (rError || !report) {
+        console.error("Error updating safety report:", rError?.message);
+        return res.status(500).json({ error: rError?.message || "Erro ao atualizar relatório no banco de dados" });
+      }
+
+      if (non_conformities !== undefined) {
+        // Delete existing non-conformities and re-insert
+        await supabase.from("safety_non_conformities").delete().eq("report_id", id);
+        
+        if (Array.isArray(non_conformities) && non_conformities.length > 0) {
+          const ncs = non_conformities.map((nc: any) => ({
+            report_id: id,
+            description: nc.description || "",
+            suggestion: nc.suggestion || "",
+            normative_items: nc.normative_items || nc.normativeItems || "",
+            classification: nc.classification || "GRAVE",
+            due_date: nc.due_date || nc.dueDate || null,
+            images: Array.isArray(nc.images) ? nc.images : (nc.image ? [nc.image] : [])
+          }));
+
+          let { error: nError } = await supabase
+            .from("safety_non_conformities")
+            .insert(ncs);
+
+          if (nError && (nError.code === 'PGRST204' || nError.message?.includes('images'))) {
+            const fallbackNcs = ncs.map(nc => ({
+              report_id: id,
+              description: nc.description,
+              suggestion: nc.suggestion,
+              normative_items: nc.normative_items,
+              classification: nc.classification,
+              due_date: nc.due_date,
+              image_data: nc.images?.[0] || null
+            }));
+            await supabase.from("safety_non_conformities").insert(fallbackNcs);
+          } else if (nError) {
+            console.error("Error updating non-conformities:", nError.message);
+          }
+        }
+      }
+
+      res.json(decodeSafetyReport(report));
+    } catch (err: any) {
+      console.error("Unexpected error in PUT /api/safety/reports:", err);
+      res.status(500).json({ error: err.message || "Erro interno ao atualizar relatório" });
+    }
   });
 
   app.delete("/api/safety/reports/:id", async (req, res) => {
-    const user = (req as any).user;
-    const { id } = req.params;
+    try {
+      const user = (req as any).user;
+      const { id } = req.params;
 
-    const { error } = await supabase
-      .from("safety_reports")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id);
+      // Delete child non-conformities first
+      await supabase
+        .from("safety_non_conformities")
+        .delete()
+        .eq("report_id", id);
 
-    if (error) {
-      console.error("Error deleting safety report:", error.message);
-      return res.status(500).json(error);
+      const { error } = await supabase
+        .from("safety_reports")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error deleting safety report:", error.message);
+        return res.status(500).json({ error: error.message });
+      }
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Unexpected error in DELETE /api/safety/reports:", err);
+      res.status(500).json({ error: err.message || "Erro interno ao excluir relatório" });
     }
-    res.json({ success: true });
   });
 
   // Personal Tasks
