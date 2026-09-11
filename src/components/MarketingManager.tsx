@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialog } from './DialogContext';
 import { PdfService } from '../lib/PdfService';
+import { cn } from '../lib/utils';
 import { 
   Calendar as CalendarIcon, 
   Users, 
@@ -95,8 +96,13 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   const [payments, setPayments] = useState<MarketingPayment[]>([]);
   const [posts, setPosts] = useState<MarketingPost[]>([]);
 
-  // Search/Filters
+  // Search/Filters (Consistent with Academic & Financial modules)
   const [searchTerm, setSearchTerm] = useState('');
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'ativo' | 'prospect' | 'inativo'>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<'all' | 'pago' | 'pendente' | 'atrasado'>('all');
+  const [postSearchTerm, setPostSearchTerm] = useState('');
+  const [activeReportType, setActiveReportType] = useState<'weekly' | 'monthly' | 'multiclient'>('weekly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -629,10 +635,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
   const handleGenerateAiCaption = async () => {
     if (!postForm.title.trim()) {
-      dialogAlert({
-        title: 'Atenção',
-        message: 'Por favor, insira o título ou tema do post primeiro para que a Inteligência Artificial saiba sobre o que escrever.'
-      });
+      dialogAlert('Por favor, insira o título ou tema do post primeiro para que a Inteligência Artificial saiba sobre o que escrever.', 'Atenção');
       return;
     }
 
@@ -655,16 +658,10 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
       const data = await res.json();
       setPostForm(prev => ({ ...prev, caption: data.caption }));
-      dialogAlert({
-        title: 'Legenda Gerada!',
-        message: 'A legenda foi gerada com sucesso pela IA do OrganizaAI e inserida no campo correspondente.'
-      });
+      dialogAlert('A legenda foi gerada com sucesso pela IA do OrganizaAI e inserida no campo correspondente.', 'Legenda Gerada!');
     } catch (err: any) {
       console.error(err);
-      dialogAlert({
-        title: 'Erro',
-        message: err.message || 'Falha ao conectar ao serviço de inteligência artificial. Verifique se o servidor está ativo e com a chave configurada.'
-      });
+      dialogAlert(err.message || 'Falha ao conectar ao serviço de inteligência artificial. Verifique se o servidor está ativo e com a chave configurada.', 'Erro');
     } finally {
       setGeneratingAi(false);
     }
@@ -863,15 +860,43 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   const totalPending = payments.filter(p => p.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount), 0);
   const totalOverdue = payments.filter(p => p.status === 'atrasado').reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-  // Filter payments for search
+  // Filtered clients list with status and search term
+  const filteredClients = useMemo(() => {
+    return clients.filter(c => {
+      const matchesSearch = !clientSearchTerm || 
+        c.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) || 
+        (c.company && c.company.toLowerCase().includes(clientSearchTerm.toLowerCase())) ||
+        (c.phone && c.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()));
+      const matchesStatus = clientStatusFilter === 'all' || c.status === clientStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [clients, clientSearchTerm, clientStatusFilter]);
+
+  // Filter payments for search and status tabs (identical to Financial statement tabs)
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
       const clientName = p.marketing_clients?.name.toLowerCase() || 'pagamento avulso à parte';
       const ref = p.month_reference.toLowerCase();
       const s = searchTerm.toLowerCase();
-      return clientName.includes(s) || ref.includes(s);
+      const matchesSearch = !searchTerm || clientName.includes(s) || ref.includes(s);
+      const matchesStatus = paymentStatusFilter === 'all' || p.status === paymentStatusFilter;
+      return matchesSearch && matchesStatus;
     });
-  }, [payments, searchTerm]);
+  }, [payments, searchTerm, paymentStatusFilter]);
+
+  // Filter real posts for table search
+  const filteredRealPosts = useMemo(() => {
+    if (!postSearchTerm) return realPosts;
+    const s = postSearchTerm.toLowerCase();
+    return realPosts.filter(p => {
+      const matchingClient = clients.find(c => c.id.toString() === p.client_id?.toString());
+      const clientName = matchingClient?.name.toLowerCase() || '';
+      return p.title.toLowerCase().includes(s) || 
+        (p.caption && p.caption.toLowerCase().includes(s)) ||
+        p.social_network.toLowerCase().includes(s) ||
+        clientName.includes(s);
+    });
+  }, [realPosts, postSearchTerm, clients]);
 
   // Clients options inside Planner selector
   const selectedClientDetails = useMemo(() => {
@@ -2176,62 +2201,110 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   };
 
   return (
-    <div className="bg-gray-50/50 min-h-screen p-1 sm:p-4 font-sans antialiased text-gray-800">
+    <div className="space-y-6 text-gray-800">
       
-      {/* Dynamic Sub-tab Selector */}
-      <div className="mb-6 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex flex-wrap gap-2 items-center justify-between">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
-          <button
-            onClick={() => { setActiveSubTab('calendar'); setErrorInfo(null); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
-              activeSubTab === 'calendar' 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-            }`}
+      {/* Module Header Card */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl shadow-xs">
+            <Megaphone size={22} />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Gestão de Marketing</h2>
+            <p className="text-xs text-gray-500 font-medium">Cronograma de publicações, carteira de clientes, fluxo financeiro e relatórios em PDF</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button 
+            type="button"
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all shadow-2xs disabled:opacity-60"
+            title="Sincronizar dados com o banco de dados"
           >
-            <CalendarIcon size={16} />
-            Calendário de Conteúdo
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('clients'); setErrorInfo(null); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
-              activeSubTab === 'clients' 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-            }`}
-          >
-            <Users size={16} />
-            Clientes de Marketing
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('payments'); setErrorInfo(null); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
-              activeSubTab === 'payments' 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-            }`}
-          >
-            <DollarSign size={16} />
-            Financeiro Mensalidades
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('reports'); setErrorInfo(null); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
-              activeSubTab === 'reports' 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-            }`}
-          >
-            <Printer size={16} />
-            Emissor de Relatórios (PDF)
+            <Loader2 size={14} className={loading ? "animate-spin text-indigo-600" : "text-gray-500"} />
+            <span>Sincronizar Banco</span>
           </button>
         </div>
+      </div>
 
-        <button 
-          onClick={fetchData}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all rounded-lg"
+      {/* Sub-tab Navigation (Consistent with Academic/Financial Tab Style) */}
+      <div className="bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200/80 flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
+        <button
+          type="button"
+          onClick={() => { setActiveSubTab('calendar'); setErrorInfo(null); }}
+          className={cn(
+            "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+            activeSubTab === 'calendar' 
+              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
+              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+          )}
         >
-          Sincronizar Banco
+          <CalendarIcon size={16} />
+          <span>Calendário</span>
+          <span className={cn(
+            "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+            activeSubTab === 'calendar' ? "bg-indigo-50 text-indigo-600" : "bg-gray-200/80 text-gray-600"
+          )}>
+            {realPosts.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveSubTab('clients'); setErrorInfo(null); }}
+          className={cn(
+            "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+            activeSubTab === 'clients' 
+              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
+              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+          )}
+        >
+          <Users size={16} />
+          <span>Clientes</span>
+          <span className={cn(
+            "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+            activeSubTab === 'clients' ? "bg-indigo-50 text-indigo-600" : "bg-gray-200/80 text-gray-600"
+          )}>
+            {clients.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveSubTab('payments'); setErrorInfo(null); }}
+          className={cn(
+            "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+            activeSubTab === 'payments' 
+              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
+              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+          )}
+        >
+          <DollarSign size={16} />
+          <span>Mensalidades</span>
+          {(payments.filter(p => p.status === 'pendente' || p.status === 'atrasado').length > 0) && (
+            <span className={cn(
+              "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+              activeSubTab === 'payments' ? "bg-amber-100 text-amber-800" : "bg-amber-200 text-amber-900"
+            )}>
+              {payments.filter(p => p.status === 'pendente' || p.status === 'atrasado').length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveSubTab('reports'); setErrorInfo(null); }}
+          className={cn(
+            "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+            activeSubTab === 'reports' 
+              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
+              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+          )}
+        >
+          <FileText size={16} />
+          <span>Relatórios PDF</span>
         </button>
       </div>
 
@@ -2264,41 +2337,86 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* Quick stats on top */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm text-center">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Total Cadastrado</p>
-                <p className="text-xl font-bold text-gray-800 mt-1">{realPosts.length}</p>
+            {/* Quick stats on top (Standardized with Financial Summary Cards) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <CalendarIcon size={18} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Total</span>
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">{realPosts.length}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Posts cadastrados</p>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm text-center">
-                <p className="text-[9px] font-black text-blue-500 uppercase tracking-wider">Programados</p>
-                <p className="text-xl font-bold text-blue-600 mt-1">{realPosts.filter(p => p.status === 'programado').length}</p>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                    <Clock size={18} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Programados</span>
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-blue-600">{realPosts.filter(p => p.status === 'programado').length}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Na grade mensal</p>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm text-center">
-                <p className="text-[9px] font-black text-amber-500 uppercase tracking-wider">Posts Feitos</p>
-                <p className="text-xl font-bold text-amber-600 mt-1">{realPosts.filter(p => p.status === 'feito').length}</p>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                    <Edit2 size={18} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Produção</span>
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-amber-600">{realPosts.filter(p => p.status === 'feito').length}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Posts criados</p>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm text-center">
-                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-wider">Aprovados</p>
-                <p className="text-xl font-bold text-indigo-600 mt-1">{realPosts.filter(p => p.status === 'aprovado').length}</p>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                    <CheckCircle size={18} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Aprovados</span>
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-purple-600">{realPosts.filter(p => p.status === 'aprovado').length}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Validados pelo cliente</p>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm col-span-2 sm:col-span-1 text-center">
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-wider">Publicados</p>
-                <p className="text-xl font-bold text-emerald-600 mt-1">{realPosts.filter(p => p.status === 'publicado').length}</p>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 col-span-2 sm:col-span-1 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <TrendingUp size={18} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Publicados</span>
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-emerald-600">{realPosts.filter(p => p.status === 'publicado').length}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">No ar nas redes</p>
+                </div>
               </div>
             </div>
             
             {/* View Selector: Calendar vs Kanban */}
-            <div className="flex justify-between items-center bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm gap-3">
               <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
                 <button
                   type="button"
                   onClick={() => setMarketingViewMode('calendar')}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all",
                     marketingViewMode === 'calendar'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-800'
-                  }`}
+                      ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                      : "text-gray-500 hover:text-gray-800"
+                  )}
                 >
                   <CalendarIcon size={14} />
                   Calendário Mensal
@@ -2306,11 +2424,12 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <button
                   type="button"
                   onClick={() => setMarketingViewMode('kanban')}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all",
                     marketingViewMode === 'kanban'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-800'
-                  }`}
+                      ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                      : "text-gray-500 hover:text-gray-800"
+                  )}
                 >
                   <Layers size={14} />
                   Quadro Kanban (Fluxo)
@@ -2321,16 +2440,16 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <button
                   type="button"
                   onClick={() => handleOpenPostModal(undefined, undefined, true)}
-                  className="flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-100 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all w-full sm:w-auto justify-center"
+                  className="flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all shadow-2xs w-full sm:w-auto justify-center"
                 >
-                  <Plus size={12} /> Novo Feriado / Data
+                  <Plus size={13} /> Novo Feriado / Data
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenPostModal()}
-                  className="flex items-center gap-1 bg-indigo-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
+                  className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
                 >
-                  <Plus size={12} /> Novo Post
+                  <Plus size={13} /> Novo Post
                 </button>
               </div>
             </div>
@@ -2339,48 +2458,48 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
               <>
                 {/* Interactive Monthly Grid Calendar */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-col sm:flex-row gap-3">
-                <div className="flex items-center gap-2.5">
-                  <CalendarIcon className="text-indigo-600" size={18} />
-                  <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Calendário de Conteúdo Mensal</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={handlePrevMonth} className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-600 transition-all">
-                    <ChevronLeft size={16} />
-                  </button>
-                  <span className="font-black text-gray-800 text-xs sm:text-sm uppercase tracking-widest min-w-[130px] text-center">
-                    {monthNames[selectedMonth]} {selectedYear}
-                  </span>
-                  <button onClick={handleNextMonth} className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-600 transition-all">
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <button
-                    onClick={() => handleOpenPostModal(undefined, undefined, true)}
-                    className="flex items-center gap-1 bg-rose-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-rose-700 transition-all shadow-sm w-full sm:w-auto justify-center"
-                  >
-                    <Plus size={14} /> Novo Feriado
-                  </button>
-                  <button
-                    onClick={() => handleOpenPostModal()}
-                    className="flex items-center gap-1 bg-indigo-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
-                  >
-                    <Plus size={14} /> Novo Post
-                  </button>
-                </div>
-              </div>
+                  <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-col sm:flex-row gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <CalendarIcon size={16} />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Calendário de Conteúdo</h3>
+                        <p className="text-[11px] text-gray-400 font-medium">Visualização mensal de publicações e datas comemorativas</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-white border border-gray-200/80 px-2 py-1 rounded-xl shadow-2xs">
+                      <button 
+                        onClick={handlePrevMonth} 
+                        className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition-all"
+                        title="Mês Anterior"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="font-black text-gray-800 text-xs sm:text-sm uppercase tracking-widest min-w-[130px] text-center">
+                        {monthNames[selectedMonth]} {selectedYear}
+                      </span>
+                      <button 
+                        onClick={handleNextMonth} 
+                        className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition-all"
+                        title="Próximo Mês"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Day of Week Headers */}
-              <div className="grid grid-cols-7 border-b border-gray-100 text-center py-2 bg-gray-50/20 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <span>Dom</span>
-                <span>Seg</span>
-                <span>Ter</span>
-                <span>Qua</span>
-                <span>Qui</span>
-                <span>Sex</span>
-                <span>Sáb</span>
-              </div>
+                  {/* Day of Week Headers */}
+                  <div className="grid grid-cols-7 border-b border-gray-100 text-center py-2 bg-gray-50/40 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <span>Dom</span>
+                    <span>Seg</span>
+                    <span>Ter</span>
+                    <span>Qua</span>
+                    <span>Qui</span>
+                    <span>Sex</span>
+                    <span>Sáb</span>
+                  </div>
 
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 bg-gray-100/30 gap-px">
@@ -2471,17 +2590,40 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
             {/* Structured Table Listing with Status Actions */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Fila Completa de Postagens</h3>
-                <span className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-lg">
-                  {realPosts.length} cadastradas
-                </span>
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <Megaphone size={16} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Fila Completa de Postagens</h3>
+                    <p className="text-[11px] text-gray-400 font-medium">Controle e alteração rápida de fluxo de todas as postagens</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                    <input
+                      type="text"
+                      value={postSearchTerm}
+                      onChange={(e) => setPostSearchTerm(e.target.value)}
+                      placeholder="Buscar post, tema ou cliente..."
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
+                    />
+                  </div>
+                  <span className="text-xs text-indigo-600 font-bold bg-indigo-50 border border-indigo-100/60 px-2.5 py-1.5 rounded-xl whitespace-nowrap">
+                    {filteredRealPosts.length} posts
+                  </span>
+                </div>
               </div>
 
-              {realPosts.length === 0 ? (
+              {filteredRealPosts.length === 0 ? (
                 <div className="p-8 text-center text-gray-400">
                   <Megaphone className="mx-auto text-gray-300 mb-2" size={32} />
-                  <p className="text-xs">Nenhum post agendado no calendário.</p>
+                  <p className="text-xs">
+                    {postSearchTerm ? "Nenhum post corresponde à busca digitada." : "Nenhum post agendado no calendário."}
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -2497,7 +2639,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
-                      {realPosts.map(post => {
+                      {filteredRealPosts.map(post => {
                         const matchingClient = clients.find(c => c.id.toString() === post.client_id?.toString());
                         return (
                           <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
@@ -2649,17 +2791,22 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
         ) : (
           <div className="space-y-4 animate-fade-in">
             {/* Kanban Board View */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
-              <div className="space-y-1 text-left">
-                <h4 className="font-extrabold text-indigo-900 text-sm flex items-center gap-2">
-                  <Layers size={16} className="text-indigo-600" /> Quadro de Fluxo Kanban
-                </h4>
-                <p className="text-xs text-indigo-700 font-medium">
-                  Arraste e solte os cards de postagens ou use os botões direcionais de atalho para avançar/retroceder o fluxo de aprovação.
-                </p>
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                  <Layers size={18} />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-gray-900 text-sm">Quadro de Fluxo Kanban</h4>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    Arraste os cards entre as fases ou use os botões direcionais para avançar e aprovar postagens.
+                  </p>
+                </div>
               </div>
-              <div className="text-[10px] text-indigo-600 bg-white border border-indigo-100 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider">
-                {realPosts.length} postagens ativas
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <span className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-3 py-1.5 rounded-xl font-bold">
+                  {realPosts.length} postagens no fluxo
+                </span>
               </div>
             </div>
 
@@ -2826,52 +2973,148 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* Client metrics card */}
+            {/* Client metrics card (Standardized with Financial Summary Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Clientes Ativos</p>
-                  <p className="text-2xl font-black text-indigo-600 mt-1">{activeClientsCount}</p>
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Users size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Ativos</span>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600"><Users size={20} /></div>
-              </div>
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Prospects / Leads</p>
-                  <p className="text-2xl font-black text-amber-600 mt-1">{prospectClientsCount}</p>
+                  <h3 className="text-2xl font-bold text-indigo-600">{activeClientsCount}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Com contrato vigente</p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-600"><Sparkles size={20} /></div>
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                    <Sparkles size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Prospects</span>
+                </div>
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recorrência Mensal Estimada</p>
-                  <p className="text-2xl font-black text-emerald-600 mt-1">
+                  <h3 className="text-2xl font-bold text-amber-600">{prospectClientsCount}</h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Leads em negociação</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <TrendingUp size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Recorrência Mensal</span>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-emerald-600">
                     R$ {totalMonthlyFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Faturamento fixo previsto</p>
                 </div>
-                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600"><TrendingUp size={20} /></div>
               </div>
             </div>
 
             {/* Clients Grid */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Users className="text-indigo-600" size={18} />
-                  <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Carteira de Clientes de Marketing</h3>
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <Users size={16} />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Carteira de Clientes de Marketing</h3>
+                      <p className="text-[11px] text-gray-400 font-medium">Contratos ativos, planos contratados e dias de publicação</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleOpenClientModal()}
+                      className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
+                    >
+                      <Plus size={14} /> Adicionar Cliente
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleOpenClientModal()}
-                  className="flex items-center gap-1 bg-indigo-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
-                >
-                  <Plus size={14} /> Adicionar Cliente
-                </button>
+
+                {/* Toolbar Filters: Status pills & Search */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 border-t border-gray-100/60">
+                  <div className="flex bg-gray-100/80 p-1 rounded-xl gap-1 overflow-x-auto">
+                    <button
+                      type="button"
+                      onClick={() => setClientStatusFilter('all')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        clientStatusFilter === 'all'
+                          ? "bg-white text-indigo-600 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Todos ({clients.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClientStatusFilter('ativo')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        clientStatusFilter === 'ativo'
+                          ? "bg-white text-emerald-700 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Ativos ({activeClientsCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClientStatusFilter('prospect')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        clientStatusFilter === 'prospect'
+                          ? "bg-white text-amber-700 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Prospects ({prospectClientsCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClientStatusFilter('inativo')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        clientStatusFilter === 'inativo'
+                          ? "bg-white text-gray-700 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Inativos ({clients.filter(c => c.status === 'inativo').length})
+                    </button>
+                  </div>
+
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                    <input
+                      type="text"
+                      value={clientSearchTerm}
+                      onChange={(e) => setClientSearchTerm(e.target.value)}
+                      placeholder="Buscar por cliente, empresa..."
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {clients.length === 0 ? (
+              {filteredClients.length === 0 ? (
                 <div className="p-8 text-center text-gray-400">
                   <Users className="mx-auto text-gray-300 mb-2" size={32} />
-                  <p className="text-xs">Nenhum cliente cadastrado ainda.</p>
+                  <p className="text-xs">
+                    {clientSearchTerm || clientStatusFilter !== 'all' 
+                      ? "Nenhum cliente corresponde aos filtros aplicados." 
+                      : "Nenhum cliente cadastrado ainda."}
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -2888,7 +3131,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
-                      {clients.map(client => (
+                      {filteredClients.map(client => (
                         <tr key={client.id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-5 py-4">
                             <div>
@@ -2964,71 +3207,165 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* Quick cash stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="bg-white p-4 border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Total Recebido</p>
-                  <p className="text-lg font-black text-emerald-600 mt-1">R$ {totalCollected.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            {/* Quick cash stats (Standardized with Financial Summary Cards) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <CheckCircle size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Recebido</span>
                 </div>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle size={18} /></div>
+                <div>
+                  <h3 className="text-2xl font-bold text-emerald-600">
+                    R$ {totalCollected.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Pagamentos confirmados</p>
+                </div>
               </div>
-              <div className="bg-white p-4 border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Pendente / A Receber</p>
-                  <p className="text-lg font-black text-amber-600 mt-1">R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+
+              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                    <Clock size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Pendente</span>
                 </div>
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Clock size={18} /></div>
+                <div>
+                  <h3 className="text-2xl font-bold text-amber-600">
+                    R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Aguardando vencimento</p>
+                </div>
               </div>
-              <div className="bg-white p-4 border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Atrasado / Pendente</p>
-                  <p className="text-lg font-black text-rose-600 mt-1">R$ {totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+
+              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Atrasado</span>
                 </div>
-                <div className="p-2 bg-rose-50 text-rose-600 rounded-xl"><AlertTriangle size={18} /></div>
+                <div>
+                  <h3 className="text-2xl font-bold text-rose-600">
+                    R$ {totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Cobranças vencidas</p>
+                </div>
               </div>
-              <div className="bg-white p-4 border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Total Lançamentos</p>
-                  <p className="text-lg font-black text-indigo-700 mt-1">R$ {(totalCollected + totalPending + totalOverdue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+
+              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <DollarSign size={20} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Total Geral</span>
                 </div>
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><DollarSign size={18} /></div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    R$ {(totalCollected + totalPending + totalOverdue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Volume de mensalidades</p>
+                </div>
               </div>
             </div>
 
             {/* List and tools */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="text-indigo-600" size={18} />
-                    <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Mensalidades & Recebíveis</h3>
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <DollarSign size={16} />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Mensalidades & Recebíveis</h3>
+                      <p className="text-[11px] text-gray-400 font-medium">Controle de faturamento, cobranças pendentes e conciliação</p>
+                    </div>
                   </div>
-                  
-                  {/* Search box */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
+
+                  <button
+                    onClick={() => handleOpenPaymentModal()}
+                    className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
+                  >
+                    <Plus size={14} /> Novo Lançamento
+                  </button>
+                </div>
+
+                {/* Toolbar Filters: Status pills & Search (Identical to StrictFinanceDashboard) */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 border-t border-gray-100/60">
+                  <div className="flex bg-gray-100/80 p-1 rounded-xl gap-1 overflow-x-auto">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStatusFilter('all')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        paymentStatusFilter === 'all'
+                          ? "bg-white text-indigo-600 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Todos ({payments.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStatusFilter('pago')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        paymentStatusFilter === 'pago'
+                          ? "bg-white text-emerald-700 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Pagos ({payments.filter(p => p.status === 'pago').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStatusFilter('pendente')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        paymentStatusFilter === 'pendente'
+                          ? "bg-white text-amber-700 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Pendentes ({payments.filter(p => p.status === 'pendente').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStatusFilter('atrasado')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                        paymentStatusFilter === 'atrasado'
+                          ? "bg-white text-rose-700 shadow-xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      Atrasados ({payments.filter(p => p.status === 'atrasado').length})
+                    </button>
+                  </div>
+
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
                     <input
                       type="text"
                       placeholder="Pesquisar cliente ou referência..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs w-full sm:w-60 font-semibold"
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
                     />
                   </div>
                 </div>
-
-                <button
-                  onClick={() => handleOpenPaymentModal()}
-                  className="flex items-center gap-1 bg-indigo-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
-                >
-                  <Plus size={14} /> Novo Lançamento
-                </button>
               </div>
 
               {filteredPayments.length === 0 ? (
                 <div className="p-8 text-center text-gray-400">
-                  <p className="text-xs">Nenhum lançamento financeiro encontrado.</p>
+                  <DollarSign className="mx-auto text-gray-300 mb-2" size={32} />
+                  <p className="text-xs">
+                    {searchTerm || paymentStatusFilter !== 'all'
+                      ? "Nenhum lançamento corresponde aos filtros aplicados."
+                      : "Nenhum lançamento financeiro registrado."}
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -3123,233 +3460,318 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* SECTION A: WEEKLY PLANNER */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                  <Sparkles className="text-indigo-600" size={18} />
-                  <h3 className="font-extrabold text-gray-800 uppercase tracking-wide text-xs">1. Emissor de Cronograma Semanal (PDF)</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                  <div>
-                    <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Atendido</label>
-                    <select
-                      value={reportClient}
-                      onChange={(e) => setReportClient(e.target.value)}
-                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold"
-                    >
-                      <option value="">Selecione um cliente</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.company || 'Empresa'})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Segunda-feira de Início</label>
-                    <input
-                      type="date"
-                      value={reportStartDate}
-                      onChange={(e) => setReportStartDate(e.target.value)}
-                      className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold"
-                    />
-                  </div>
-                </div>
-
-                {/* Display client's standard publication days */}
-                {selectedClientDetails && (
-                  <div className="p-3 bg-indigo-50/70 rounded-xl text-indigo-900 text-xs flex items-center justify-between gap-2 border border-indigo-100">
-                    <div>
-                      <span className="font-bold">Dias habituais de publicação:</span>{' '}
-                      <span className="font-extrabold uppercase text-indigo-950">
-                        {selectedClientDetails.publication_days || "Todos os dias"}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowAllDaysInPlanner(prev => !prev)}
-                      className="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-white text-indigo-700 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-200/60 shadow-sm whitespace-nowrap"
-                    >
-                      {showAllDaysInPlanner ? "Filtrar Dias Habituais" : "Exibir Todos os 7 Dias"}
-                    </button>
-                  </div>
+            {/* Sub-selector of Report Type (Identical to Academic and Financial sub-modules) */}
+            <div className="bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200/80 flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
+              <button
+                type="button"
+                onClick={() => setActiveReportType('weekly')}
+                className={cn(
+                  "flex-1 min-w-[150px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+                  activeReportType === 'weekly'
+                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
                 )}
+              >
+                <Sparkles size={16} />
+                <span>Cronograma Semanal</span>
+              </button>
 
-                {/* Days form builder */}
-                <div className="space-y-4 border-t border-gray-100 pt-4 max-h-[380px] overflow-y-auto pr-1">
-                  {!reportClient ? (
-                    <div className="p-8 text-center text-gray-400">
-                      <p className="text-xs">Por favor, selecione um cliente para exibir o cronograma de publicações.</p>
+              <button
+                type="button"
+                onClick={() => setActiveReportType('monthly')}
+                className={cn(
+                  "flex-1 min-w-[150px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+                  activeReportType === 'monthly'
+                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+                )}
+              >
+                <FileText size={16} />
+                <span>Relatório Mensal</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveReportType('multiclient')}
+                className={cn(
+                  "flex-1 min-w-[150px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
+                  activeReportType === 'multiclient'
+                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+                )}
+              >
+                <Layers size={16} />
+                <span>Status Multicliente</span>
+              </button>
+            </div>
+
+            {/* REPORT 1: WEEKLY PLANNER */}
+            {activeReportType === 'weekly' && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <Sparkles size={18} />
                     </div>
-                  ) : clientDaysOfWeek.length === 0 ? (
-                    <div className="p-8 text-center text-amber-600 bg-amber-50 rounded-xl border border-amber-100">
-                      <p className="text-xs font-bold">Aviso</p>
-                      <p className="text-[11px] mt-1">Este cliente não possui nenhum dia de publicação cadastrado. Edite o cadastro do cliente para selecionar os dias habituais de publicação.</p>
+                    <div>
+                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+                        1. Emissor de Cronograma Semanal
+                      </h3>
+                      <p className="text-[11px] text-gray-400 font-medium">
+                        Monte a pauta da semana por cliente, salve diretamente no Kanban e exporte em PDF ou WhatsApp
+                      </p>
                     </div>
-                  ) : (
-                    clientDaysOfWeek.map(day => {
-                      const item = weeklyPlannerItems[day.num] || { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' };
-                      return (
-                        <div key={day.num} className={`p-3 rounded-xl border transition-all space-y-2 ${item.existingPostId ? 'bg-emerald-50/30 border-emerald-200/80 shadow-xs' : 'bg-gray-50 border-gray-200/60'}`}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-xs text-indigo-950">{day.name}</span>
-                              {item.existingPostId && (
-                                <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
-                                  ✓ Salvo no Kanban
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
-                                <input 
-                                  type="radio" 
-                                  checked={item.isCustom} 
-                                  onChange={() => handleWeeklyItemChange(day.num, 'isCustom', true)}
-                                />
-                                Digitar Tema
-                              </label>
-                              <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
-                                <input 
-                                  type="radio" 
-                                  checked={!item.isCustom} 
-                                  disabled={clientDraftPosts.length === 0}
-                                  onChange={() => handleWeeklyItemChange(day.num, 'isCustom', false)}
-                                />
-                                Buscar Rascunho ({clientDraftPosts.length})
-                              </label>
-                            </div>
-                          </div>
-
-                          {item.isCustom ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                placeholder="Título do Tema ou Assunto..."
-                                value={item.customTheme}
-                                onChange={(e) => handleWeeklyItemChange(day.num, 'customTheme', e.target.value)}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                              />
-                              <textarea
-                                placeholder="Legenda / Observação / Ideia do Post..."
-                                rows={2}
-                                value={item.caption}
-                                onChange={(e) => handleWeeklyItemChange(day.num, 'caption', e.target.value)}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                              />
-                              <div className="grid grid-cols-3 gap-2">
-                                <select
-                                  value={item.social_network}
-                                  onChange={(e) => handleWeeklyItemChange(day.num, 'social_network', e.target.value)}
-                                  className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold"
-                                >
-                                  <option value="instagram">Instagram</option>
-                                  <option value="facebook">Facebook</option>
-                                  <option value="youtube">YouTube</option>
-                                  <option value="tiktok">TikTok</option>
-                                  <option value="other">Outra</option>
-                                </select>
-
-                                <select
-                                  value={item.status || 'rascunho'}
-                                  onChange={(e) => handleWeeklyItemChange(day.num, 'status', e.target.value)}
-                                  className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700"
-                                >
-                                  <option value="rascunho">📝 Rascunho / Tema</option>
-                                  <option value="programado">⏰ Programado</option>
-                                  <option value="feito">🎨 Post Feito</option>
-                                  <option value="aprovado">✅ Aprovado</option>
-                                  <option value="publicado">🚀 Publicado</option>
-                                </select>
-
-                                <input
-                                  type="time"
-                                  value={item.scheduled_time || '12:00'}
-                                  onChange={(e) => handleWeeklyItemChange(day.num, 'scheduled_time', e.target.value)}
-                                  className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold"
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <select
-                                value={item.postId}
-                                onChange={(e) => handleWeeklyItemChange(day.num, 'postId', e.target.value)}
-                                className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-bold"
-                              >
-                                <option value="">-- Selecionar Post em Rascunho --</option>
-                                {clientDraftPosts.map(p => (
-                                  <option key={p.id} value={p.id}>[{p.social_network.toUpperCase()}] {p.title}</option>
-                                ))}
-                              </select>
-                              
-                              {item.postId && (
-                                <div className="mt-2 p-2 bg-white rounded border border-gray-100 text-[11px] text-gray-500 line-clamp-2 italic">
-                                  Legenda: {item.caption || '(Sem legenda)'}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
+                  </div>
+                  {selectedClientDetails && (
+                    <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                      Cliente: {selectedClientDetails.name}
+                    </span>
                   )}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={handlePrintWeeklyAndSave}
-                    disabled={!reportClient || isSavingWeekly}
-                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase text-[10px] sm:text-xs tracking-wider rounded-xl transition-all shadow flex items-center justify-center gap-2 disabled:opacity-50"
-                    title="Salva todos os temas no Kanban e gera o relatório em PDF"
-                  >
-                    <Printer size={16} /> Salvar & Gerar PDF
-                  </button>
+                <div className="p-6 space-y-5">
+                  {/* Selectors */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                        Cliente Atendido *
+                      </label>
+                      <select
+                        value={reportClient}
+                        onChange={(e) => setReportClient(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800"
+                      >
+                        <option value="">Selecione um cliente</option>
+                        {clients.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} ({c.company || 'Empresa'})</option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSaveWeeklyToKanban(false)}
-                    disabled={!reportClient || isSavingWeekly}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold uppercase text-[10px] sm:text-xs tracking-wider rounded-xl transition-all shadow flex items-center justify-center gap-2 disabled:opacity-50"
-                    title="Apenas salva as postagens e temas diretamente no fluxo Kanban"
-                  >
-                    {isSavingWeekly ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <Layers size={16} />
-                    )}
-                    Salvar no Kanban
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleShareWeeklyWhatsApp}
-                  disabled={!reportClient}
-                  className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow flex items-center justify-center gap-2 disabled:opacity-50"
-                  title="Compartilhar programação da semana para aprovação via WhatsApp"
-                >
-                  <MessageSquare size={16} /> Compartilhar no WhatsApp
-                </button>
-              </div>
-
-              {/* SECTION B: MONTHLY REPORT */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                    <Layers className="text-indigo-600" size={18} />
-                    <h3 className="font-extrabold text-gray-800 uppercase tracking-wide text-xs">2. Relatório de Postagens Mensal (PDF)</h3>
+                    <div>
+                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                        Segunda-feira da Semana *
+                      </label>
+                      <input
+                        type="date"
+                        value={reportStartDate}
+                        onChange={(e) => setReportStartDate(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-3 text-xs sm:text-sm">
+                  {/* Display client's standard publication days */}
+                  {selectedClientDetails && (
+                    <div className="p-3.5 bg-indigo-50/70 rounded-xl text-indigo-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-indigo-100">
+                      <div>
+                        <span className="font-bold">Dias habituais de publicação:</span>{' '}
+                        <span className="font-extrabold uppercase text-indigo-950">
+                          {selectedClientDetails.publication_days || "Todos os dias"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAllDaysInPlanner(prev => !prev)}
+                        className="px-3 py-1.5 text-[10px] font-extrabold uppercase bg-white text-indigo-700 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-200/80 shadow-2xs whitespace-nowrap"
+                      >
+                        {showAllDaysInPlanner ? "Filtrar Dias Habituais" : "Exibir Todos os 7 Dias"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Days form builder */}
+                  <div className="space-y-4 border-t border-gray-100 pt-4 max-h-[460px] overflow-y-auto pr-1">
+                    {!reportClient ? (
+                      <div className="p-12 text-center text-gray-400">
+                        <Sparkles className="mx-auto text-gray-300 mb-2" size={32} />
+                        <p className="text-xs font-medium">Por favor, selecione um cliente para montar a programação da semana.</p>
+                      </div>
+                    ) : clientDaysOfWeek.length === 0 ? (
+                      <div className="p-6 text-center text-amber-700 bg-amber-50 rounded-2xl border border-amber-200">
+                        <p className="text-xs font-bold">Nenhum dia habitual configurado</p>
+                        <p className="text-[11px] mt-1">Este cliente não possui dias de publicação cadastrados. Clique em "Exibir Todos os 7 Dias" acima para programar posts.</p>
+                      </div>
+                    ) : (
+                      clientDaysOfWeek.map(day => {
+                        const item = weeklyPlannerItems[day.num] || { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' };
+                        return (
+                          <div key={day.num} className={`p-4 rounded-2xl border transition-all space-y-3 ${item.existingPostId ? 'bg-emerald-50/20 border-emerald-200/80 shadow-xs' : 'bg-gray-50/60 border-gray-200/80'}`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-xs text-gray-900">{day.name}</span>
+                                {item.existingPostId && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
+                                    ✓ Salvo no Kanban
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
+                                  <input 
+                                    type="radio" 
+                                    checked={item.isCustom} 
+                                    onChange={() => handleWeeklyItemChange(day.num, 'isCustom', true)}
+                                  />
+                                  Digitar Tema
+                                </label>
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
+                                  <input 
+                                    type="radio" 
+                                    checked={!item.isCustom} 
+                                    disabled={clientDraftPosts.length === 0}
+                                    onChange={() => handleWeeklyItemChange(day.num, 'isCustom', false)}
+                                  />
+                                  Buscar Rascunho ({clientDraftPosts.length})
+                                </label>
+                              </div>
+                            </div>
+
+                            {item.isCustom ? (
+                              <div className="space-y-2.5">
+                                <input
+                                  type="text"
+                                  placeholder="Título do Tema ou Assunto..."
+                                  value={item.customTheme}
+                                  onChange={(e) => handleWeeklyItemChange(day.num, 'customTheme', e.target.value)}
+                                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                <textarea
+                                  placeholder="Legenda / Observação / Ideia do Post..."
+                                  rows={2}
+                                  value={item.caption}
+                                  onChange={(e) => handleWeeklyItemChange(day.num, 'caption', e.target.value)}
+                                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                  <select
+                                    value={item.social_network}
+                                    onChange={(e) => handleWeeklyItemChange(day.num, 'social_network', e.target.value)}
+                                    className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold"
+                                  >
+                                    <option value="instagram">Instagram</option>
+                                    <option value="facebook">Facebook</option>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="other">Outra</option>
+                                  </select>
+
+                                  <select
+                                    value={item.status || 'rascunho'}
+                                    onChange={(e) => handleWeeklyItemChange(day.num, 'status', e.target.value)}
+                                    className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700"
+                                  >
+                                    <option value="rascunho">📝 Rascunho / Tema</option>
+                                    <option value="programado">⏰ Programado</option>
+                                    <option value="feito">🎨 Post Feito</option>
+                                    <option value="aprovado">✅ Aprovado</option>
+                                    <option value="publicado">🚀 Publicado</option>
+                                  </select>
+
+                                  <input
+                                    type="time"
+                                    value={item.scheduled_time || '12:00'}
+                                    onChange={(e) => handleWeeklyItemChange(day.num, 'scheduled_time', e.target.value)}
+                                    className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <select
+                                  value={item.postId}
+                                  onChange={(e) => handleWeeklyItemChange(day.num, 'postId', e.target.value)}
+                                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold"
+                                >
+                                  <option value="">-- Selecionar Post em Rascunho --</option>
+                                  {clientDraftPosts.map(p => (
+                                    <option key={p.id} value={p.id}>[{p.social_network.toUpperCase()}] {p.title}</option>
+                                  ))}
+                                </select>
+                                
+                                {item.postId && (
+                                  <div className="mt-2 p-2.5 bg-white rounded-xl border border-gray-100 text-[11px] text-gray-500 line-clamp-2 italic">
+                                    Legenda: {item.caption || '(Sem legenda)'}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Action Buttons Toolbar */}
+                  <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={handlePrintWeeklyAndSave}
+                      disabled={!reportClient || isSavingWeekly}
+                      className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      title="Salva todos os temas no Kanban e gera o relatório em PDF"
+                    >
+                      <Printer size={16} /> Salvar & Gerar PDF
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveWeeklyToKanban(false)}
+                      disabled={!reportClient || isSavingWeekly}
+                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      title="Apenas salva as postagens e temas diretamente no fluxo Kanban"
+                    >
+                      {isSavingWeekly ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Layers size={16} />
+                      )}
+                      Salvar no Kanban
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleShareWeeklyWhatsApp}
+                      disabled={!reportClient}
+                      className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      title="Compartilhar programação da semana para aprovação via WhatsApp"
+                    >
+                      <MessageSquare size={16} /> Enviar via WhatsApp
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* REPORT 2: MONTHLY REPORT */}
+            {activeReportType === 'monthly' && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <FileText size={18} />
+                    </div>
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente</label>
+                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+                        2. Relatório de Postagens Mensal
+                      </h3>
+                      <p className="text-[11px] text-gray-400 font-medium">
+                        Consolidado analítico mensal de postagens, métricas e comprovação de entregas para o cliente
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                        Cliente *
+                      </label>
                       <select
                         value={monthlyReportClient}
                         onChange={(e) => setMonthlyReportClient(e.target.value)}
-                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold"
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800"
                       >
                         {clients.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
@@ -3357,137 +3779,174 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Mês</label>
-                        <select
-                          value={monthlyReportMonth}
-                          onChange={(e) => setMonthlyReportMonth(Number(e.target.value))}
-                          className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold"
-                        >
-                          {monthNames.map((m, idx) => (
-                            <option key={idx} value={idx}>{m}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Ano</label>
-                        <select
-                          value={monthlyReportYear}
-                          onChange={(e) => setMonthlyReportYear(Number(e.target.value))}
-                          className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono font-bold"
-                        >
-                          <option value={2026}>2026</option>
-                          <option value={2025}>2025</option>
-                        </select>
-                      </div>
+                    <div>
+                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                        Mês de Referência *
+                      </label>
+                      <select
+                        value={monthlyReportMonth}
+                        onChange={(e) => setMonthlyReportMonth(Number(e.target.value))}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800"
+                      >
+                        {monthNames.map((m, idx) => (
+                          <option key={idx} value={idx}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                        Ano *
+                      </label>
+                      <select
+                        value={monthlyReportYear}
+                        onChange={(e) => setMonthlyReportYear(Number(e.target.value))}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800"
+                      >
+                        <option value={2026}>2026</option>
+                        <option value={2025}>2025</option>
+                        <option value={2024}>2024</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* Summary of what will be printed */}
-                  <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
-                    <h4 className="font-extrabold text-[10px] uppercase text-gray-400 tracking-wider">Posts Encontrados no Período</h4>
+                  {/* Summary Preview Cards (Standardized KPI Style) */}
+                  <div className="p-5 bg-gray-50/70 rounded-2xl border border-gray-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-xs uppercase text-gray-500 tracking-wider">
+                        Prévia dos Posts Encontrados no Mês
+                      </h4>
+                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
+                        {monthNames[monthlyReportMonth]} / {monthlyReportYear}
+                      </span>
+                    </div>
                     
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-gray-400 font-bold">Total Encontrado</span>
-                        <p className="text-base font-black text-indigo-950 mt-0.5">{monthlyMetrics.total}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
+                        <span className="text-[10px] uppercase font-bold text-gray-400">Total Encontrado</span>
+                        <p className="text-2xl font-black text-gray-900 mt-1">{monthlyMetrics.total}</p>
+                        <span className="text-[10px] text-gray-400">postagens no período</span>
                       </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-emerald-500 font-bold">Publicados</span>
-                        <p className="text-base font-black text-emerald-600 mt-0.5">{monthlyMetrics.published}</p>
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
+                        <span className="text-[10px] uppercase font-bold text-emerald-600">Publicados</span>
+                        <p className="text-2xl font-black text-emerald-600 mt-1">{monthlyMetrics.published}</p>
+                        <span className="text-[10px] text-emerald-600/70">concluídos e no ar</span>
                       </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-indigo-500 font-bold">Aprovados</span>
-                        <p className="text-base font-black text-indigo-600 mt-0.5">{monthlyMetrics.approved}</p>
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
+                        <span className="text-[10px] uppercase font-bold text-indigo-600">Aprovados</span>
+                        <p className="text-2xl font-black text-indigo-600 mt-1">{monthlyMetrics.approved}</p>
+                        <span className="text-[10px] text-indigo-600/70">validados pelo cliente</span>
                       </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-amber-500 font-bold">Feito / Em Produção</span>
-                        <p className="text-base font-black text-amber-600 mt-0.5">{monthlyMetrics.inProd}</p>
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
+                        <span className="text-[10px] uppercase font-bold text-amber-600">Em Produção</span>
+                        <p className="text-2xl font-black text-amber-600 mt-1">{monthlyMetrics.inProd}</p>
+                        <span className="text-[10px] text-amber-600/70">design / redação</span>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={handlePrintMonthlyReport}
+                      disabled={!monthlyReportClient || monthlyMetrics.total === 0}
+                      className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Printer size={16} /> Gerar PDF do Relatório Mensal Completo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* REPORT 3: MULTI-CLIENT STATUS REPORT */}
+            {activeReportType === 'multiclient' && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+                        3. Relatório Semanal Multicliente por Status
+                      </h3>
+                      <p className="text-[11px] text-gray-400 font-medium">
+                        Visão panorâmica de produção de toda a carteira de clientes para a semana selecionada
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={handlePrintMonthlyReport}
-                  disabled={!monthlyReportClient || monthlyMetrics.total === 0}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Printer size={16} /> Gerar PDF do Relatório Mensal
-                </button>
-              </div>
-
-              {/* SECTION C: WEEKLY MULTI-CLIENT STATUS REPORT */}
-              <div className="md:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                  <Layers className="text-indigo-600" size={18} />
-                  <h3 className="font-extrabold text-gray-800 uppercase tracking-wide text-xs">3. Relatório Semanal Multicliente por Status (PDF)</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                  <div>
-                    <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Escolha a Segunda-feira da Semana</label>
-                    <input
-                      type="date"
-                      value={weeklyStatusReportStartDate}
-                      onChange={(e) => setWeeklyStatusReportStartDate(e.target.value)}
-                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold"
-                    />
-                  </div>
-                  
-                  <button
-                    onClick={handlePrintWeeklyStatusReport}
-                    disabled={weeklyStatusReportPosts.length === 0}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Printer size={16} /> Gerar Relatório Semanal Multicliente
-                  </button>
-                </div>
-
-                {/* Live Preview Metrics for Chosen Week */}
-                <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-extrabold text-[10px] uppercase text-gray-400 tracking-wider">Posts da Semana Selecionada</h4>
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                      {weeklyStatusMetrics.uniqueClientsCount} {weeklyStatusMetrics.uniqueClientsCount === 1 ? 'cliente' : 'clientes'} com atividade
-                    </span>
-                  </div>
-                  
-                  {weeklyStatusReportPosts.length === 0 ? (
-                    <p className="text-xs text-gray-500 italic text-center py-2">Nenhuma postagem cadastrada para o período selecionado.</p>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-gray-400 font-bold">Total Posts</span>
-                        <p className="text-sm font-black text-indigo-950 mt-0.5">{weeklyStatusMetrics.total}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-gray-400 font-bold">Rascunhos</span>
-                        <p className="text-sm font-black text-gray-600 mt-0.5">{weeklyStatusMetrics.drafts}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-blue-500 font-bold">Programados</span>
-                        <p className="text-sm font-black text-blue-600 mt-0.5">{weeklyStatusMetrics.scheduled}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-amber-500 font-bold">Em Produção</span>
-                        <p className="text-sm font-black text-amber-600 mt-0.5">{weeklyStatusMetrics.inProd}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-indigo-500 font-bold">Aprovados</span>
-                        <p className="text-sm font-black text-indigo-600 mt-0.5">{weeklyStatusMetrics.approved}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded-lg border border-gray-200/50">
-                        <span className="text-emerald-500 font-bold">Publicados</span>
-                        <p className="text-sm font-black text-emerald-600 mt-0.5">{weeklyStatusMetrics.published}</p>
-                      </div>
+                <div className="p-6 space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                    <div>
+                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                        Escolha a Segunda-feira da Semana *
+                      </label>
+                      <input
+                        type="date"
+                        value={weeklyStatusReportStartDate}
+                        onChange={(e) => setWeeklyStatusReportStartDate(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800"
+                      />
                     </div>
-                  )}
+                    
+                    <button
+                      onClick={handlePrintWeeklyStatusReport}
+                      disabled={weeklyStatusReportPosts.length === 0}
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Printer size={16} /> Gerar Relatório Semanal Multicliente (PDF)
+                    </button>
+                  </div>
+
+                  {/* Live Preview Metrics for Chosen Week */}
+                  <div className="p-5 bg-gray-50/70 rounded-2xl border border-gray-200/70 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-extrabold text-xs uppercase text-gray-500 tracking-wider">
+                        Panorama da Semana Selecionada
+                      </h4>
+                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl">
+                        {weeklyStatusMetrics.uniqueClientsCount} {weeklyStatusMetrics.uniqueClientsCount === 1 ? 'cliente' : 'clientes'} com atividade
+                      </span>
+                    </div>
+                    
+                    {weeklyStatusReportPosts.length === 0 ? (
+                      <div className="p-8 text-center text-gray-400 bg-white rounded-xl border border-gray-100">
+                        <p className="text-xs font-medium">Nenhuma postagem cadastrada para o período selecionado.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
+                          <span className="text-[10px] uppercase font-bold text-gray-400">Total Posts</span>
+                          <p className="text-xl font-black text-gray-900 mt-0.5">{weeklyStatusMetrics.total}</p>
+                        </div>
+                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
+                          <span className="text-[10px] uppercase font-bold text-gray-400">Rascunhos</span>
+                          <p className="text-xl font-black text-gray-600 mt-0.5">{weeklyStatusMetrics.drafts}</p>
+                        </div>
+                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
+                          <span className="text-[10px] uppercase font-bold text-blue-600">Programados</span>
+                          <p className="text-xl font-black text-blue-600 mt-0.5">{weeklyStatusMetrics.scheduled}</p>
+                        </div>
+                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
+                          <span className="text-[10px] uppercase font-bold text-amber-600">Em Produção</span>
+                          <p className="text-xl font-black text-amber-600 mt-0.5">{weeklyStatusMetrics.inProd}</p>
+                        </div>
+                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
+                          <span className="text-[10px] uppercase font-bold text-indigo-600">Aprovados</span>
+                          <p className="text-xl font-black text-indigo-600 mt-0.5">{weeklyStatusMetrics.approved}</p>
+                        </div>
+                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
+                          <span className="text-[10px] uppercase font-bold text-emerald-600">Publicados</span>
+                          <p className="text-xl font-black text-emerald-600 mt-0.5">{weeklyStatusMetrics.published}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-            </div>
+            )}
           </motion.div>
         )}
 

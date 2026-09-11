@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, FileText, Download, Copy, CheckCircle2, Image as ImageIcon, X, History, Edit2, Check, Clock, AlertTriangle, Shield, Calendar, Settings, Sparkles, CheckCircle, AlertOctagon, Eye, Mail, Send, Palette, ExternalLink, RotateCcw, Bell, Timer, Hourglass, CheckSquare, Square, Layers } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Copy, CheckCircle2, Image as ImageIcon, X, History, Edit2, Check, Clock, AlertTriangle, Shield, Calendar, Settings, Sparkles, CheckCircle, AlertOctagon, Eye, Mail, Send, Palette, ExternalLink, RotateCcw, Bell, Timer, Hourglass, CheckSquare, Square, Layers, Database, Save, Upload } from 'lucide-react';
 import { WhatsAppIcon, getGreeting } from '../MainApp';
 import jsPDF from 'jspdf';
 import { cn } from '../lib/utils';
@@ -221,6 +221,22 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // Saved default logos from database
+  const [savedLogos, setSavedLogos] = useState<{ logo_1: string | null; logo_2: string | null }>(() => {
+    try {
+      const saved = localStorage.getItem('safety_default_logos');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { logo_1: null, logo_2: null };
+  });
+  const [showLogosModal, setShowLogosModal] = useState(false);
+  const [modalLogo1, setModalLogo1] = useState<string | null>(null);
+  const [modalLogo2, setModalLogo2] = useState<string | null>(null);
+  const [savingLogos, setSavingLogos] = useState(false);
+  const [logosModalSuccess, setLogosModalSuccess] = useState(false);
+  const [editorSavingLogo, setEditorSavingLogo] = useState(false);
+  const [editorLogoSuccess, setEditorLogoSuccess] = useState(false);
+
   // Formatting config with local storage persistence
   const [msgConfig, setMsgConfig] = useState<MessageFormatConfig>(() => {
     try {
@@ -246,6 +262,60 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
   const [previewTab, setPreviewTab] = useState<'email' | 'whatsapp'>('email');
   const [configTab, setConfigTab] = useState<'bold' | 'colors' | 'text'>('bold');
 
+  // Helper para comprimir e converter imagem de logo mantendo qualidade
+  const compressImageFile = (file: File, maxDim = 800): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            resolve(canvas.toDataURL(mime, 0.92));
+          } else {
+            resolve(reader.result as string);
+          }
+        };
+        img.onerror = () => resolve(reader.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Determina as logos efetivas para renderização no PDF e relatórios
+  const getEffectiveLogos = (reportLogo1?: string, reportLogo2?: string) => {
+    // 1. Se o relatório possui uma logo personalizada diferente do modelo padrão original, respeita-a
+    // 2. Se o usuário salvou uma logo preferida no banco de dados, utiliza-a
+    // 3. Caso contrário, utiliza o padrão oficial do sistema
+    const l1 = (reportLogo1 && reportLogo1 !== DEFAULT_LOGOS.logo1)
+      ? reportLogo1
+      : (savedLogos.logo_1 || DEFAULT_LOGOS.logo1);
+
+    const l2 = (reportLogo2 && reportLogo2 !== DEFAULT_LOGOS.logo2)
+      ? reportLogo2
+      : (savedLogos.logo_2 || DEFAULT_LOGOS.logo2);
+
+    return { l1, l2 };
+  };
+
   useEffect(() => {
     try {
       localStorage.setItem('safety_msg_config', JSON.stringify(msgConfig));
@@ -255,8 +325,80 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
   useEffect(() => {
     if (fetchWithAuth) {
       loadReports();
+      loadSafetySettings();
     }
   }, [fetchWithAuth]);
+
+  const loadSafetySettings = async () => {
+    if (!fetchWithAuth) return;
+    try {
+      const res = await fetchWithAuth('/api/safety/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.logo_1 !== undefined || data.logo_2 !== undefined)) {
+          const loaded = {
+            logo_1: data.logo_1 || null,
+            logo_2: data.logo_2 || null
+          };
+          setSavedLogos(loaded);
+          try {
+            localStorage.setItem('safety_default_logos', JSON.stringify(loaded));
+          } catch (e) {}
+
+          // Se o relatório em edição estiver usando o padrão oficial, atualiza com a logo salva
+          setCurrentReport(prev => {
+            const effective1 = (prev.logo_1 === DEFAULT_LOGOS.logo1 && loaded.logo_1) ? loaded.logo_1 : prev.logo_1;
+            const effective2 = (prev.logo_2 === DEFAULT_LOGOS.logo2 && loaded.logo_2) ? loaded.logo_2 : prev.logo_2;
+            return { ...prev, logo_1: effective1, logo_2: effective2 };
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error loading safety settings:", err);
+    }
+  };
+
+  // Salva permanentemente as logos no banco de dados
+  const saveLogosToDatabase = async (l1: string | null, l2: string | null) => {
+    if (!fetchWithAuth) return false;
+    setSavingLogos(true);
+    try {
+      const res = await fetchWithAuth('/api/safety/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logo_1: l1 || null,
+          logo_2: l2 || null
+        })
+      });
+      if (res.ok) {
+        const newLogos = { logo_1: l1 || null, logo_2: l2 || null };
+        setSavedLogos(newLogos);
+        try {
+          localStorage.setItem('safety_default_logos', JSON.stringify(newLogos));
+        } catch (e) {}
+        setLogosModalSuccess(true);
+        setTimeout(() => setLogosModalSuccess(false), 4000);
+        return true;
+      } else {
+        const err = await res.json().catch(() => ({}));
+        dialogAlert(err.error || "Não foi possível salvar a logo no banco de dados.", "Erro ao Salvar no Banco");
+        return false;
+      }
+    } catch (err: any) {
+      dialogAlert(err.message || "Falha ao conectar com o servidor.", "Erro de Conexão");
+      return false;
+    } finally {
+      setSavingLogos(false);
+    }
+  };
+
+  const openLogosModal = () => {
+    setModalLogo1(savedLogos.logo_1 || DEFAULT_LOGOS.logo1);
+    setModalLogo2(savedLogos.logo_2 || DEFAULT_LOGOS.logo2);
+    setLogosModalSuccess(false);
+    setShowLogosModal(true);
+  };
 
   const loadReports = async () => {
     if (!fetchWithAuth) return;
@@ -284,10 +426,11 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       const res = await fetchWithAuth(`/api/safety/reports/${report.id}/non-conformities`);
       if (res.ok) {
         const ncs = await res.json();
+        const { l1, l2 } = getEffectiveLogos(report.logo_1, report.logo_2);
         setCurrentReport({
           ...report,
-          logo_1: report.logo_1 || DEFAULT_LOGOS.logo1,
-          logo_2: report.logo_2 || DEFAULT_LOGOS.logo2,
+          logo_1: l1,
+          logo_2: l2,
           nonConformities: ncs.map((nc: any) => ({
             id: nc.id,
             description: nc.description || '',
@@ -452,17 +595,14 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
     }));
   };
 
-  const handleLogoUpload = (logoNum: 1 | 2, file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCurrentReport(prev => ({
-        ...prev,
-        [`logo_${logoNum}`]: reader.result as string
-      }));
-    };
-    if (file) {
-      reader.readAsDataURL(file);
-    }
+  const handleLogoUpload = async (logoNum: 1 | 2, file: File) => {
+    if (!file) return;
+    const base64 = await compressImageFile(file, 900);
+    if (!base64) return;
+    setCurrentReport(prev => ({
+      ...prev,
+      [`logo_${logoNum}`]: base64
+    }));
   };
 
   const handleImageUpload = (index: number, file: File) => {
@@ -887,10 +1027,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       setSelectedReportIds([]);
     } catch (err) {
       console.error("Error batch completing reports:", err);
-      dialogAlert({
-        title: 'Erro',
-        message: 'Ocorreu um erro ao atualizar os relatórios selecionados.'
-      });
+      dialogAlert('Ocorreu um erro ao atualizar os relatórios selecionados.', 'Erro');
     } finally {
       setLoading(false);
     }
@@ -905,10 +1042,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
     const isExportingCurrentDraft = validIds.length === 0 && Boolean(currentReport.report_number || currentReport.nonConformities.length > 0);
 
     if (validIds.length === 0 && !isExportingCurrentDraft) {
-      dialogAlert({
-        title: 'Nenhum Click Selecionado',
-        message: 'Selecione pelo menos um Click Segurança para gerar o PDF agrupado.'
-      });
+      dialogAlert('Selecione pelo menos um Click Segurança para gerar o PDF agrupado.', 'Nenhum Click Selecionado');
       return;
     }
 
@@ -971,10 +1105,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       }
 
       if (fullReports.length === 0) {
-        dialogAlert({
-          title: 'Aviso',
-          message: 'Nenhum dado de relatório encontrado para exportação.'
-        });
+        dialogAlert('Nenhum dado de relatório encontrado para exportação.', 'Aviso');
         return;
       }
 
@@ -1002,8 +1133,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       };
 
       const drawHeader = (yPos: number, logo1?: string, logo2?: string) => {
-        const l1 = logo1 || DEFAULT_LOGOS.logo1;
-        const l2 = logo2 || DEFAULT_LOGOS.logo2;
+        const { l1, l2 } = getEffectiveLogos(logo1, logo2);
         if (l1) addImageSafe(l1, margin, yPos, 40, 24);
         if (l2) {
           const copasaW = 46;
@@ -1349,10 +1479,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       doc.save(fileName);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      dialogAlert({
-        title: 'Erro ao gerar PDF',
-        message: 'Ocorreu um erro ao processar os relatórios para o arquivo PDF.'
-      });
+      dialogAlert('Ocorreu um erro ao processar os relatórios para o arquivo PDF.', 'Erro ao gerar PDF');
     } finally {
       setLoading(false);
     }
@@ -1485,6 +1612,20 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 ))}
               </div>
               <button
+                onClick={openLogosModal}
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90 rounded-xl transition-all font-bold text-xs shadow-2xs group"
+                title="Configurar e salvar as logos padrão no banco de dados para todos os relatórios e PDFs"
+              >
+                <Database size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                <span>Logos no Banco</span>
+                {(savedLogos.logo_1 || savedLogos.logo_2) && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setShowConfigModal(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors font-bold text-xs"
                 title="Configurar formatação da mensagem padrão"
@@ -1494,13 +1635,14 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               </button>
               <button
                 onClick={() => {
+                  const { l1, l2 } = getEffectiveLogos();
                   setCurrentReport({
                     report_number: '',
                     location: '',
                     supervisor: '',
                     status: 'pending',
-                    logo_1: DEFAULT_LOGOS.logo1,
-                    logo_2: DEFAULT_LOGOS.logo2,
+                    logo_1: l1,
+                    logo_2: l2,
                     nonConformities: []
                   });
                   setView('editor');
@@ -1939,19 +2081,30 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 <label className="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider">
                   Logo 1 • Click Segurança
                 </label>
-                {currentReport.logo_1 === DEFAULT_LOGOS.logo1 ? (
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md">
-                    Padrão Oficial
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => setCurrentReport(prev => ({ ...prev, logo_1: DEFAULT_LOGOS.logo1 }))}
-                    className="text-[10px] font-bold text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors"
-                    title="Restaurar logo padrão do Click Segurança"
-                  >
-                    <RotateCcw size={11} /> Restaurar Padrão
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {currentReport.logo_1 === savedLogos.logo_1 && savedLogos.logo_1 ? (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                      <Database size={10} /> Salva no Banco
+                    </span>
+                  ) : currentReport.logo_1 === DEFAULT_LOGOS.logo1 ? (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-md">
+                      Padrão Oficial
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
+                      Personalizada
+                    </span>
+                  )}
+                  {currentReport.logo_1 !== DEFAULT_LOGOS.logo1 && (
+                    <button
+                      onClick={() => setCurrentReport(prev => ({ ...prev, logo_1: DEFAULT_LOGOS.logo1 }))}
+                      className="text-[10px] font-bold text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors ml-1"
+                      title="Restaurar logo padrão do Click Segurança"
+                    >
+                      <RotateCcw size={11} /> Padrão
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-16 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-2xs">
@@ -1974,19 +2127,30 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 <label className="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider">
                   Logo 2 • Copasa
                 </label>
-                {currentReport.logo_2 === DEFAULT_LOGOS.logo2 ? (
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md">
-                    Padrão Oficial
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => setCurrentReport(prev => ({ ...prev, logo_2: DEFAULT_LOGOS.logo2 }))}
-                    className="text-[10px] font-bold text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors"
-                    title="Restaurar logo padrão da Copasa"
-                  >
-                    <RotateCcw size={11} /> Restaurar Padrão
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {currentReport.logo_2 === savedLogos.logo_2 && savedLogos.logo_2 ? (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                      <Database size={10} /> Salva no Banco
+                    </span>
+                  ) : currentReport.logo_2 === DEFAULT_LOGOS.logo2 ? (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-md">
+                      Padrão Oficial
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
+                      Personalizada
+                    </span>
+                  )}
+                  {currentReport.logo_2 !== DEFAULT_LOGOS.logo2 && (
+                    <button
+                      onClick={() => setCurrentReport(prev => ({ ...prev, logo_2: DEFAULT_LOGOS.logo2 }))}
+                      className="text-[10px] font-bold text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors ml-1"
+                      title="Restaurar logo padrão da Copasa"
+                    >
+                      <RotateCcw size={11} /> Padrão
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-16 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-2xs">
@@ -2001,6 +2165,43 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                   <span>Substituir Logo</span>
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(2, e.target.files[0])} />
                 </label>
+              </div>
+            </div>
+
+            {/* Ação de Persistência no Banco de Dados */}
+            <div className="md:col-span-2 pt-3 border-t border-gray-200/80 flex flex-wrap items-center justify-between gap-3 bg-white/70 p-3 rounded-xl">
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <Database size={16} className="text-emerald-600 flex-shrink-0" />
+                <span>
+                  {savedLogos.logo_1 || savedLogos.logo_2 
+                    ? 'Logos padrão ativas do banco de dados. Elas são aplicadas automaticamente em todos os PDFs.'
+                    : 'Deseja fixar estas logos para que todos os novos Clicks e PDFs sempre usem elas?'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {editorLogoSuccess && (
+                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 animate-in fade-in">
+                    <CheckCircle2 size={14} /> Salvo no Banco com Sucesso!
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={editorSavingLogo}
+                  onClick={async () => {
+                    setEditorSavingLogo(true);
+                    const ok = await saveLogosToDatabase(currentReport.logo_1 || null, currentReport.logo_2 || null);
+                    setEditorSavingLogo(false);
+                    if (ok) {
+                      setEditorLogoSuccess(true);
+                      setTimeout(() => setEditorLogoSuccess(false), 4000);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all disabled:opacity-50 cursor-pointer"
+                  title="Gravar estas logos no banco de dados para sempre serem as logos padrão em novos relatórios e PDFs"
+                >
+                  <Save size={13} />
+                  {editorSavingLogo ? 'Salvando no Banco...' : 'Salvar estas Logos no Banco de Dados'}
+                </button>
               </div>
             </div>
           </div>
@@ -2614,6 +2815,200 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                   Salvar Preferências
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Configuração de Logos Padrão (Salvas no Banco de Dados) */}
+      {showLogosModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl shadow-2xs">
+                  <Database size={22} />
+                </div>
+                <div>
+                  <h3 className="font-black text-gray-900 text-lg">Logos Padrão no Banco de Dados</h3>
+                  <p className="text-xs text-gray-500">Salve as logos oficiais no banco para sempre gerar os PDFs com elas</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowLogosModal(false)} 
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Banner de Sucesso */}
+            {logosModalSuccess && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
+                <span>Logos gravadas com sucesso no banco de dados! A partir de agora, todos os novos Clicks e PDFs gerados usarão essas logos automaticamente.</span>
+              </div>
+            )}
+
+            {/* Conteúdo do Modal */}
+            <div className="space-y-4 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Logo 1 */}
+                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-200 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-black text-gray-800 uppercase tracking-wider">Logo 1 • Principal</h4>
+                      {modalLogo1 === savedLogos.logo_1 && savedLogos.logo_1 ? (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                          <Database size={10} /> Salva no Banco
+                        </span>
+                      ) : modalLogo1 === DEFAULT_LOGOS.logo1 ? (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 text-gray-700 rounded-md">
+                          Padrão Oficial
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-md">
+                          Nova Logo Selecionada
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-500 mb-3">Logo do Click Segurança ou a marca principal da sua empresa.</p>
+
+                    <div className="w-full h-24 rounded-xl border border-gray-200 bg-white p-2 flex items-center justify-center shadow-inner mb-3 overflow-hidden">
+                      <img 
+                        src={modalLogo1 || DEFAULT_LOGOS.logo1} 
+                        alt="Logo 1 Preview" 
+                        className="max-h-full max-w-full object-contain" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 border border-gray-300 hover:border-emerald-400 rounded-xl cursor-pointer text-xs font-bold transition-all shadow-2xs">
+                      <Upload size={13} className="text-emerald-600" />
+                      <span>Substituir</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const b64 = await compressImageFile(file, 900);
+                            if (b64) setModalLogo1(b64);
+                          }
+                        }} 
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setModalLogo1(DEFAULT_LOGOS.logo1)}
+                      className="px-2.5 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 border border-gray-200 rounded-xl text-xs font-bold transition-colors"
+                      title="Restaurar padrão oficial do sistema"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Logo 2 */}
+                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-200 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-black text-gray-800 uppercase tracking-wider">Logo 2 • Secundária</h4>
+                      {modalLogo2 === savedLogos.logo_2 && savedLogos.logo_2 ? (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                          <Database size={10} /> Salva no Banco
+                        </span>
+                      ) : modalLogo2 === DEFAULT_LOGOS.logo2 ? (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 text-gray-700 rounded-md">
+                          Padrão Oficial
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-md">
+                          Nova Logo Selecionada
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-500 mb-3">Logo da Copasa ou contratante parceiro para o cabeçalho.</p>
+
+                    <div className="w-full h-24 rounded-xl border border-gray-200 bg-white p-2 flex items-center justify-center shadow-inner mb-3 overflow-hidden">
+                      <img 
+                        src={modalLogo2 || DEFAULT_LOGOS.logo2} 
+                        alt="Logo 2 Preview" 
+                        className="max-h-full max-w-full object-contain" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 border border-gray-300 hover:border-emerald-400 rounded-xl cursor-pointer text-xs font-bold transition-all shadow-2xs">
+                      <Upload size={13} className="text-emerald-600" />
+                      <span>Substituir</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const b64 = await compressImageFile(file, 900);
+                            if (b64) setModalLogo2(b64);
+                          }
+                        }} 
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setModalLogo2(DEFAULT_LOGOS.logo2)}
+                      className="px-2.5 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 border border-gray-200 rounded-xl text-xs font-bold transition-colors"
+                      title="Restaurar padrão oficial do sistema"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Informação sobre os PDFs */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-2.5">
+                <Shield size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-600">
+                  <strong className="text-slate-800">Como funciona:</strong> Ao salvar, estas imagens são gravadas diretamente no banco de dados e passam a ser o padrão oficial de toda a sua conta. Todos os relatórios PDF que você gerar (seja individualmente ou agrupados) carregarão essas logos automaticamente no cabeçalho oficial.
+                </p>
+              </div>
+            </div>
+
+            {/* Rodapé de Ações */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowLogosModal(false)}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={savingLogos}
+                onClick={async () => {
+                  const ok = await saveLogosToDatabase(modalLogo1 || null, modalLogo2 || null);
+                  if (ok) {
+                    // Também atualiza o relatório atual em edição se for o caso
+                    setCurrentReport(prev => ({
+                      ...prev,
+                      logo_1: modalLogo1 || DEFAULT_LOGOS.logo1,
+                      logo_2: modalLogo2 || DEFAULT_LOGOS.logo2
+                    }));
+                  }
+                }}
+                className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+              >
+                <Database size={15} />
+                <span>{savingLogos ? 'Salvando no Banco...' : 'Salvar Logos no Banco de Dados'}</span>
+              </button>
             </div>
           </div>
         </div>

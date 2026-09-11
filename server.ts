@@ -63,7 +63,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey || supabaseKey, {
 });
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -1676,20 +1676,74 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     }
   });
 
-  // --- Chácara Module Routes ---
+  // --- Chácara Module Helpers & Routes ---
+  const encodeChacaraUserPhone = (phone: string, meta: { street?: string; house_number?: string; cpf?: string }) => {
+    const cleanPhone = (phone || "").replace(/^\[META:[^\]]+\]\n?/is, "");
+    if (!meta.street && !meta.house_number && !meta.cpf) {
+      return cleanPhone;
+    }
+    const jsonMeta = JSON.stringify({
+      street: meta.street || "",
+      house_number: meta.house_number || "",
+      cpf: meta.cpf || ""
+    });
+    return `[META:${jsonMeta}]\n${cleanPhone}`;
+  };
+
+  const decodeChacaraUser = (u: any) => {
+    if (!u) return u;
+    let street = u.street || u.rua || "";
+    let house_number = u.house_number || u.casa || "";
+    let cpf = u.cpf || "";
+    let phone = u.phone || "";
+
+    const match = phone.match(/^\[META:([^\]]+)\]\n?(.*)$/s);
+    if (match) {
+      try {
+        const meta = JSON.parse(match[1]);
+        if (!street && meta.street) street = meta.street;
+        if (!house_number && meta.house_number) house_number = meta.house_number;
+        if (!cpf && meta.cpf) cpf = meta.cpf;
+        phone = match[2] || "";
+      } catch (e) {
+        console.error("Error decoding chacara user metadata:", e);
+      }
+    }
+
+    return {
+      ...u,
+      phone,
+      street,
+      house_number,
+      cpf
+    };
+  };
+
   app.get("/api/chacara/users", async (req, res) => {
     const user = (req as any).user;
     const { data, error } = await supabase.from("chacara_users").select("*").eq("user_id", user.id).order('name');
     if (error) return res.status(500).json(error);
-    res.json(data || []);
+    const mapped = (data || []).map((u: any) => decodeChacaraUser(u));
+    res.json(mapped);
   });
 
   app.post("/api/chacara/users", async (req, res) => {
     const user = (req as any).user;
-    const { name, phone, has_energy, has_water, energy_meters_count, water_meters_count, energy_active, water_active } = req.body;
-    const { data, error } = await supabase.from("chacara_users").insert([{ 
+    const { 
+      name, phone, has_energy, has_water, energy_meters_count, water_meters_count, energy_active, water_active,
+      street, house_number, cpf, rua, casa 
+    } = req.body;
+
+    const finalStreet = street || rua || "";
+    const finalHouseNumber = house_number || casa || "";
+    const finalCpf = cpf || "";
+
+    const payloadWithCols: any = { 
       name, 
       phone, 
+      street: finalStreet,
+      house_number: finalHouseNumber,
+      cpf: finalCpf,
       user_id: user.id,
       has_energy: has_energy !== undefined ? has_energy : true,
       has_water: has_water !== undefined ? has_water : true,
@@ -1697,26 +1751,78 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       water_meters_count: water_meters_count || 1,
       energy_active: energy_active !== undefined ? energy_active : true,
       water_active: water_active !== undefined ? water_active : true
-    }]).select().single();
+    };
+
+    let { data, error } = await supabase.from("chacara_users").insert([payloadWithCols]).select().single();
+
+    // Fallback if columns street/house_number/cpf do not exist in DB yet (error 42703)
+    if (error && error.code === '42703') {
+      const fallbackPayload = {
+        name,
+        phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf }),
+        user_id: user.id,
+        has_energy: has_energy !== undefined ? has_energy : true,
+        has_water: has_water !== undefined ? has_water : true,
+        energy_meters_count: energy_meters_count || 1,
+        water_meters_count: water_meters_count || 1,
+        energy_active: energy_active !== undefined ? energy_active : true,
+        water_active: water_active !== undefined ? water_active : true
+      };
+      const retry = await supabase.from("chacara_users").insert([fallbackPayload]).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) return res.status(500).json(error);
-    res.json(data);
+    res.json(decodeChacaraUser(data));
   });
 
   app.put("/api/chacara/users/:id", async (req, res) => {
     const user = (req as any).user;
-    const { name, phone, has_energy, has_water, energy_meters_count, water_meters_count, energy_active, water_active } = req.body;
-    const { error } = await supabase.from("chacara_users").update({ 
+    const { 
+      name, phone, has_energy, has_water, energy_meters_count, water_meters_count, energy_active, water_active,
+      street, house_number, cpf, rua, casa 
+    } = req.body;
+
+    const finalStreet = street || rua || "";
+    const finalHouseNumber = house_number || casa || "";
+    const finalCpf = cpf || "";
+
+    const updateWithCols: any = { 
       name, 
       phone,
+      street: finalStreet,
+      house_number: finalHouseNumber,
+      cpf: finalCpf,
       has_energy,
       has_water,
       energy_meters_count: energy_meters_count || 1,
       water_meters_count: water_meters_count || 1,
       energy_active: energy_active !== undefined ? energy_active : true,
       water_active: water_active !== undefined ? water_active : true
-    }).eq("id", req.params.id).eq("user_id", user.id);
+    };
+
+    let { data, error } = await supabase.from("chacara_users").update(updateWithCols).eq("id", req.params.id).eq("user_id", user.id).select().single();
+
+    // Fallback if columns street/house_number/cpf do not exist in DB yet (error 42703)
+    if (error && error.code === '42703') {
+      const fallbackUpdate = {
+        name,
+        phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf }),
+        has_energy,
+        has_water,
+        energy_meters_count: energy_meters_count || 1,
+        water_meters_count: water_meters_count || 1,
+        energy_active: energy_active !== undefined ? energy_active : true,
+        water_active: water_active !== undefined ? water_active : true
+      };
+      const retry = await supabase.from("chacara_users").update(fallbackUpdate).eq("id", req.params.id).eq("user_id", user.id).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) return res.status(500).json(error);
-    res.json({ success: true });
+    res.json(decodeChacaraUser(data) || { success: true });
   });
 
   app.delete("/api/chacara/users/:id", async (req, res) => {
@@ -2268,6 +2374,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
           safety_non_conformities (id, due_date, classification, description, normative_items, suggestion)
         `)
         .eq("user_id", user.id)
+        .neq("report_number", "__safety_default_logos__")
         .order("created_at", { ascending: false });
       
       if (error) {
@@ -2276,11 +2383,14 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
           .from("safety_reports")
           .select("*")
           .eq("user_id", user.id)
+          .neq("report_number", "__safety_default_logos__")
           .order("created_at", { ascending: false });
         data = fallbackRes.data;
       }
       
-      const mapped = (data || []).map((r: any) => {
+      const mapped = (data || [])
+        .filter((r: any) => r.report_number !== '__safety_default_logos__')
+        .map((r: any) => {
         const decoded = decodeSafetyReport(r);
         const nonConformities = (r.safety_non_conformities || []).map((nc: any) => ({
           id: nc.id,
@@ -2548,6 +2658,135 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     } catch (err: any) {
       console.error("Unexpected error in DELETE /api/safety/reports:", err);
       res.status(500).json({ error: err.message || "Erro interno ao excluir relatório" });
+    }
+  });
+
+  // Safety Settings (Logos padrão do banco de dados)
+  app.get("/api/safety/settings", async (req, res) => {
+    try {
+      const user = (req as any).user;
+
+      // 1. Tentar tabela safety_settings
+      const { data: sData, error: sError } = await supabase
+        .from("safety_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (!sError && sData && sData.length > 0) {
+        return res.json({
+          logo_1: sData[0].logo_1 || null,
+          logo_2: sData[0].logo_2 || null,
+          updated_at: sData[0].updated_at || sData[0].created_at
+        });
+      }
+
+      // 2. Fallback transparente para safety_reports com report_number = '__safety_default_logos__'
+      const { data: rData, error: rError } = await supabase
+        .from("safety_reports")
+        .select("logo_1, logo_2, created_at")
+        .eq("user_id", user.id)
+        .eq("report_number", "__safety_default_logos__")
+        .limit(1);
+
+      if (!rError && rData && rData.length > 0) {
+        return res.json({
+          logo_1: rData[0].logo_1 || null,
+          logo_2: rData[0].logo_2 || null,
+          updated_at: rData[0].created_at
+        });
+      }
+
+      // Nenhuma logo salva ainda
+      res.json({ logo_1: null, logo_2: null });
+    } catch (err: any) {
+      console.error("Unexpected error in GET /api/safety/settings:", err);
+      res.status(500).json({ error: err.message || "Erro ao carregar configurações de segurança" });
+    }
+  });
+
+  app.put("/api/safety/settings", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { logo_1, logo_2 } = req.body;
+
+      // 1. Tentar salvar na tabela safety_settings se ela existir
+      const { data: existingSettings, error: checkError } = await supabase
+        .from("safety_settings")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (!checkError) {
+        if (existingSettings && existingSettings.length > 0) {
+          const { error: updErr } = await supabase
+            .from("safety_settings")
+            .update({
+              logo_1: logo_1 || null,
+              logo_2: logo_2 || null,
+              updated_at: new Date().toISOString()
+            })
+            .eq("user_id", user.id);
+          if (!updErr) {
+            return res.json({ success: true, savedIn: "safety_settings" });
+          }
+        } else {
+          const { error: insErr } = await supabase
+            .from("safety_settings")
+            .insert([{
+              user_id: user.id,
+              logo_1: logo_1 || null,
+              logo_2: logo_2 || null
+            }]);
+          if (!insErr) {
+            return res.json({ success: true, savedIn: "safety_settings" });
+          }
+        }
+      }
+
+      // 2. Fallback direto para tabela safety_reports (garantida de existir)
+      const { data: existingReport } = await supabase
+        .from("safety_reports")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("report_number", "__safety_default_logos__")
+        .limit(1);
+
+      if (existingReport && existingReport.length > 0) {
+        const { error: updErr } = await supabase
+          .from("safety_reports")
+          .update({
+            logo_1: logo_1 || null,
+            logo_2: logo_2 || null,
+            location: "__safety_settings__"
+          })
+          .eq("id", existingReport[0].id);
+
+        if (updErr) {
+          console.error("Error updating safety_reports for settings:", updErr);
+          throw updErr;
+        }
+      } else {
+        const { error: insErr } = await supabase
+          .from("safety_reports")
+          .insert([{
+            user_id: user.id,
+            report_number: "__safety_default_logos__",
+            location: "__safety_settings__",
+            logo_1: logo_1 || null,
+            logo_2: logo_2 || null
+          }]);
+
+        if (insErr) {
+          console.error("Error inserting safety_reports for settings:", insErr);
+          throw insErr;
+        }
+      }
+
+      res.json({ success: true, savedIn: "safety_reports" });
+    } catch (err: any) {
+      console.error("Unexpected error in PUT /api/safety/settings:", err);
+      res.status(500).json({ error: err.message || "Erro ao salvar configurações no banco de dados" });
     }
   });
 

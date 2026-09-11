@@ -30,7 +30,15 @@ import {
   Eye,
   FileDown,
   Share2,
-  Droplets
+  Droplets,
+  User,
+  UserPlus,
+  Phone,
+  Power,
+  X,
+  Gauge,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
@@ -73,6 +81,32 @@ const formatWAPhone = (phone: string) => {
     return '55' + cleaned;
   }
   return cleaned;
+};
+
+const normalizeSearchText = (text: string | null | undefined): string => {
+  if (!text) return '';
+  return text
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+};
+
+const extractDigits = (text: string | null | undefined): string => {
+  if (!text) return '';
+  return text.toString().replace(/\D/g, '');
+};
+
+const getFirstName = (fullName: string | null | undefined): string => {
+  if (!fullName) return '';
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  const prefixes = ['sr.', 'sr', 'sra.', 'sra', 'dr.', 'dr', 'dra.', 'dra', 'dona', 'seu'];
+  if (parts.length > 1 && prefixes.includes(parts[0].toLowerCase())) {
+    return `${parts[0]} ${parts[1]}`;
+  }
+  return parts[0];
 };
 
 const MonthYearPicker = ({ 
@@ -218,6 +252,9 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   // Form States
   const [userForm, setUserForm] = useState({ 
     name: '', 
+    street: '',
+    house_number: '',
+    cpf: '',
     phone: '', 
     has_energy: true, 
     has_water: true, 
@@ -227,6 +264,21 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     water_active: true
   });
   const [editingUser, setEditingUser] = useState<ChacaraUser | null>(null);
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userServiceFilter, setUserServiceFilter] = useState<'all' | 'energy' | 'water' | 'inactive'>('all');
+  const [userSortField, setUserSortField] = useState<'name' | 'street' | 'house_number' | 'cpf' | 'phone'>('name');
+  const [userSortOrder, setUserSortOrder] = useState<'asc' | 'desc'>('asc');
+  const userFormRef = useRef<HTMLDivElement>(null);
+
+  const toggleUserSort = (field: 'name' | 'street' | 'house_number' | 'cpf' | 'phone') => {
+    if (userSortField === field) {
+      setUserSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setUserSortField(field);
+      setUserSortOrder('asc');
+    }
+  };
   
   const [billForm, setBillForm] = useState({
     user_id: '',
@@ -384,11 +436,131 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     
     if (statusFilter !== 'all' && bill.status !== statusFilter) return false;
     
-    if (searchBill) {
+    if (searchBill && searchBill.trim()) {
       const user = users.find(u => u.id === bill.chacara_user_id);
-      if (!user) return false;
-      const searchLower = searchBill.toLowerCase();
-      return user.name.toLowerCase().includes(searchLower) || user.phone.includes(searchLower);
+      
+      const queryNorm = normalizeSearchText(searchBill);
+      const queryTokens = queryNorm.split(/\s+/).filter(Boolean);
+      if (queryTokens.length === 0) return true;
+
+      // User attributes
+      const userNameNorm = normalizeSearchText(user?.name);
+      const userPhoneNorm = normalizeSearchText(user?.phone);
+      const userPhoneDigits = extractDigits(user?.phone);
+      const userStreetNorm = normalizeSearchText(user?.street || user?.rua);
+      const userHouseNorm = normalizeSearchText(user?.house_number || user?.casa);
+      const userHouseDigits = extractDigits(user?.house_number || user?.casa);
+      const userCpfNorm = normalizeSearchText(user?.cpf);
+      const userCpfDigits = extractDigits(user?.cpf);
+
+      // Bill energy & water calculations
+      const energyReadings = bill.energy_readings || [];
+      const waterReadings = bill.water_readings || [];
+      const energyConsumption = energyReadings.length > 0
+        ? energyReadings.reduce((acc, r) => acc + (r.curr - r.prev), 0)
+        : (bill.curr_reading - bill.prev_reading) + ((bill.curr_reading_2 || 0) - (bill.prev_reading_2 || 0));
+      const energyTotal = energyConsumption * bill.kwh_value;
+
+      const waterConsumption = waterReadings.length > 0
+        ? waterReadings.reduce((acc, r) => acc + (r.curr - r.prev), 0)
+        : (bill.water_curr_reading || 0) - (bill.water_prev_reading || 0) + ((bill.water_curr_reading_2 || 0) - (bill.water_prev_reading_2 || 0));
+      const waterTotal = waterConsumption * (bill.water_value || 0);
+
+      // Financial representations (dot, comma, integers, formatted)
+      const billTotalFixed2 = bill.total.toFixed(2);
+      const billTotalPtBr = bill.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const billTotalInt = Math.floor(bill.total).toString();
+
+      const energyTotalPtBr = energyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const waterTotalPtBr = waterTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Month info in pt-BR
+      let monthName = '';
+      let monthNumber = '';
+      let yearNumber = '';
+      if (bill.month_reference && bill.month_reference.includes('-')) {
+        const [y, m] = bill.month_reference.split('-');
+        yearNumber = y;
+        monthNumber = m;
+        try {
+          monthName = normalizeSearchText(new Date(Number(y), Number(m) - 1).toLocaleString('pt-BR', { month: 'long' }));
+        } catch (_) {}
+      }
+
+      const statusText = bill.status === 'paid' ? 'pago paga liquidado' : bill.status === 'partial' ? 'parcial' : 'pendente pendencia aberto receber';
+
+      // Chacara & Address aliases
+      const addressAliases = [
+        userStreetNorm,
+        userHouseNorm ? `casa ${userHouseNorm}` : '',
+        userHouseNorm ? `chacara ${userHouseNorm}` : '',
+        userHouseNorm ? `lote ${userHouseNorm}` : '',
+        userHouseNorm ? `n ${userHouseNorm}` : '',
+        userHouseNorm ? `num ${userHouseNorm}` : '',
+        userHouseNorm ? 'casa' : '',
+        userHouseNorm ? 'chacara' : '',
+        userHouseNorm ? 'lote' : ''
+      ].filter(Boolean).join(' ');
+
+      const combinedSearchBlock = [
+        userNameNorm,
+        userPhoneNorm,
+        userStreetNorm,
+        userHouseNorm,
+        userCpfNorm,
+        addressAliases,
+        billTotalFixed2,
+        billTotalPtBr,
+        `r$ ${billTotalPtBr}`,
+        `r$${billTotalPtBr}`,
+        billTotalInt,
+        `energia ${energyTotalPtBr}`,
+        `agua ${waterTotalPtBr}`,
+        monthName,
+        `${monthNumber}/${yearNumber}`,
+        bill.month_reference,
+        statusText,
+        bill.id.toString(),
+        user?.id ? `id ${user.id}` : ''
+      ].join(' ');
+
+      return queryTokens.every(token => {
+        const cleanToken = token.replace(/^(r\$|rs|\$)/i, '').trim() || token;
+        const tokenDigits = extractDigits(token);
+
+        // Substring match in the full normalized bill block
+        if (combinedSearchBlock.includes(token) || combinedSearchBlock.includes(cleanToken)) {
+          return true;
+        }
+
+        // Match CPF digits (min 3 digits)
+        if (tokenDigits.length >= 3 && userCpfDigits && userCpfDigits.includes(tokenDigits)) {
+          return true;
+        }
+
+        // Match Phone digits (min 3 digits)
+        if (tokenDigits.length >= 3 && userPhoneDigits && userPhoneDigits.includes(tokenDigits)) {
+          return true;
+        }
+
+        // Match House / Chácara number
+        if (userHouseDigits && userHouseDigits === tokenDigits) {
+          return true;
+        }
+
+        // Match numerical amount (bill total, energy, or water)
+        const parsedToken = parseFloat(cleanToken.replace(',', '.'));
+        if (!isNaN(parsedToken) && parsedToken > 0) {
+          if (Math.abs(bill.total - parsedToken) < 0.01) return true;
+          if (!cleanToken.includes('.') && !cleanToken.includes(',') && Math.floor(bill.total) === Math.floor(parsedToken)) {
+            return true;
+          }
+          if (Math.abs(energyTotal - parsedToken) < 0.01) return true;
+          if (Math.abs(waterTotal - parsedToken) < 0.01) return true;
+        }
+
+        return false;
+      });
     }
     return true;
   });
@@ -451,23 +623,82 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     }
   };
 
+  const handleUserPhoneChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 11);
+    let formatted = digits;
+    if (digits.length > 2) {
+      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    }
+    if (digits.length > 7) {
+      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    setUserForm(prev => ({ ...prev, phone: formatted }));
+  };
+
+  const handleUserCpfChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 11);
+    let formatted = digits;
+    if (digits.length > 3) {
+      formatted = `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    }
+    if (digits.length > 6) {
+      formatted = `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    }
+    if (digits.length > 9) {
+      formatted = `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    }
+    setUserForm(prev => ({ ...prev, cpf: formatted }));
+  };
+
+  const handleCancelEditUser = () => {
+    setEditingUser(null);
+    setUserForm({ 
+      name: '', 
+      street: '',
+      house_number: '',
+      cpf: '',
+      phone: '', 
+      has_energy: true, 
+      has_water: true, 
+      energy_meters_count: 1, 
+      water_meters_count: 1,
+      energy_active: true,
+      water_active: true
+    });
+  };
+
   const handleSaveUser = async () => {
-    if (!userForm.name || !userForm.phone) {
-      dialogAlert('Nome e telefone são obrigatórios.');
+    if (!userForm.name.trim()) {
+      dialogAlert('O nome do morador/usuário é obrigatório.');
+      return;
+    }
+    if (!userForm.phone.trim()) {
+      dialogAlert('O telefone/WhatsApp é obrigatório.');
       return;
     }
 
+    setIsSavingUser(true);
     try {
       const method = editingUser ? 'PUT' : 'POST';
       const url = editingUser ? `/api/chacara/users/${editingUser.id}` : '/api/chacara/users';
       const res = await fetchWithAuth(url, {
         method,
-        body: JSON.stringify(userForm)
+        body: JSON.stringify({
+          ...userForm,
+          name: userForm.name.trim(),
+          street: userForm.street.trim(),
+          house_number: userForm.house_number.trim(),
+          cpf: userForm.cpf.trim(),
+          phone: userForm.phone.trim()
+        })
       });
 
       if (res.ok) {
         setUserForm({ 
           name: '', 
+          street: '',
+          house_number: '',
+          cpf: '',
           phone: '', 
           has_energy: true, 
           has_water: true, 
@@ -479,14 +710,16 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
         setEditingUser(null);
         await fetchData();
         if (onDataUpdate) onDataUpdate();
-        dialogAlert(editingUser ? 'Usuário atualizado com sucesso!' : 'Usuário cadastrado com sucesso!');
+        dialogAlert(editingUser ? 'Morador atualizado com sucesso!' : 'Morador cadastrado com sucesso!');
       } else {
         const errorData = await res.json().catch(() => ({ message: res.statusText }));
-        dialogAlert(`Erro ao salvar usuário: ${errorData.message || JSON.stringify(errorData)}`);
+        dialogAlert(`Erro ao salvar morador: ${errorData.message || JSON.stringify(errorData)}`);
       }
     } catch (error) {
       console.error('Error saving user:', error);
-      dialogAlert('Erro ao salvar usuário. Verifique o console para mais detalhes.');
+      dialogAlert('Erro ao salvar morador. Verifique o console para mais detalhes.');
+    } finally {
+      setIsSavingUser(false);
     }
   };
 
@@ -1136,7 +1369,8 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
     const greeting = getGreeting();
-    let message = `${greeting}, ${user.name}!
+    const firstName = getFirstName(user.name) || user.name;
+    let message = `${greeting}, ${firstName}!
 Segue a conta referente à Associação Comunitária Vivendas da Serra – ${capitalizedMonth}/${year}.
 
 Data da leitura: ${new Date(bill.reading_date + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -1220,8 +1454,9 @@ Subtotal: R$ ${Number(waterTotal).toLocaleString('pt-BR', { minimumFractionDigit
   const getPendingSummaryWhatsAppMessage = (user: ChacaraUser, pendingBills: ChacaraBill[], settings: ChacaraSettings) => {
     const totalPending = pendingBills.reduce((acc, bill) => acc + (bill.total - (bill.amount_paid || 0)), 0);
     const greeting = getGreeting();
+    const firstName = getFirstName(user.name) || user.name;
     
-    let message = `${greeting}, ${user.name}!
+    let message = `${greeting}, ${firstName}!
 Sou da Associação Comunitária Vivendas da Serra.
 Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
@@ -1651,8 +1886,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     {users.length > 0 ? (
                       users.map(user => {
                         const userBill = bills.find(b => Number(b.chacara_user_id) === user.id);
+                        const firstName = getFirstName(user.name) || user.name;
                         const message = `${getGreeting()}! ` + whatsappChacaraTemplate
-                          .replace(/{nome}/g, user.name)
+                          .replace(/{primeiro_nome}/g, firstName)
+                          .replace(/{nome}/g, firstName)
+                          .replace(/{nome_completo}/g, user.name)
                           .replace(/{observacoes}/g, userBill?.observations || '');
                         const whatsappLink = user.phone ? `https://wa.me/${formatWAPhone(user.phone)}?text=${encodeURIComponent(message)}` : '#';
                         const hasSent = sentChacaraMessages.includes(String(user.id));
@@ -1700,214 +1938,771 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             </Card>
           </motion.div>
         )}
-        {activeTab === 'chacara_users' && (
-          <motion.div
-            key="users"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-          >
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Users size={20} className="text-indigo-600" />
-                  {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome</label>
-                    <input 
-                      type="text"
-                      value={userForm.name}
-                      onChange={e => setUserForm({ ...userForm, name: e.target.value })}
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm md:text-base font-medium"
-                      placeholder="Nome do morador"
-                    />
+        {activeTab === 'chacara_users' && (() => {
+          const totalUsersCount = users.length;
+          const activeEnergyUsersCount = users.filter(u => u.has_energy !== false && u.energy_active !== false).length;
+          const totalEnergyMetersCount = users.reduce((acc, u) => acc + (u.has_energy !== false ? (u.energy_meters_count || 1) : 0), 0);
+          const activeWaterUsersCount = users.filter(u => u.has_water !== false && u.water_active !== false).length;
+          const totalWaterMetersCount = users.reduce((acc, u) => acc + (u.has_water !== false ? (u.water_meters_count || 1) : 0), 0);
+          const inactiveServicesCount = users.filter(u => (u.has_energy !== false && u.energy_active === false) || (u.has_water !== false && u.water_active === false)).length;
+
+          const filteredUsersList = users.filter(user => {
+            const queryNorm = normalizeSearchText(userSearchTerm);
+            if (queryNorm) {
+              const queryTokens = queryNorm.split(/\s+/).filter(Boolean);
+              const userNameNorm = normalizeSearchText(user.name);
+              const userPhoneNorm = normalizeSearchText(user.phone);
+              const userPhoneDigits = extractDigits(user.phone);
+              const userStreetNorm = normalizeSearchText(user.street || user.rua);
+              const userHouseNorm = normalizeSearchText(user.house_number || user.casa);
+              const userHouseDigits = extractDigits(user.house_number || user.casa);
+              const userCpfNorm = normalizeSearchText(user.cpf);
+              const userCpfDigits = extractDigits(user.cpf);
+
+              const addressAliases = [
+                userStreetNorm,
+                userHouseNorm ? `casa ${userHouseNorm}` : '',
+                userHouseNorm ? `chacara ${userHouseNorm}` : '',
+                userHouseNorm ? `lote ${userHouseNorm}` : '',
+                userHouseNorm ? 'casa' : '',
+                userHouseNorm ? 'chacara' : '',
+                userHouseNorm ? 'lote' : ''
+              ].filter(Boolean).join(' ');
+
+              const combinedUserBlock = [
+                userNameNorm,
+                userPhoneNorm,
+                userStreetNorm,
+                userHouseNorm,
+                userCpfNorm,
+                addressAliases,
+                user.id.toString()
+              ].join(' ');
+
+              const matchesSearch = queryTokens.every(token => {
+                const tokenDigits = extractDigits(token);
+                if (combinedUserBlock.includes(token)) return true;
+                if (tokenDigits.length >= 3 && userCpfDigits && userCpfDigits.includes(tokenDigits)) return true;
+                if (tokenDigits.length >= 3 && userPhoneDigits && userPhoneDigits.includes(tokenDigits)) return true;
+                if (userHouseDigits && userHouseDigits === tokenDigits) return true;
+                return false;
+              });
+
+              if (!matchesSearch) return false;
+            }
+
+            if (userServiceFilter === 'energy') {
+              return user.has_energy !== false && user.energy_active !== false;
+            }
+            if (userServiceFilter === 'water') {
+              return user.has_water !== false && user.water_active !== false;
+            }
+            if (userServiceFilter === 'inactive') {
+              return (user.has_energy !== false && user.energy_active === false) || (user.has_water !== false && user.water_active === false);
+            }
+            return true;
+          }).sort((a, b) => {
+            if (userSortField === 'street') {
+              const sA = (a.street || a.rua || '').toLowerCase();
+              const sB = (b.street || b.rua || '').toLowerCase();
+              return userSortOrder === 'asc' ? sA.localeCompare(sB) : sB.localeCompare(sA);
+            }
+            if (userSortField === 'house_number') {
+              const hA = (a.house_number || a.casa || '').toLowerCase();
+              const hB = (b.house_number || b.casa || '').toLowerCase();
+              return userSortOrder === 'asc' ? hA.localeCompare(hB, undefined, { numeric: true }) : hB.localeCompare(hA, undefined, { numeric: true });
+            }
+            if (userSortField === 'cpf') {
+              const cA = (a.cpf || '').toLowerCase();
+              const cB = (b.cpf || '').toLowerCase();
+              return userSortOrder === 'asc' ? cA.localeCompare(cB) : cB.localeCompare(cA);
+            }
+            if (userSortField === 'phone') {
+              const pA = (a.phone || '').toLowerCase();
+              const pB = (b.phone || '').toLowerCase();
+              return userSortOrder === 'asc' ? pA.localeCompare(pB) : pB.localeCompare(pA);
+            }
+            const nA = a.name.toLowerCase();
+            const nB = b.name.toLowerCase();
+            return userSortOrder === 'asc' ? nA.localeCompare(nB) : nB.localeCompare(nA);
+          });
+
+          return (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }} 
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              {/* Top Stats / KPI Cards - Minimalist & Modern */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Total de Moradores</span>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{totalUsersCount}</div>
+                  <span className="text-xs text-gray-500 mt-1 block">titulares cadastrados</span>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Energia Elétrica</span>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                    {activeEnergyUsersCount} <span className="text-sm font-normal text-gray-400">ativos</span>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Telefone (WhatsApp)</label>
-                    <input 
-                      type="text"
-                      value={userForm.phone}
-                      onChange={e => setUserForm({ ...userForm, phone: e.target.value })}
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm md:text-base font-medium"
-                      placeholder="(00) 00000-0000"
-                    />
+                  <span className="text-xs text-gray-500 mt-1 block">{totalEnergyMetersCount} padrão(ões) totais</span>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Água Encanada</span>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                    {activeWaterUsersCount} <span className="text-sm font-normal text-gray-400">ativos</span>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap items-center gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
-                            type="checkbox"
-                            checked={userForm.has_energy}
-                            onChange={e => setUserForm({ ...userForm, has_energy: e.target.checked })}
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-sm text-gray-700">Possui Energia?</span>
-                        </label>
-                        {userForm.has_energy && (
-                          <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <label className="text-xs font-semibold text-gray-500 uppercase">Padrões:</label>
-                              <input
-                                type="number"
-                                min={1}
-                                value={userForm.energy_meters_count || 1}
-                                onChange={e => setUserForm({ ...userForm, energy_meters_count: Number(e.target.value) })}
-                                className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
-                              />
-                            </div>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox"
-                                checked={userForm.energy_active}
-                                onChange={e => setUserForm({ ...userForm, energy_active: e.target.checked })}
-                                className="rounded text-emerald-600 focus:ring-emerald-500"
-                              />
-                              <span className="text-sm text-gray-700">{userForm.energy_active ? 'Ligado' : 'Desligado'}</span>
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap items-center gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
-                            type="checkbox"
-                            checked={userForm.has_water}
-                            onChange={e => setUserForm({ ...userForm, has_water: e.target.checked })}
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-sm text-gray-700">Possui Água?</span>
-                        </label>
-                        {userForm.has_water && (
-                          <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <label className="text-xs font-semibold text-gray-500 uppercase">Hidrômetros:</label>
-                              <input
-                                type="number"
-                                min={1}
-                                value={userForm.water_meters_count || 1}
-                                onChange={e => setUserForm({ ...userForm, water_meters_count: Number(e.target.value) })}
-                                className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
-                              />
-                            </div>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox"
-                                checked={userForm.water_active}
-                                onChange={e => setUserForm({ ...userForm, water_active: e.target.checked })}
-                                className="rounded text-emerald-600 focus:ring-emerald-500"
-                              />
-                              <span className="text-sm text-gray-700">{userForm.water_active ? 'Ligado' : 'Desligado'}</span>
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  <span className="text-xs text-gray-500 mt-1 block">{totalWaterMetersCount} hidrômetro(s) totais</span>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Pontos Desligados</span>
+                  <div className={`text-2xl sm:text-3xl font-bold tracking-tight ${inactiveServicesCount > 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                    {inactiveServicesCount}
                   </div>
-                  <button 
-                    onClick={handleSaveUser}
-                    className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all"
-                  >
-                    <Save size={18} />
-                    Salvar Usuário
-                  </button>
-                  {editingUser && (
-                    <button 
-                      onClick={() => { setEditingUser(null); setUserForm({ name: '', phone: '', has_energy: true, has_water: true, energy_meters_count: 1, water_meters_count: 1, energy_active: true, water_active: true }); }}
-                      className="w-full py-2 text-gray-500 font-semibold hover:text-gray-700"
-                    >
-                      Cancelar
-                    </button>
-                  )}
+                  <span className="text-xs text-gray-500 mt-1 block">
+                    {inactiveServicesCount === 0 ? 'todas as ligações ativas' : 'pontos com corte/desligados'}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Nome</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Telefone</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Serviços</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Última Leitura</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(user => (
-                      <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-all">
-                        <td className="px-6 py-4 font-semibold text-gray-800">{user.name}</td>
-                        <td className="px-6 py-4 text-gray-600">{user.phone}</td>
-                        <td className="px-6 py-4 text-gray-600 text-xs flex flex-wrap gap-1">
-                          {user.has_energy !== false && (
-                            <span className={`${user.energy_active !== false ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-500'} px-2 py-1 rounded-full`}>
-                              Energia {user.energy_meters_count && user.energy_meters_count > 1 ? `(${user.energy_meters_count} padrões)` : ''} {user.energy_active === false ? '(Desligado)' : ''}
-                            </span>
+              {/* Main Content: Form (left) + List (right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* FORM CADASTRO */}
+                <div ref={userFormRef} className="lg:col-span-5 bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base">
+                        {editingUser ? 'Editar Morador' : 'Novo Morador'}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {editingUser ? 'Atualize os dados e pontos de fornecimento' : 'Preencha os dados do morador da chácara'}
+                      </p>
+                    </div>
+                    {editingUser && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditUser}
+                        className="text-xs text-gray-500 hover:text-gray-800 font-medium px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+
+                  {editingUser && (
+                    <div className="mx-6 mt-4 px-3.5 py-2.5 bg-amber-50/70 border border-amber-200/60 rounded-lg flex items-center justify-between text-xs text-amber-900">
+                      <span>Editando cadastro de <strong className="font-semibold">{editingUser.name}</strong></span>
+                      <span className="text-[11px] font-mono text-amber-700">#{editingUser.id}</span>
+                    </div>
+                  )}
+
+                  <div className="p-6 space-y-4">
+                    {/* Nome do Morador */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                        Nome Completo <span className="text-rose-500">*</span>
+                      </label>
+                      <input 
+                        type="text"
+                        value={userForm.name}
+                        onChange={e => setUserForm({ ...userForm, name: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                        placeholder="Nome do morador"
+                      />
+                    </div>
+
+                    {/* Localização na Chácara: Rua e Casa */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                          Rua / Alameda
+                        </label>
+                        <input 
+                          type="text"
+                          value={userForm.street}
+                          onChange={e => setUserForm({ ...userForm, street: e.target.value })}
+                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                          placeholder="Ex: Rua 03, Alameda..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                          Casa / Lote
+                        </label>
+                        <input 
+                          type="text"
+                          value={userForm.house_number}
+                          onChange={e => setUserForm({ ...userForm, house_number: e.target.value })}
+                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                          placeholder="Ex: Casa 14, Lote 2"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Identificação e Contato: CPF e Telefone */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                          CPF
+                        </label>
+                        <input 
+                          type="text"
+                          value={userForm.cpf}
+                          onChange={e => handleUserCpfChange(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                          placeholder="000.000.000-00"
+                          maxLength={14}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                          Telefone (WhatsApp) <span className="text-rose-500">*</span>
+                        </label>
+                        <input 
+                          type="text"
+                          value={userForm.phone}
+                          onChange={e => handleUserPhoneChange(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                          placeholder="(00) 00000-0000"
+                          maxLength={15}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Serviços de Medição */}
+                    <div className="pt-2 border-t border-gray-100 space-y-3">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Pontos de Medição
+                      </div>
+
+                      {/* Energia */}
+                      <div className="p-3.5 rounded-lg border border-gray-200 bg-gray-50/40">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-800">Energia Elétrica</div>
+                            <div className="text-xs text-gray-500">Controle de padrões e consumo</div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox"
+                              checked={userForm.has_energy}
+                              onChange={e => setUserForm({ ...userForm, has_energy: e.target.checked })}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                          </label>
+                        </div>
+
+                        {userForm.has_energy && (
+                          <div className="mt-3 pt-3 border-t border-gray-200/70 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600">Status</span>
+                              <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setUserForm({ ...userForm, energy_active: true })}
+                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                    userForm.energy_active
+                                      ? 'bg-white text-gray-900 shadow-2xs'
+                                      : 'text-gray-600 hover:text-gray-900'
+                                  }`}
+                                >
+                                  Ligado
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setUserForm({ ...userForm, energy_active: false })}
+                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                    !userForm.energy_active
+                                      ? 'bg-white text-rose-600 shadow-2xs'
+                                      : 'text-gray-600 hover:text-gray-900'
+                                  }`}
+                                >
+                                  Desligado
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600">Padrões</span>
+                              <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
+                                <button
+                                  type="button"
+                                  disabled={(userForm.energy_meters_count || 1) <= 1}
+                                  onClick={() => setUserForm({ ...userForm, energy_meters_count: Math.max(1, (userForm.energy_meters_count || 1) - 1) })}
+                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
+                                >
+                                  -
+                                </button>
+                                <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[60px] text-center bg-gray-50/50">
+                                  {userForm.energy_meters_count || 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setUserForm({ ...userForm, energy_meters_count: (userForm.energy_meters_count || 1) + 1 })}
+                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Água */}
+                      <div className="p-3.5 rounded-lg border border-gray-200 bg-gray-50/40">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-800">Água Encanada</div>
+                            <div className="text-xs text-gray-500">Controle de hidrômetros e consumo</div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox"
+                              checked={userForm.has_water}
+                              onChange={e => setUserForm({ ...userForm, has_water: e.target.checked })}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                          </label>
+                        </div>
+
+                        {userForm.has_water && (
+                          <div className="mt-3 pt-3 border-t border-gray-200/70 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600">Status</span>
+                              <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setUserForm({ ...userForm, water_active: true })}
+                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                    userForm.water_active
+                                      ? 'bg-white text-gray-900 shadow-2xs'
+                                      : 'text-gray-600 hover:text-gray-900'
+                                  }`}
+                                >
+                                  Ligado
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setUserForm({ ...userForm, water_active: false })}
+                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                    !userForm.water_active
+                                      ? 'bg-white text-rose-600 shadow-2xs'
+                                      : 'text-gray-600 hover:text-gray-900'
+                                  }`}
+                                >
+                                  Desligado
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600">Hidrômetros</span>
+                              <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
+                                <button
+                                  type="button"
+                                  disabled={(userForm.water_meters_count || 1) <= 1}
+                                  onClick={() => setUserForm({ ...userForm, water_meters_count: Math.max(1, (userForm.water_meters_count || 1) - 1) })}
+                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
+                                >
+                                  -
+                                </button>
+                                <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[60px] text-center bg-gray-50/50">
+                                  {userForm.water_meters_count || 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setUserForm({ ...userForm, water_meters_count: (userForm.water_meters_count || 1) + 1 })}
+                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botão de Ação */}
+                    <div className="pt-2">
+                      <button 
+                        onClick={handleSaveUser}
+                        disabled={isSavingUser}
+                        className={`w-full py-2.5 text-white rounded-lg font-semibold text-sm transition-all shadow-xs ${
+                          editingUser
+                            ? 'bg-amber-600 hover:bg-amber-700'
+                            : 'bg-indigo-600 hover:bg-indigo-700'
+                        } ${isSavingUser ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                        {isSavingUser 
+                          ? 'Salvando...' 
+                          : editingUser 
+                            ? 'Atualizar Morador' 
+                            : 'Salvar Morador'
+                        }
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* LISTAGEM DE MORADORES */}
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
+                    {/* Header da Listagem */}
+                    <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-gray-900 text-base">Moradores Cadastrados</h3>
+                          <span className="text-xs text-gray-500 font-medium">
+                            ({filteredUsersList.length})
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">Controle e histórico de consumos da chácara</p>
+                      </div>
+
+                      {editingUser && (
+                        <button
+                          onClick={handleCancelEditUser}
+                          className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          + Novo Morador
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Toolbar com Filtros e Busca */}
+                    <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                      {/* Segmented Filter Tabs */}
+                      <div className="inline-flex rounded-lg p-1 bg-gray-100 overflow-x-auto text-xs font-medium gap-1">
+                        <button
+                          onClick={() => setUserServiceFilter('all')}
+                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
+                            userServiceFilter === 'all'
+                              ? 'bg-white text-gray-900 shadow-2xs font-semibold'
+                              : 'text-gray-500 hover:text-gray-800'
+                          }`}
+                        >
+                          Todos ({totalUsersCount})
+                        </button>
+                        <button
+                          onClick={() => setUserServiceFilter('energy')}
+                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
+                            userServiceFilter === 'energy'
+                              ? 'bg-white text-gray-900 shadow-2xs font-semibold'
+                              : 'text-gray-500 hover:text-gray-800'
+                          }`}
+                        >
+                          Energia ({activeEnergyUsersCount})
+                        </button>
+                        <button
+                          onClick={() => setUserServiceFilter('water')}
+                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
+                            userServiceFilter === 'water'
+                              ? 'bg-white text-gray-900 shadow-2xs font-semibold'
+                              : 'text-gray-500 hover:text-gray-800'
+                          }`}
+                        >
+                          Água ({activeWaterUsersCount})
+                        </button>
+                        <button
+                          onClick={() => setUserServiceFilter('inactive')}
+                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
+                            userServiceFilter === 'inactive'
+                              ? 'bg-white text-rose-600 shadow-2xs font-semibold'
+                              : 'text-gray-500 hover:text-gray-800'
+                          }`}
+                        >
+                          Desligados ({inactiveServicesCount})
+                        </button>
+                      </div>
+
+                      {/* Campo de Busca */}
+                      <div className="relative min-w-[240px]">
+                        <input
+                          type="text"
+                          value={userSearchTerm}
+                          onChange={e => setUserSearchTerm(e.target.value)}
+                          placeholder="Buscar por nome, rua, casa, CPF..."
+                          className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-gray-800 placeholder:text-gray-400"
+                        />
+                        {userSearchTerm && (
+                          <button
+                            onClick={() => setUserSearchTerm('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tabela de Moradores */}
+                    <div className="overflow-x-auto">
+                      {filteredUsersList.length > 0 ? (
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                              <th className="px-5 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUserSort('name')}
+                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                >
+                                  Nome
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {userSortField === 'name' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                  </span>
+                                </button>
+                              </th>
+                              <th className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUserSort('street')}
+                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                >
+                                  Rua
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {userSortField === 'street' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                  </span>
+                                </button>
+                              </th>
+                              <th className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUserSort('house_number')}
+                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                >
+                                  Casa
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {userSortField === 'house_number' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                  </span>
+                                </button>
+                              </th>
+                              <th className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUserSort('cpf')}
+                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                >
+                                  CPF
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {userSortField === 'cpf' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                  </span>
+                                </button>
+                              </th>
+                              <th className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUserSort('phone')}
+                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                >
+                                  Contato
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {userSortField === 'phone' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                  </span>
+                                </button>
+                              </th>
+                              <th className="px-4 py-3">Serviços</th>
+                              <th className="px-5 py-3 text-right">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {filteredUsersList.map((user) => {
+                              const isCurrentlyEditing = editingUser?.id === user.id;
+                              const userStreet = user.street || user.rua;
+                              const userHouse = user.house_number || user.casa;
+
+                              return (
+                                <tr 
+                                  key={user.id} 
+                                  className={`transition-colors hover:bg-gray-50/50 ${
+                                    isCurrentlyEditing ? 'bg-amber-50/30' : ''
+                                  }`}
+                                >
+                                  {/* Nome */}
+                                  <td className="px-5 py-3.5">
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-900 text-sm">{user.name}</span>
+                                        {isCurrentlyEditing && (
+                                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px] font-medium">
+                                            editando
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[11px] text-gray-400 font-mono">ID #{user.id}</span>
+                                    </div>
+                                  </td>
+
+                                  {/* Rua */}
+                                  <td className="px-4 py-3.5">
+                                    {userStreet ? (
+                                      <span className="text-xs font-medium text-gray-800">
+                                        {userStreet}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-300">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* Casa */}
+                                  <td className="px-4 py-3.5">
+                                    {userHouse ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-semibold text-xs font-mono">
+                                        {userHouse}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-300">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* CPF */}
+                                  <td className="px-4 py-3.5">
+                                    {user.cpf ? (
+                                      <span className="text-xs font-mono text-gray-600">
+                                        {user.cpf}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-300">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* Telefone / WhatsApp */}
+                                  <td className="px-4 py-3.5">
+                                    {user.phone ? (
+                                      <a
+                                        href={`https://wa.me/${formatWAPhone(user.phone)}?text=${encodeURIComponent(`${getGreeting()} ${getFirstName(user.name) || user.name}! Tudo bem? Entro em contato sobre a chácara.`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-gray-700 hover:text-indigo-600 hover:underline font-mono"
+                                        title="Abrir WhatsApp"
+                                      >
+                                        {user.phone}
+                                      </a>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">Não informado</span>
+                                    )}
+                                  </td>
+
+                                  {/* Serviços & Medidores */}
+                                  <td className="px-4 py-3.5">
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {user.has_energy !== false ? (
+                                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                                          user.energy_active !== false
+                                            ? 'bg-amber-50 text-amber-800'
+                                            : 'bg-gray-100 text-gray-400 line-through'
+                                        }`}>
+                                          Energia ({user.energy_meters_count || 1} pad.)
+                                        </span>
+                                      ) : null}
+
+                                      {user.has_water !== false ? (
+                                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                                          user.water_active !== false
+                                            ? 'bg-sky-50 text-sky-800'
+                                            : 'bg-gray-100 text-gray-400 line-through'
+                                        }`}>
+                                          Água ({user.water_meters_count || 1} hidr.)
+                                        </span>
+                                      ) : null}
+
+                                      {user.has_energy === false && user.has_water === false && (
+                                        <span className="text-gray-400 text-xs">Nenhum</span>
+                                      )}
+                                    </div>
+                                  </td>
+
+                                  {/* Ações */}
+                                  <td className="px-5 py-3.5 text-right">
+                                    <div className="inline-flex items-center gap-1">
+                                      <button 
+                                        onClick={() => {
+                                          const userBill = bills.find(b => Number(b.chacara_user_id) === user.id && b.month_reference === filterMonth);
+                                          if (userBill) {
+                                            setInvoiceDetailsModal({ isOpen: true, bill: userBill });
+                                          } else {
+                                            setPendingDetailsModal({ isOpen: true, user });
+                                          }
+                                        }}
+                                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                        title="Ver Extrato"
+                                      >
+                                        <FileText size={15} />
+                                      </button>
+                                      <button 
+                                        onClick={() => { 
+                                          setEditingUser(user); 
+                                          setUserForm({ 
+                                            name: user.name, 
+                                            street: user.street || user.rua || '',
+                                            house_number: user.house_number || user.casa || '',
+                                            cpf: user.cpf || '',
+                                            phone: user.phone || '',
+                                            has_energy: user.has_energy !== undefined ? user.has_energy : true,
+                                            has_water: user.has_water !== undefined ? user.has_water : true,
+                                            energy_meters_count: user.energy_meters_count || 1,
+                                            water_meters_count: user.water_meters_count || 1,
+                                            energy_active: user.energy_active !== undefined ? user.energy_active : true,
+                                            water_active: user.water_active !== undefined ? user.water_active : true
+                                          }); 
+                                          userFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }}
+                                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                        title="Editar Morador"
+                                      >
+                                        <Edit2 size={15} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteUser(user.id)}
+                                        className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                        title="Excluir Morador"
+                                      >
+                                        <Trash2 size={15} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <h4 className="font-semibold text-gray-700 text-sm">Nenhum morador encontrado</h4>
+                          <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                            {userSearchTerm 
+                              ? `Nenhum resultado corresponde à busca "${userSearchTerm}".`
+                              : 'Nenhum morador cadastrado. Utilize o formulário ao lado para cadastrar.'}
+                          </p>
+                          {userSearchTerm && (
+                            <button
+                              onClick={() => setUserSearchTerm('')}
+                              className="mt-3 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              Limpar Pesquisa
+                            </button>
                           )}
-                          {user.has_water !== false && (
-                            <span className={`${user.water_active !== false ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'} px-2 py-1 rounded-full`}>
-                              Água {user.water_meters_count && user.water_meters_count > 1 ? `(${user.water_meters_count} hidrômetros)` : ''} {user.water_active === false ? '(Desligado)' : ''}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-gray-600">{user.last_reading || 0} kWh</td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <button 
-                            onClick={() => {
-                              const userBill = bills.find(b => Number(b.chacara_user_id) === user.id && b.month_reference === filterMonth);
-                              if (userBill) {
-                                setInvoiceDetailsModal({ isOpen: true, bill: userBill });
-                              } else {
-                                setPendingDetailsModal({ isOpen: true, user });
-                              }
-                            }}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                            title="Ver Extrato / Pendências"
-                          >
-                            <FileText size={16} />
-                          </button>
-                          <button 
-                            onClick={() => { 
-                              setEditingUser(user); 
-                              setUserForm({ 
-                                name: user.name, 
-                                phone: user.phone,
-                                has_energy: user.has_energy !== undefined ? user.has_energy : true,
-                                has_water: user.has_water !== undefined ? user.has_water : true,
-                                energy_meters_count: user.energy_meters_count || 1,
-                                water_meters_count: user.water_meters_count || 1,
-                                energy_active: user.energy_active !== undefined ? user.energy_active : true,
-                                water_active: user.water_active !== undefined ? user.water_active : true
-                              }); 
-                            }}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
+            </motion.div>
+          );
+        })()}
 
         {activeTab === 'chacara_expenses' && (
           <motion.div 
@@ -2479,27 +3274,45 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   Histórico de Lançamentos
                 </h3>
                 <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
-                    <Search size={18} className="text-gray-400" />
+                  <div className="relative flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
+                    <Search size={18} className="text-gray-400 shrink-0" />
                     <input 
                       type="text" 
-                      placeholder="Buscar morador ou telefone..."
+                      placeholder="Buscar por morador, valor, CPF, telefone, rua, casa..."
                       value={searchBill}
                       onChange={(e) => setSearchBill(e.target.value)}
-                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 w-full sm:w-48"
+                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 w-full sm:w-64 pr-6 outline-none"
                     />
+                    {searchBill && (
+                      <button
+                        onClick={() => setSearchBill('')}
+                        className="text-gray-400 hover:text-gray-600 text-xs px-1"
+                        title="Limpar busca"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
-                    <Filter size={18} className="text-gray-400" />
+                    <Filter size={18} className="text-gray-400 shrink-0" />
                     <input 
                       type="month" 
                       value={filterMonth}
                       onChange={(e) => setFilterMonth(e.target.value)}
                       className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 w-full"
                     />
+                    {filterMonth && (
+                      <button
+                        onClick={() => setFilterMonth('')}
+                        className="text-[11px] text-gray-500 hover:text-indigo-600 whitespace-nowrap font-medium px-1 bg-white/60 hover:bg-white rounded border border-gray-200/60"
+                        title="Ver todos os meses"
+                      >
+                        Todos
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
-                    <CheckCircle size={18} className="text-gray-400" />
+                    <CheckCircle size={18} className="text-gray-400 shrink-0" />
                     <select 
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -2572,7 +3385,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           >
                             <td className={`px-6 py-4 ${isPaid ? 'line-through text-gray-400' : ''}`}>
                               <span className="font-semibold text-gray-800 block">{user?.name || 'Não Identificado'}</span>
-                              <span className="text-xs text-gray-500">{user?.phone}</span>
+                              <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                                {user?.phone && <span>{user.phone}</span>}
+                                {((user?.street || user?.rua) || (user?.house_number || user?.casa)) && (
+                                  <span className="text-gray-400">
+                                    • {[user?.street || user?.rua, (user?.house_number || user?.casa) ? `Casa ${user?.house_number || user?.casa}` : ''].filter(Boolean).join(', ')}
+                                  </span>
+                                )}
+                                {user?.cpf && <span className="font-mono text-gray-400">• CPF: {user.cpf}</span>}
+                              </div>
                             </td>
                             <td className={`px-6 py-4 text-center text-gray-600 ${isPaid ? 'line-through' : ''}`}>
                               R$ {energyTotal.toFixed(2)}
@@ -2699,7 +3520,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             <h4 className={`font-bold text-gray-900 truncate ${isPaid ? 'line-through text-gray-400' : ''}`}>
                               {user?.name || 'Não Identificado'}
                             </h4>
-                            <p className="text-xs text-gray-500">{user?.phone}</p>
+                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                              {user?.phone && <span>{user.phone}</span>}
+                              {((user?.street || user?.rua) || (user?.house_number || user?.casa)) && (
+                                <span className="text-gray-400">
+                                  • {[user?.street || user?.rua, (user?.house_number || user?.casa) ? `Casa ${user?.house_number || user?.casa}` : ''].filter(Boolean).join(', ')}
+                                </span>
+                              )}
+                              {user?.cpf && <span className="font-mono text-gray-400">• CPF: {user.cpf}</span>}
+                            </div>
                           </div>
                           <div className="text-right">
                             <p className={`text-xl font-black text-indigo-600 ${isPaid ? 'line-through text-gray-400' : ''}`}>
@@ -3054,7 +3883,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     <Eye className="text-indigo-600" size={24} />
                     Extrato de Pendências
                   </h3>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{pendingDetailsModal.user.name}</p>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+                    {pendingDetailsModal.user.name}
+                    {((pendingDetailsModal.user.street || pendingDetailsModal.user.rua) || (pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa)) && (
+                      <span className="font-normal text-gray-400 normal-case ml-2">
+                        • {[pendingDetailsModal.user.street || pendingDetailsModal.user.rua, (pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa) ? `Casa ${pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa}` : ''].filter(Boolean).join(', ')}
+                      </span>
+                    )}
+                    {pendingDetailsModal.user.cpf && (
+                      <span className="font-mono text-gray-400 normal-case ml-2">
+                        • CPF: {pendingDetailsModal.user.cpf}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 no-export">
                   <button 
@@ -3307,7 +4148,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           <FileText className="text-indigo-600" size={24} />
                           Extrato Mensal - {capitalizedMonth} / {year}
                         </h3>
-                        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{user?.name || 'Usuário'}</p>
+                        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+                          {user?.name || 'Usuário'}
+                          {user && ((user.street || user.rua) || (user.house_number || user.casa)) && (
+                            <span className="font-normal text-gray-400 normal-case ml-2">
+                              • {[user.street || user.rua, (user.house_number || user.casa) ? `Casa ${user.house_number || user.casa}` : ''].filter(Boolean).join(', ')}
+                            </span>
+                          )}
+                          {user?.cpf && (
+                            <span className="font-mono text-gray-400 normal-case ml-2">
+                              • CPF: {user.cpf}
+                            </span>
+                          )}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 no-export">
                         <button 

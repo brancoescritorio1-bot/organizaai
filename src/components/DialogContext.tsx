@@ -72,15 +72,24 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, []);
 
-  const alert = useCallback((message: string, title: string = 'Aviso') => {
+  const alert = useCallback((message: string | any, title: string = 'Aviso') => {
+    let finalMessage = '';
+    let finalTitle = title;
+    if (typeof message === 'object' && message !== null) {
+      finalMessage = message.message || message.description || message.error || JSON.stringify(message);
+      finalTitle = message.title || title;
+    } else {
+      finalMessage = String(message ?? '');
+    }
+
     return new Promise<void>((resolve) => {
       setDialogs((prev) => [
         ...prev,
         {
           id: Date.now().toString() + Math.random(),
           type: 'alert',
-          title,
-          message,
+          title: finalTitle,
+          message: finalMessage,
           resolve,
         },
       ]);
@@ -167,9 +176,9 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                       <CheckCircle2 size={32} />
                     )}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">{dialog.title}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{typeof dialog.title === 'string' ? dialog.title : 'Aviso'}</h3>
                 </div>
-                <p className="text-gray-600 text-center whitespace-pre-wrap">{dialog.message}</p>
+                <p className="text-gray-600 text-center whitespace-pre-wrap">{typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message)}</p>
                 {dialog.type === 'options' && (
                   <div className="mt-6 flex flex-col gap-3">
                     {dialog.options.map((opt: any, i: number) => (

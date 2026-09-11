@@ -158,6 +158,11 @@ export interface ChacaraUser {
   id: number;
   name: string;
   phone: string;
+  street?: string;
+  house_number?: string;
+  cpf?: string;
+  rua?: string;
+  casa?: string;
   last_reading: number;
   last_water_reading?: number;
   has_energy?: boolean;
