@@ -1677,14 +1677,27 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
   });
 
   // --- Chácara Module Helpers & Routes ---
+  const cleanAddressNumber = (val: any): string => {
+    if (val === null || val === undefined) return '';
+    let str = String(val).trim();
+    // Remove "Rua", "Casa", "Alameda", "Lote", "Lt", "Chácara", "Quadra", "Qd", "Nº", "No", etc.
+    str = str.replace(/\b(rua|casa|alameda|lote|lt|chacara|chácara|quadra|qd|nº|no|num|numero|número)\b/gi, '');
+    str = str.replace(/^(r\.|c\.|lt\.|qd\.|n\.|no\.)\s*/gi, '');
+    str = str.replace(/^(rua|casa|r|c)\s*[:\-.]?\s*/i, '');
+    str = str.replace(/^[\s:\-./,]+|[\s:\-./,]+$/g, '').trim();
+    return str;
+  };
+
   const encodeChacaraUserPhone = (phone: string, meta: { street?: string; house_number?: string; cpf?: string }) => {
     const cleanPhone = (phone || "").replace(/^\[META:[^\]]+\]\n?/is, "");
-    if (!meta.street && !meta.house_number && !meta.cpf) {
+    const cleanStreet = cleanAddressNumber(meta.street);
+    const cleanHouse = cleanAddressNumber(meta.house_number);
+    if (!cleanStreet && !cleanHouse && !meta.cpf) {
       return cleanPhone;
     }
     const jsonMeta = JSON.stringify({
-      street: meta.street || "",
-      house_number: meta.house_number || "",
+      street: cleanStreet,
+      house_number: cleanHouse,
       cpf: meta.cpf || ""
     });
     return `[META:${jsonMeta}]\n${cleanPhone}`;
@@ -1692,8 +1705,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
 
   const decodeChacaraUser = (u: any) => {
     if (!u) return u;
-    let street = u.street || u.rua || "";
-    let house_number = u.house_number || u.casa || "";
+    let street = cleanAddressNumber(u.street || u.rua || "");
+    let house_number = cleanAddressNumber(u.house_number || u.casa || "");
     let cpf = u.cpf || "";
     let phone = u.phone || "";
 
@@ -1701,8 +1714,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     if (match) {
       try {
         const meta = JSON.parse(match[1]);
-        if (!street && meta.street) street = meta.street;
-        if (!house_number && meta.house_number) house_number = meta.house_number;
+        if (!street && meta.street) street = cleanAddressNumber(meta.street);
+        if (!house_number && meta.house_number) house_number = cleanAddressNumber(meta.house_number);
         if (!cpf && meta.cpf) cpf = meta.cpf;
         phone = match[2] || "";
       } catch (e) {
@@ -1724,6 +1737,31 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     const { data, error } = await supabase.from("chacara_users").select("*").eq("user_id", user.id).order('name');
     if (error) return res.status(500).json(error);
     const mapped = (data || []).map((u: any) => decodeChacaraUser(u));
+
+    // Asynchronously update records in DB if they still contained literal "Rua" or "Casa"
+    (async () => {
+      try {
+        for (const rawUser of (data || [])) {
+          const decoded = decodeChacaraUser(rawUser);
+          const needsStreetUpdate = rawUser.street && rawUser.street !== decoded.street;
+          const needsHouseUpdate = rawUser.house_number && rawUser.house_number !== decoded.house_number;
+          const needsRuaUpdate = rawUser.rua && rawUser.rua !== decoded.street;
+          const needsCasaUpdate = rawUser.casa && rawUser.casa !== decoded.house_number;
+
+          if (needsStreetUpdate || needsHouseUpdate || needsRuaUpdate || needsCasaUpdate) {
+            const patch: any = {};
+            if (rawUser.street !== undefined) patch.street = decoded.street;
+            if (rawUser.house_number !== undefined) patch.house_number = decoded.house_number;
+            if (rawUser.rua !== undefined) patch.rua = decoded.street;
+            if (rawUser.casa !== undefined) patch.casa = decoded.house_number;
+            await supabase.from("chacara_users").update(patch).eq("id", rawUser.id);
+          }
+        }
+      } catch (e) {
+        // Non-fatal background sync
+      }
+    })();
+
     res.json(mapped);
   });
 
@@ -1734,8 +1772,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       street, house_number, cpf, rua, casa 
     } = req.body;
 
-    const finalStreet = street || rua || "";
-    const finalHouseNumber = house_number || casa || "";
+    const finalStreet = cleanAddressNumber(street || rua || "");
+    const finalHouseNumber = cleanAddressNumber(house_number || casa || "");
     const finalCpf = cpf || "";
 
     const payloadWithCols: any = { 
@@ -1784,8 +1822,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       street, house_number, cpf, rua, casa 
     } = req.body;
 
-    const finalStreet = street || rua || "";
-    const finalHouseNumber = house_number || casa || "";
+    const finalStreet = cleanAddressNumber(street || rua || "");
+    const finalHouseNumber = cleanAddressNumber(house_number || casa || "");
     const finalCpf = cpf || "";
 
     const updateWithCols: any = { 

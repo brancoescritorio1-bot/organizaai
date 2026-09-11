@@ -38,7 +38,11 @@ import {
   X,
   Gauge,
   Clock,
-  Sparkles
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
@@ -96,6 +100,17 @@ const normalizeSearchText = (text: string | null | undefined): string => {
 const extractDigits = (text: string | null | undefined): string => {
   if (!text) return '';
   return text.toString().replace(/\D/g, '');
+};
+
+export const cleanAddressNumber = (val: string | number | null | undefined): string => {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+  // Remove "Rua", "Casa", "Alameda", "Lote", "Lt", "Chácara", "Quadra", "Qd", "Nº", "No", etc.
+  str = str.replace(/\b(rua|casa|alameda|lote|lt|chacara|chácara|quadra|qd|nº|no|num|numero|número)\b/gi, '');
+  str = str.replace(/^(r\.|c\.|lt\.|qd\.|n\.|no\.)\s*/gi, '');
+  str = str.replace(/^(rua|casa|r|c)\s*[:\-.]?\s*/i, '');
+  str = str.replace(/^[\s:\-./,]+|[\s:\-./,]+$/g, '').trim();
+  return str;
 };
 
 const getFirstName = (fullName: string | null | undefined): string => {
@@ -264,11 +279,14 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     water_active: true
   });
   const [editingUser, setEditingUser] = useState<ChacaraUser | null>(null);
+  const [showUserForm, setShowUserForm] = useState(false);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userServiceFilter, setUserServiceFilter] = useState<'all' | 'energy' | 'water' | 'inactive'>('all');
   const [userSortField, setUserSortField] = useState<'name' | 'street' | 'house_number' | 'cpf' | 'phone'>('name');
   const [userSortOrder, setUserSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
   const userFormRef = useRef<HTMLDivElement>(null);
 
   const toggleUserSort = (field: 'name' | 'street' | 'house_number' | 'cpf' | 'phone') => {
@@ -652,6 +670,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
 
   const handleCancelEditUser = () => {
     setEditingUser(null);
+    setShowUserForm(false);
     setUserForm({ 
       name: '', 
       street: '',
@@ -686,8 +705,8 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
         body: JSON.stringify({
           ...userForm,
           name: userForm.name.trim(),
-          street: userForm.street.trim(),
-          house_number: userForm.house_number.trim(),
+          street: cleanAddressNumber(userForm.street),
+          house_number: cleanAddressNumber(userForm.house_number),
           cpf: userForm.cpf.trim(),
           phone: userForm.phone.trim()
         })
@@ -708,6 +727,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
           water_active: true
         });
         setEditingUser(null);
+        setShowUserForm(false);
         await fetchData();
         if (onDataUpdate) onDataUpdate();
         dialogAlert(editingUser ? 'Morador atualizado com sucesso!' : 'Morador cadastrado com sucesso!');
@@ -2027,6 +2047,13 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             return userSortOrder === 'asc' ? nA.localeCompare(nB) : nB.localeCompare(nA);
           });
 
+          const effectivePageSize = userPageSize === 0 ? filteredUsersList.length : userPageSize;
+          const totalUserPages = userPageSize === 0 ? 1 : Math.max(1, Math.ceil(filteredUsersList.length / (userPageSize || 10)));
+          const safeUserPage = Math.min(Math.max(1, userPage), totalUserPages);
+          const paginatedUsersList = userPageSize === 0 ? filteredUsersList : filteredUsersList.slice((safeUserPage - 1) * effectivePageSize, safeUserPage * effectivePageSize);
+          const startUserIdx = filteredUsersList.length === 0 ? 0 : (safeUserPage - 1) * effectivePageSize + 1;
+          const endUserIdx = userPageSize === 0 ? filteredUsersList.length : Math.min(safeUserPage * effectivePageSize, filteredUsersList.length);
+
           return (
             <motion.div
               key="users"
@@ -2071,562 +2098,616 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 </div>
               </div>
 
-              {/* Main Content: Form (left) + List (right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* FORM CADASTRO */}
-                <div ref={userFormRef} className="lg:col-span-5 bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-base">
-                        {editingUser ? 'Editar Morador' : 'Novo Morador'}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {editingUser ? 'Atualize os dados e pontos de fornecimento' : 'Preencha os dados do morador da chácara'}
-                      </p>
-                    </div>
-                    {editingUser && (
+              {/* Main Content: Full-width Form (collapsible / on edit) + Full-width Table */}
+              <div className="space-y-6">
+                {/* FORM CADASTRO (Full width card when open or editing) */}
+                {(showUserForm || editingUser) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    ref={userFormRef} 
+                    className="bg-white rounded-2xl shadow-xs border border-indigo-100/80 overflow-hidden"
+                  >
+                    <div className="px-6 py-4 bg-gradient-to-r from-indigo-50/50 to-white border-b border-indigo-100/60 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${editingUser ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                          {editingUser ? <Edit2 size={18} /> : <UserPlus size={18} />}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                            {editingUser ? 'Editar Morador' : 'Cadastrar Novo Morador'}
+                            {editingUser && (
+                              <span className="text-xs font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                #{editingUser.id}
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {editingUser ? `Atualizando informações de ${editingUser.name}` : 'Preencha os dados e configurações de fornecimento'}
+                          </p>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={handleCancelEditUser}
-                        className="text-xs text-gray-500 hover:text-gray-800 font-medium px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="text-xs text-gray-500 hover:text-gray-800 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1.5"
                       >
-                        Cancelar
-                      </button>
-                    )}
-                  </div>
-
-                  {editingUser && (
-                    <div className="mx-6 mt-4 px-3.5 py-2.5 bg-amber-50/70 border border-amber-200/60 rounded-lg flex items-center justify-between text-xs text-amber-900">
-                      <span>Editando cadastro de <strong className="font-semibold">{editingUser.name}</strong></span>
-                      <span className="text-[11px] font-mono text-amber-700">#{editingUser.id}</span>
-                    </div>
-                  )}
-
-                  <div className="p-6 space-y-4">
-                    {/* Nome do Morador */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                        Nome Completo <span className="text-rose-500">*</span>
-                      </label>
-                      <input 
-                        type="text"
-                        value={userForm.name}
-                        onChange={e => setUserForm({ ...userForm, name: e.target.value })}
-                        className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
-                        placeholder="Nome do morador"
-                      />
-                    </div>
-
-                    {/* Localização na Chácara: Rua e Casa */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                          Rua / Alameda
-                        </label>
-                        <input 
-                          type="text"
-                          value={userForm.street}
-                          onChange={e => setUserForm({ ...userForm, street: e.target.value })}
-                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
-                          placeholder="Ex: Rua 03, Alameda..."
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                          Casa / Lote
-                        </label>
-                        <input 
-                          type="text"
-                          value={userForm.house_number}
-                          onChange={e => setUserForm({ ...userForm, house_number: e.target.value })}
-                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
-                          placeholder="Ex: Casa 14, Lote 2"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Identificação e Contato: CPF e Telefone */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                          CPF
-                        </label>
-                        <input 
-                          type="text"
-                          value={userForm.cpf}
-                          onChange={e => handleUserCpfChange(e.target.value)}
-                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
-                          placeholder="000.000.000-00"
-                          maxLength={14}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                          Telefone (WhatsApp) <span className="text-rose-500">*</span>
-                        </label>
-                        <input 
-                          type="text"
-                          value={userForm.phone}
-                          onChange={e => handleUserPhoneChange(e.target.value)}
-                          className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
-                          placeholder="(00) 00000-0000"
-                          maxLength={15}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Serviços de Medição */}
-                    <div className="pt-2 border-t border-gray-100 space-y-3">
-                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Pontos de Medição
-                      </div>
-
-                      {/* Energia */}
-                      <div className="p-3.5 rounded-lg border border-gray-200 bg-gray-50/40">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-semibold text-gray-800">Energia Elétrica</div>
-                            <div className="text-xs text-gray-500">Controle de padrões e consumo</div>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox"
-                              checked={userForm.has_energy}
-                              onChange={e => setUserForm({ ...userForm, has_energy: e.target.checked })}
-                              className="sr-only peer"
-                            />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                          </label>
-                        </div>
-
-                        {userForm.has_energy && (
-                          <div className="mt-3 pt-3 border-t border-gray-200/70 space-y-2.5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600">Status</span>
-                              <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
-                                <button
-                                  type="button"
-                                  onClick={() => setUserForm({ ...userForm, energy_active: true })}
-                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                    userForm.energy_active
-                                      ? 'bg-white text-gray-900 shadow-2xs'
-                                      : 'text-gray-600 hover:text-gray-900'
-                                  }`}
-                                >
-                                  Ligado
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setUserForm({ ...userForm, energy_active: false })}
-                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                    !userForm.energy_active
-                                      ? 'bg-white text-rose-600 shadow-2xs'
-                                      : 'text-gray-600 hover:text-gray-900'
-                                  }`}
-                                >
-                                  Desligado
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600">Padrões</span>
-                              <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
-                                <button
-                                  type="button"
-                                  disabled={(userForm.energy_meters_count || 1) <= 1}
-                                  onClick={() => setUserForm({ ...userForm, energy_meters_count: Math.max(1, (userForm.energy_meters_count || 1) - 1) })}
-                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
-                                >
-                                  -
-                                </button>
-                                <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[60px] text-center bg-gray-50/50">
-                                  {userForm.energy_meters_count || 1}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setUserForm({ ...userForm, energy_meters_count: (userForm.energy_meters_count || 1) + 1 })}
-                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Água */}
-                      <div className="p-3.5 rounded-lg border border-gray-200 bg-gray-50/40">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-semibold text-gray-800">Água Encanada</div>
-                            <div className="text-xs text-gray-500">Controle de hidrômetros e consumo</div>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox"
-                              checked={userForm.has_water}
-                              onChange={e => setUserForm({ ...userForm, has_water: e.target.checked })}
-                              className="sr-only peer"
-                            />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                          </label>
-                        </div>
-
-                        {userForm.has_water && (
-                          <div className="mt-3 pt-3 border-t border-gray-200/70 space-y-2.5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600">Status</span>
-                              <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
-                                <button
-                                  type="button"
-                                  onClick={() => setUserForm({ ...userForm, water_active: true })}
-                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                    userForm.water_active
-                                      ? 'bg-white text-gray-900 shadow-2xs'
-                                      : 'text-gray-600 hover:text-gray-900'
-                                  }`}
-                                >
-                                  Ligado
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setUserForm({ ...userForm, water_active: false })}
-                                  className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                    !userForm.water_active
-                                      ? 'bg-white text-rose-600 shadow-2xs'
-                                      : 'text-gray-600 hover:text-gray-900'
-                                  }`}
-                                >
-                                  Desligado
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600">Hidrômetros</span>
-                              <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
-                                <button
-                                  type="button"
-                                  disabled={(userForm.water_meters_count || 1) <= 1}
-                                  onClick={() => setUserForm({ ...userForm, water_meters_count: Math.max(1, (userForm.water_meters_count || 1) - 1) })}
-                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
-                                >
-                                  -
-                                </button>
-                                <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[60px] text-center bg-gray-50/50">
-                                  {userForm.water_meters_count || 1}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setUserForm({ ...userForm, water_meters_count: (userForm.water_meters_count || 1) + 1 })}
-                                  className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Botão de Ação */}
-                    <div className="pt-2">
-                      <button 
-                        onClick={handleSaveUser}
-                        disabled={isSavingUser}
-                        className={`w-full py-2.5 text-white rounded-lg font-semibold text-sm transition-all shadow-xs ${
-                          editingUser
-                            ? 'bg-amber-600 hover:bg-amber-700'
-                            : 'bg-indigo-600 hover:bg-indigo-700'
-                        } ${isSavingUser ? 'opacity-70 cursor-not-allowed' : ''}`}
-                      >
-                        {isSavingUser 
-                          ? 'Salvando...' 
-                          : editingUser 
-                            ? 'Atualizar Morador' 
-                            : 'Salvar Morador'
-                        }
+                        <X size={14} />
+                        Fechar
                       </button>
                     </div>
-                  </div>
-                </div>
 
-                {/* LISTAGEM DE MORADORES */}
-                <div className="lg:col-span-7 space-y-4">
-                  <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
-                    {/* Header da Listagem */}
-                    <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-gray-900 text-base">Moradores Cadastrados</h3>
-                          <span className="text-xs text-gray-500 font-medium">
-                            ({filteredUsersList.length})
-                          </span>
+                    <div className="p-6 space-y-5">
+                      {/* Grid de Campos Principais */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+                        {/* Nome Completo */}
+                        <div className="lg:col-span-4">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Nome Completo <span className="text-rose-500">*</span>
+                          </label>
+                          <input 
+                            type="text"
+                            value={userForm.name}
+                            onChange={e => setUserForm({ ...userForm, name: e.target.value })}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                            placeholder="Nome completo do morador"
+                          />
                         </div>
-                        <p className="text-xs text-gray-500">Controle e histórico de consumos da chácara</p>
+
+                        {/* CPF */}
+                        <div className="lg:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            CPF
+                          </label>
+                          <input 
+                            type="text"
+                            value={userForm.cpf}
+                            onChange={e => handleUserCpfChange(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            placeholder="000.000.000-00"
+                            maxLength={14}
+                          />
+                        </div>
+
+                        {/* Telefone / WhatsApp */}
+                        <div className="lg:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Telefone / WhatsApp <span className="text-rose-500">*</span>
+                          </label>
+                          <input 
+                            type="text"
+                            value={userForm.phone}
+                            onChange={e => handleUserPhoneChange(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            placeholder="(00) 00000-0000"
+                            maxLength={15}
+                          />
+                        </div>
+
+                        {/* Rua / Alameda */}
+                        <div className="lg:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Rua (Número)
+                          </label>
+                          <input 
+                            type="text"
+                            value={userForm.street}
+                            onChange={e => setUserForm({ ...userForm, street: cleanAddressNumber(e.target.value) })}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            placeholder="Ex: 03"
+                          />
+                        </div>
+
+                        {/* Casa / Lote */}
+                        <div className="lg:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Casa (Número)
+                          </label>
+                          <input 
+                            type="text"
+                            value={userForm.house_number}
+                            onChange={e => setUserForm({ ...userForm, house_number: cleanAddressNumber(e.target.value) })}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            placeholder="Ex: 14"
+                          />
+                        </div>
                       </div>
 
-                      {editingUser && (
+                      {/* Serviços de Medição: Energia e Água */}
+                      <div className="pt-3 border-t border-gray-100">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                          Pontos de Medição e Fornecimento
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Energia Elétrica */}
+                          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                                  <Zap size={16} />
+                                </div>
+                                <div>
+                                  <div className="text-sm font-semibold text-gray-900">Energia Elétrica</div>
+                                  <div className="text-xs text-gray-500">Controle de padrões e consumo</div>
+                                </div>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                  type="checkbox"
+                                  checked={userForm.has_energy}
+                                  onChange={e => setUserForm({ ...userForm, has_energy: e.target.checked })}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                              </label>
+                            </div>
+
+                            {userForm.has_energy && (
+                              <div className="mt-3 pt-3 border-t border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600 font-medium">Status:</span>
+                                  <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserForm({ ...userForm, energy_active: true })}
+                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                        userForm.energy_active
+                                          ? 'bg-white text-emerald-700 font-semibold shadow-2xs'
+                                          : 'text-gray-600 hover:text-gray-900'
+                                      }`}
+                                    >
+                                      Ligado
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserForm({ ...userForm, energy_active: false })}
+                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                        !userForm.energy_active
+                                          ? 'bg-white text-rose-600 font-semibold shadow-2xs'
+                                          : 'text-gray-600 hover:text-gray-900'
+                                      }`}
+                                    >
+                                      Desligado
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600 font-medium">Padrões:</span>
+                                  <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
+                                    <button
+                                      type="button"
+                                      disabled={(userForm.energy_meters_count || 1) <= 1}
+                                      onClick={() => setUserForm({ ...userForm, energy_meters_count: Math.max(1, (userForm.energy_meters_count || 1) - 1) })}
+                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[50px] text-center bg-gray-50/50">
+                                      {userForm.energy_meters_count || 1}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserForm({ ...userForm, energy_meters_count: (userForm.energy_meters_count || 1) + 1 })}
+                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Água Encanada */}
+                          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
+                                  <Droplets size={16} />
+                                </div>
+                                <div>
+                                  <div className="text-sm font-semibold text-gray-900">Água Encanada</div>
+                                  <div className="text-xs text-gray-500">Controle de hidrômetros e consumo</div>
+                                </div>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                  type="checkbox"
+                                  checked={userForm.has_water}
+                                  onChange={e => setUserForm({ ...userForm, has_water: e.target.checked })}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                              </label>
+                            </div>
+
+                            {userForm.has_water && (
+                              <div className="mt-3 pt-3 border-t border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600 font-medium">Status:</span>
+                                  <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserForm({ ...userForm, water_active: true })}
+                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                        userForm.water_active
+                                          ? 'bg-white text-emerald-700 font-semibold shadow-2xs'
+                                          : 'text-gray-600 hover:text-gray-900'
+                                      }`}
+                                    >
+                                      Ligado
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserForm({ ...userForm, water_active: false })}
+                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
+                                        !userForm.water_active
+                                          ? 'bg-white text-rose-600 font-semibold shadow-2xs'
+                                          : 'text-gray-600 hover:text-gray-900'
+                                      }`}
+                                    >
+                                      Desligado
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600 font-medium">Hidrômetros:</span>
+                                  <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
+                                    <button
+                                      type="button"
+                                      disabled={(userForm.water_meters_count || 1) <= 1}
+                                      onClick={() => setUserForm({ ...userForm, water_meters_count: Math.max(1, (userForm.water_meters_count || 1) - 1) })}
+                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[50px] text-center bg-gray-50/50">
+                                      {userForm.water_meters_count || 1}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserForm({ ...userForm, water_meters_count: (userForm.water_meters_count || 1) + 1 })}
+                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Botões de Ação do Formulário */}
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
                         <button
+                          type="button"
                           onClick={handleCancelEditUser}
-                          className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                          className="px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-medium text-sm transition-colors"
                         >
-                          + Novo Morador
+                          Cancelar
+                        </button>
+                        <button 
+                          onClick={handleSaveUser}
+                          disabled={isSavingUser}
+                          className={`px-6 py-2.5 text-white rounded-xl font-semibold text-sm transition-all shadow-sm ${
+                            editingUser
+                              ? 'bg-amber-600 hover:bg-amber-700'
+                              : 'bg-indigo-600 hover:bg-indigo-700'
+                          } ${isSavingUser ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        >
+                          {isSavingUser 
+                            ? 'Salvando...' 
+                            : editingUser 
+                              ? 'Atualizar Morador' 
+                              : 'Cadastrar Morador'
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* LISTAGEM DE MORADORES (Full width card) */}
+                <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 overflow-hidden">
+                  {/* Header da Listagem */}
+                  <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-bold text-gray-900 text-lg">Moradores Cadastrados</h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          {filteredUsersList.length} {filteredUsersList.length === 1 ? 'morador' : 'moradores'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">Gestão completa de moradores, hidrômetros e padrões da chácara</p>
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      {!showUserForm && !editingUser && (
+                        <button
+                          onClick={() => {
+                            setShowUserForm(true);
+                            userFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-xl transition-all shadow-xs"
+                        >
+                          <UserPlus size={16} />
+                          <span>Cadastrar Novo Morador</span>
                         </button>
                       )}
                     </div>
+                  </div>
 
-                    {/* Toolbar com Filtros e Busca */}
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-                      {/* Segmented Filter Tabs */}
-                      <div className="inline-flex rounded-lg p-1 bg-gray-100 overflow-x-auto text-xs font-medium gap-1">
-                        <button
-                          onClick={() => setUserServiceFilter('all')}
-                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
-                            userServiceFilter === 'all'
-                              ? 'bg-white text-gray-900 shadow-2xs font-semibold'
-                              : 'text-gray-500 hover:text-gray-800'
-                          }`}
-                        >
-                          Todos ({totalUsersCount})
-                        </button>
-                        <button
-                          onClick={() => setUserServiceFilter('energy')}
-                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
-                            userServiceFilter === 'energy'
-                              ? 'bg-white text-gray-900 shadow-2xs font-semibold'
-                              : 'text-gray-500 hover:text-gray-800'
-                          }`}
-                        >
-                          Energia ({activeEnergyUsersCount})
-                        </button>
-                        <button
-                          onClick={() => setUserServiceFilter('water')}
-                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
-                            userServiceFilter === 'water'
-                              ? 'bg-white text-gray-900 shadow-2xs font-semibold'
-                              : 'text-gray-500 hover:text-gray-800'
-                          }`}
-                        >
-                          Água ({activeWaterUsersCount})
-                        </button>
-                        <button
-                          onClick={() => setUserServiceFilter('inactive')}
-                          className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
-                            userServiceFilter === 'inactive'
-                              ? 'bg-white text-rose-600 shadow-2xs font-semibold'
-                              : 'text-gray-500 hover:text-gray-800'
-                          }`}
-                        >
-                          Desligados ({inactiveServicesCount})
-                        </button>
-                      </div>
-
-                      {/* Campo de Busca */}
-                      <div className="relative min-w-[240px]">
-                        <input
-                          type="text"
-                          value={userSearchTerm}
-                          onChange={e => setUserSearchTerm(e.target.value)}
-                          placeholder="Buscar por nome, rua, casa, CPF..."
-                          className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-gray-800 placeholder:text-gray-400"
-                        />
-                        {userSearchTerm && (
-                          <button
-                            onClick={() => setUserSearchTerm('')}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
+                  {/* Toolbar com Filtros e Busca */}
+                  <div className="p-4 border-b border-gray-100 bg-gray-50/40 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                    {/* Segmented Filter Tabs */}
+                    <div className="inline-flex rounded-xl p-1 bg-gray-200/60 overflow-x-auto text-xs font-medium gap-1 shrink-0">
+                      <button
+                        onClick={() => { setUserServiceFilter('all'); setUserPage(1); }}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap ${
+                          userServiceFilter === 'all'
+                            ? 'bg-white text-gray-900 shadow-2xs font-semibold'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        Todos ({totalUsersCount})
+                      </button>
+                      <button
+                        onClick={() => { setUserServiceFilter('energy'); setUserPage(1); }}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                          userServiceFilter === 'energy'
+                            ? 'bg-white text-amber-800 shadow-2xs font-semibold'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <Zap size={13} className="text-amber-500" />
+                        Energia ({activeEnergyUsersCount})
+                      </button>
+                      <button
+                        onClick={() => { setUserServiceFilter('water'); setUserPage(1); }}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                          userServiceFilter === 'water'
+                            ? 'bg-white text-sky-800 shadow-2xs font-semibold'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <Droplets size={13} className="text-sky-500" />
+                        Água ({activeWaterUsersCount})
+                      </button>
+                      <button
+                        onClick={() => { setUserServiceFilter('inactive'); setUserPage(1); }}
+                        className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                          userServiceFilter === 'inactive'
+                            ? 'bg-white text-rose-700 shadow-2xs font-semibold'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <AlertCircle size={13} className="text-rose-500" />
+                        Desligados ({inactiveServicesCount})
+                      </button>
                     </div>
 
-                    {/* Tabela de Moradores */}
-                    <div className="overflow-x-auto">
-                      {filteredUsersList.length > 0 ? (
-                        <table className="w-full text-left border-collapse">
+                    {/* Campo de Busca */}
+                    <div className="relative w-full md:w-80">
+                      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={userSearchTerm}
+                        onChange={e => { setUserSearchTerm(e.target.value); setUserPage(1); }}
+                        placeholder="Buscar por nome, rua, casa, CPF..."
+                        className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-500 outline-none text-gray-800 placeholder:text-gray-400"
+                      />
+                      {userSearchTerm && (
+                        <button
+                          onClick={() => { setUserSearchTerm(''); setUserPage(1); }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-xs"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Tabela de Moradores com tipografia expandida e sem rolagem horizontal */}
+                  <div className="w-full overflow-x-auto">
+                    {filteredUsersList.length > 0 ? (
+                      <>
+                        <table className="w-full text-left border-collapse table-auto">
                           <thead>
-                            <tr className="border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                              <th className="px-5 py-3">
+                            <tr className="border-b border-gray-200 bg-gray-50/80 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                              <th className="px-5 py-3.5">
                                 <button
                                   type="button"
                                   onClick={() => toggleUserSort('name')}
-                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                  className="inline-flex items-center gap-1.5 hover:text-indigo-600 transition-colors uppercase font-bold"
                                 >
-                                  Nome
-                                  <span className="text-[10px] text-gray-400 font-mono">
+                                  Nome / Morador
+                                  <span className="text-xs text-gray-400 font-mono">
                                     {userSortField === 'name' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                   </span>
                                 </button>
                               </th>
-                              <th className="px-4 py-3">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleUserSort('street')}
-                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
-                                >
-                                  Rua
-                                  <span className="text-[10px] text-gray-400 font-mono">
-                                    {userSortField === 'street' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
-                                  </span>
-                                </button>
+                              <th className="px-4 py-3.5">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleUserSort('street')}
+                                    className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                    title="Ordenar por Rua"
+                                  >
+                                    Rua
+                                    <span className="text-xs text-gray-400 font-mono">
+                                      {userSortField === 'street' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                    </span>
+                                  </button>
+                                  <span className="text-gray-300">/</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleUserSort('house_number')}
+                                    className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                    title="Ordenar por Casa"
+                                  >
+                                    Casa
+                                    <span className="text-xs text-gray-400 font-mono">
+                                      {userSortField === 'house_number' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                                    </span>
+                                  </button>
+                                </div>
                               </th>
-                              <th className="px-4 py-3">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleUserSort('house_number')}
-                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
-                                >
-                                  Casa
-                                  <span className="text-[10px] text-gray-400 font-mono">
-                                    {userSortField === 'house_number' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
-                                  </span>
-                                </button>
-                              </th>
-                              <th className="px-4 py-3">
+                              <th className="px-4 py-3.5">
                                 <button
                                   type="button"
                                   onClick={() => toggleUserSort('cpf')}
-                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                  className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
                                 >
                                   CPF
-                                  <span className="text-[10px] text-gray-400 font-mono">
+                                  <span className="text-xs text-gray-400 font-mono">
                                     {userSortField === 'cpf' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                   </span>
                                 </button>
                               </th>
-                              <th className="px-4 py-3">
+                              <th className="px-4 py-3.5">
                                 <button
                                   type="button"
                                   onClick={() => toggleUserSort('phone')}
-                                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors uppercase"
+                                  className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
                                 >
-                                  Contato
-                                  <span className="text-[10px] text-gray-400 font-mono">
+                                  WhatsApp / Contato
+                                  <span className="text-xs text-gray-400 font-mono">
                                     {userSortField === 'phone' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                   </span>
                                 </button>
                               </th>
-                              <th className="px-4 py-3">Serviços</th>
-                              <th className="px-5 py-3 text-right">Ações</th>
+                              <th className="px-4 py-3.5 font-bold">Serviços / Padrões</th>
+                              <th className="px-5 py-3.5 text-right font-bold">Ações</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {filteredUsersList.map((user) => {
+                          <tbody className="divide-y divide-gray-100 text-sm">
+                            {paginatedUsersList.map((user) => {
                               const isCurrentlyEditing = editingUser?.id === user.id;
-                              const userStreet = user.street || user.rua;
-                              const userHouse = user.house_number || user.casa;
+                              const userStreet = cleanAddressNumber(user.street || user.rua);
+                              const userHouse = cleanAddressNumber(user.house_number || user.casa);
+                              const initials = user.name
+                                ? user.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+                                : 'M';
 
                               return (
                                 <tr 
                                   key={user.id} 
-                                  className={`transition-colors hover:bg-gray-50/50 ${
-                                    isCurrentlyEditing ? 'bg-amber-50/30' : ''
+                                  className={`transition-colors hover:bg-indigo-50/30 ${
+                                    isCurrentlyEditing ? 'bg-amber-50/50 border-l-4 border-amber-500' : ''
                                   }`}
                                 >
                                   {/* Nome */}
-                                  <td className="px-5 py-3.5">
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-gray-900 text-sm">{user.name}</span>
-                                        {isCurrentlyEditing && (
-                                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px] font-medium">
-                                            editando
-                                          </span>
-                                        )}
+                                  <td className="px-5 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                        {initials}
                                       </div>
-                                      <span className="text-[11px] text-gray-400 font-mono">ID #{user.id}</span>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate" title={user.name}>
+                                            {user.name}
+                                          </span>
+                                          {isCurrentlyEditing && (
+                                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                              editando
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-xs text-gray-400 font-mono block mt-0.5">ID #{user.id}</span>
+                                      </div>
                                     </div>
                                   </td>
 
-                                  {/* Rua */}
-                                  <td className="px-4 py-3.5">
-                                    {userStreet ? (
-                                      <span className="text-xs font-medium text-gray-800">
-                                        {userStreet}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs text-gray-300">-</span>
-                                    )}
-                                  </td>
-
-                                  {/* Casa */}
-                                  <td className="px-4 py-3.5">
-                                    {userHouse ? (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-semibold text-xs font-mono">
-                                        {userHouse}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs text-gray-300">-</span>
-                                    )}
+                                  {/* Rua e Casa */}
+                                  <td className="px-4 py-4">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {userStreet ? (
+                                        <span className="text-sm font-bold text-gray-800 font-mono" title={`Rua ${userStreet}`}>
+                                          {userStreet}
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-300 font-normal text-xs">-</span>
+                                      )}
+                                      {userHouse && (
+                                        <>
+                                          <span className="text-gray-300 font-light">/</span>
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-bold text-xs font-mono border border-slate-200/60" title={`Casa ${userHouse}`}>
+                                            {userHouse}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
                                   </td>
 
                                   {/* CPF */}
-                                  <td className="px-4 py-3.5">
+                                  <td className="px-4 py-4">
                                     {user.cpf ? (
-                                      <span className="text-xs font-mono text-gray-600">
+                                      <span className="font-mono text-gray-700 font-medium text-sm">
                                         {user.cpf}
                                       </span>
                                     ) : (
-                                      <span className="text-xs text-gray-300">-</span>
+                                      <span className="text-gray-300">-</span>
                                     )}
                                   </td>
 
                                   {/* Telefone / WhatsApp */}
-                                  <td className="px-4 py-3.5">
+                                  <td className="px-4 py-4">
                                     {user.phone ? (
                                       <a
                                         href={`https://wa.me/${formatWAPhone(user.phone)}?text=${encodeURIComponent(`${getGreeting()} ${getFirstName(user.name) || user.name}! Tudo bem? Entro em contato sobre a chácara.`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-xs text-gray-700 hover:text-indigo-600 hover:underline font-mono"
-                                        title="Abrir WhatsApp"
+                                        className="inline-flex items-center gap-1.5 text-sm text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100/90 border border-emerald-200/70 px-3 py-1.5 rounded-lg font-mono font-medium transition-all"
+                                        title="Conversar no WhatsApp"
                                       >
-                                        {user.phone}
+                                        <MessageCircle size={14} className="text-emerald-600 shrink-0" />
+                                        <span>{user.phone}</span>
                                       </a>
                                     ) : (
-                                      <span className="text-xs text-gray-400">Não informado</span>
+                                      <span className="text-gray-400 text-sm">Não informado</span>
                                     )}
                                   </td>
 
                                   {/* Serviços & Medidores */}
-                                  <td className="px-4 py-3.5">
-                                    <div className="flex flex-wrap gap-1.5">
+                                  <td className="px-4 py-4">
+                                    <div className="flex flex-wrap items-center gap-1.5">
                                       {user.has_energy !== false ? (
-                                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                                           user.energy_active !== false
-                                            ? 'bg-amber-50 text-amber-800'
+                                            ? 'bg-amber-50 text-amber-900 border border-amber-200'
                                             : 'bg-gray-100 text-gray-400 line-through'
-                                        }`}>
-                                          Energia ({user.energy_meters_count || 1} pad.)
+                                        }`} title={user.energy_active !== false ? 'Energia Ativa' : 'Energia Desligada'}>
+                                          <Zap size={13} className={user.energy_active !== false ? 'text-amber-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                                          {user.energy_meters_count || 1} {user.energy_meters_count === 1 ? 'padrão' : 'padrões'}
                                         </span>
                                       ) : null}
 
                                       {user.has_water !== false ? (
-                                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                                           user.water_active !== false
-                                            ? 'bg-sky-50 text-sky-800'
+                                            ? 'bg-sky-50 text-sky-900 border border-sky-200'
                                             : 'bg-gray-100 text-gray-400 line-through'
-                                        }`}>
-                                          Água ({user.water_meters_count || 1} hidr.)
+                                        }`} title={user.water_active !== false ? 'Água Ativa' : 'Água Desligada'}>
+                                          <Droplets size={13} className={user.water_active !== false ? 'text-sky-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                                          {user.water_meters_count || 1} {user.water_meters_count === 1 ? 'hidrômetro' : 'hidrômetros'}
                                         </span>
                                       ) : null}
 
                                       {user.has_energy === false && user.has_water === false && (
-                                        <span className="text-gray-400 text-xs">Nenhum</span>
+                                        <span className="text-gray-400 text-xs">Nenhum serviço</span>
                                       )}
                                     </div>
                                   </td>
 
                                   {/* Ações */}
-                                  <td className="px-5 py-3.5 text-right">
-                                    <div className="inline-flex items-center gap-1">
+                                  <td className="px-5 py-4 text-right">
+                                    <div className="inline-flex items-center justify-end gap-1.5">
                                       <button 
                                         onClick={() => {
                                           const userBill = bills.find(b => Number(b.chacara_user_id) === user.id && b.month_reference === filterMonth);
@@ -2636,18 +2717,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                             setPendingDetailsModal({ isOpen: true, user });
                                           }
                                         }}
-                                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                        title="Ver Extrato"
+                                        className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                        title="Ver Extrato / Fatura"
                                       >
-                                        <FileText size={15} />
+                                        <FileText size={16} />
                                       </button>
                                       <button 
                                         onClick={() => { 
                                           setEditingUser(user); 
+                                          setShowUserForm(true);
                                           setUserForm({ 
                                             name: user.name, 
-                                            street: user.street || user.rua || '',
-                                            house_number: user.house_number || user.casa || '',
+                                            street: cleanAddressNumber(user.street || user.rua),
+                                            house_number: cleanAddressNumber(user.house_number || user.casa),
                                             cpf: user.cpf || '',
                                             phone: user.phone || '',
                                             has_energy: user.has_energy !== undefined ? user.has_energy : true,
@@ -2659,17 +2741,17 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           }); 
                                           userFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         }}
-                                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                        className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                         title="Editar Morador"
                                       >
-                                        <Edit2 size={15} />
+                                        <Edit2 size={16} />
                                       </button>
                                       <button 
                                         onClick={() => handleDeleteUser(user.id)}
-                                        className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                        className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                         title="Excluir Morador"
                                       >
-                                        <Trash2 size={15} />
+                                        <Trash2 size={16} />
                                       </button>
                                     </div>
                                   </td>
@@ -2678,25 +2760,142 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             })}
                           </tbody>
                         </table>
-                      ) : (
-                        <div className="p-8 text-center">
-                          <h4 className="font-semibold text-gray-700 text-sm">Nenhum morador encontrado</h4>
-                          <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                            {userSearchTerm 
-                              ? `Nenhum resultado corresponde à busca "${userSearchTerm}".`
-                              : 'Nenhum morador cadastrado. Utilize o formulário ao lado para cadastrar.'}
-                          </p>
-                          {userSearchTerm && (
-                            <button
-                              onClick={() => setUserSearchTerm('')}
-                              className="mt-3 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
-                            >
-                              Limpar Pesquisa
-                            </button>
+
+                        {/* Barra de Paginação */}
+                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/70 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+                          <div className="flex items-center gap-4 text-gray-600">
+                            <span>
+                              Mostrando <strong className="text-gray-900 font-bold">{startUserIdx}</strong>–<strong className="text-gray-900 font-bold">{endUserIdx}</strong> de <strong className="text-gray-900 font-bold">{filteredUsersList.length}</strong> moradores
+                            </span>
+
+                            <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
+                              <span className="text-gray-500 text-xs font-medium">Exibir por página:</span>
+                              <select
+                                value={userPageSize}
+                                onChange={e => {
+                                  setUserPageSize(Number(e.target.value));
+                                  setUserPage(1);
+                                }}
+                                className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                              >
+                                <option value={10}>10 linhas</option>
+                                <option value={20}>20 linhas</option>
+                                <option value={50}>50 linhas</option>
+                                <option value={100}>100 linhas</option>
+                                <option value={0}>Todos ({filteredUsersList.length})</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {totalUserPages > 1 && userPageSize > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setUserPage(1)}
+                                disabled={safeUserPage <= 1}
+                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                title="Primeira página"
+                              >
+                                <ChevronsLeft size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setUserPage(prev => Math.max(1, prev - 1))}
+                                disabled={safeUserPage <= 1}
+                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                title="Página anterior"
+                              >
+                                <ChevronLeft size={15} />
+                              </button>
+
+                              {/* Botões numéricos de página */}
+                              <div className="flex items-center gap-1 px-1">
+                                {Array.from({ length: totalUserPages }, (_, i) => i + 1)
+                                  .filter(pageNum => {
+                                    if (totalUserPages <= 7) return true;
+                                    if (pageNum === 1 || pageNum === totalUserPages) return true;
+                                    if (Math.abs(pageNum - safeUserPage) <= 1) return true;
+                                    return false;
+                                  })
+                                  .map((pageNum, idx, arr) => {
+                                    const prevNum = arr[idx - 1];
+                                    const showEllipsis = prevNum && pageNum - prevNum > 1;
+
+                                    return (
+                                      <React.Fragment key={pageNum}>
+                                        {showEllipsis && (
+                                          <span className="px-1 text-gray-400 text-xs">...</span>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => setUserPage(pageNum)}
+                                          className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-semibold transition-all ${
+                                            safeUserPage === pageNum
+                                              ? 'bg-indigo-600 text-white shadow-xs'
+                                              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                                          }`}
+                                        >
+                                          {pageNum}
+                                        </button>
+                                      </React.Fragment>
+                                    );
+                                  })}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setUserPage(prev => Math.min(totalUserPages, prev + 1))}
+                                disabled={safeUserPage >= totalUserPages}
+                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                title="Próxima página"
+                              >
+                                <ChevronRight size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setUserPage(totalUserPages)}
+                                disabled={safeUserPage >= totalUserPages}
+                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                title="Última página"
+                              >
+                                <ChevronsRight size={15} />
+                              </button>
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </>
+                    ) : (
+                      <div className="p-12 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
+                          <User size={24} />
+                        </div>
+                        <h4 className="font-bold text-gray-800 text-base">Nenhum morador encontrado</h4>
+                        <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                          {userSearchTerm 
+                            ? `Nenhum resultado corresponde à busca "${userSearchTerm}".`
+                            : 'Nenhum morador cadastrado. Clique no botão acima para cadastrar o primeiro morador.'}
+                        </p>
+                        {userSearchTerm ? (
+                          <button
+                            onClick={() => { setUserSearchTerm(''); setUserPage(1); }}
+                            className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors"
+                          >
+                            Limpar Pesquisa
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setShowUserForm(true);
+                              userFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-all shadow-xs"
+                          >
+                            <UserPlus size={14} />
+                            <span>Cadastrar Primeiro Morador</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3887,7 +4086,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     {pendingDetailsModal.user.name}
                     {((pendingDetailsModal.user.street || pendingDetailsModal.user.rua) || (pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa)) && (
                       <span className="font-normal text-gray-400 normal-case ml-2">
-                        • {[pendingDetailsModal.user.street || pendingDetailsModal.user.rua, (pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa) ? `Casa ${pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa}` : ''].filter(Boolean).join(', ')}
+                        • {[cleanAddressNumber(pendingDetailsModal.user.street || pendingDetailsModal.user.rua), cleanAddressNumber(pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa)].filter(Boolean).join(' / ')}
                       </span>
                     )}
                     {pendingDetailsModal.user.cpf && (
@@ -4152,7 +4351,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           {user?.name || 'Usuário'}
                           {user && ((user.street || user.rua) || (user.house_number || user.casa)) && (
                             <span className="font-normal text-gray-400 normal-case ml-2">
-                              • {[user.street || user.rua, (user.house_number || user.casa) ? `Casa ${user.house_number || user.casa}` : ''].filter(Boolean).join(', ')}
+                              • {[cleanAddressNumber(user.street || user.rua), cleanAddressNumber(user.house_number || user.casa)].filter(Boolean).join(' / ')}
                             </span>
                           )}
                           {user?.cpf && (
