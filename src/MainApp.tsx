@@ -26,6 +26,7 @@ import {
   PieChart,
   CreditCard,
   Banknote,
+  ArrowRight,
   ArrowRightLeft,
   AlertTriangle,
   ShoppingCart,
@@ -66,6 +67,7 @@ import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart as RechartsPieChart, Pie } from 'recharts';
 import { NotificationCenter } from './components/NotificationCenter';
 import { WorkEscalas } from './components/WorkEscalas';
+import { FinancialMetricCard, FinancialHeader, FinancialStatusBadge } from './components/FinancialComponents';
 
 const parseMonthYear = (str: string) => {
   if (!str) return { m: 0, y: 0 };
@@ -248,25 +250,45 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
   const [finDashboard, setFinDashboard] = useState<any>(null);
   const [isUpdatingDueDates, setIsUpdatingDueDates] = useState(false);
 
-  const calculateDueDate = (purchaseDateStr: string, closingDay: number, dueDay: number) => {
-    if (!purchaseDateStr) return null;
+  const calculateDueDate = (purchaseDateStr: string, closingDay: number, dueDay: number, installmentIndex: number = 0) => {
+    if (!purchaseDateStr || !closingDay || !dueDay) return null;
     const [y, m, d] = purchaseDateStr.split('-').map(Number);
-    let month = m - 1; // 0-indexed month
-    let year = y;
+    let invoiceMonth = m - 1; // 0-indexed month
+    let invoiceYear = y;
 
     // Se o dia da compra for maior que o dia de fechamento, cai na próxima fatura
     if (d > closingDay) {
-      month += 1;
+      invoiceMonth += 1;
+    }
+    if (invoiceMonth > 11) {
+      invoiceYear += Math.floor(invoiceMonth / 12);
+      invoiceMonth = invoiceMonth % 12;
     }
 
-    let dueMonth = month;
+    let dueMonth = invoiceMonth;
+    let dueYear = invoiceYear;
     // Se o dia de vencimento for menor ou igual ao de fechamento, o pagamento é no mês seguinte ao fechamento
     if (dueDay <= closingDay) {
       dueMonth += 1;
+      if (dueMonth > 11) {
+        dueYear += Math.floor(dueMonth / 12);
+        dueMonth = dueMonth % 12;
+      }
     }
 
-    const dueDate = new Date(year, dueMonth, dueDay);
-    return dueDate.toISOString().split('T')[0];
+    // Offset for installments
+    if (installmentIndex > 0) {
+      dueMonth += installmentIndex;
+      if (dueMonth > 11) {
+        dueYear += Math.floor(dueMonth / 12);
+        dueMonth = dueMonth % 12;
+      }
+    }
+
+    const maxDays = new Date(dueYear, dueMonth + 1, 0).getDate();
+    const clampedDueDay = Math.min(dueDay, maxDays);
+
+    return `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}-${String(clampedDueDay).padStart(2, '0')}`;
   };
 
   const [finFilter, setFinFilter] = useState({
@@ -314,6 +336,7 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
   const [finTransactionForm, setFinTransactionForm] = useState({ 
     description: '', 
     amount: '', 
+    discount: '',
     type: 'despesa', 
     category_id: '', 
     account_id: '', 
@@ -767,16 +790,72 @@ Escalas GMNL ${year}`;
 
   const handleSaveFinTransaction = async () => {
     try {
-      let payload = { ...finTransactionForm };
-      if (payload.due_date === '') {
-        payload.due_date = null as any;
+      if (!finTransactionForm.description.trim()) {
+        dialogAlert('Por favor, informe a descrição do lançamento.', 'Atenção');
+        return;
       }
-      
 
+      const grossAmount = Number(finTransactionForm.amount) || 0;
+      if (grossAmount <= 0) {
+        dialogAlert('Por favor, informe um valor válido maior que zero.', 'Atenção');
+        return;
+      }
+
+      const discountAmount = Number(finTransactionForm.discount) || 0;
+      if (discountAmount >= grossAmount) {
+        dialogAlert('O valor do desconto não pode ser maior ou igual ao valor total da compra.', 'Atenção');
+        return;
+      }
+
+      const netAmount = Number((grossAmount - discountAmount).toFixed(2));
+
+      if (!finTransactionForm.category_id) {
+        dialogAlert('Por favor, selecione uma categoria.', 'Atenção');
+        return;
+      }
+
+      if (!finTransactionForm.account_id) {
+        dialogAlert('Por favor, selecione uma conta ou cartão.', 'Atenção');
+        return;
+      }
+
+      // Validate splits if provided
+      if (finTransactionForm.splits && finTransactionForm.splits.length > 0) {
+        const splitsSum = Number(finTransactionForm.splits.reduce((acc, s) => acc + (Number(s.amount) || 0), 0).toFixed(2));
+        if (Math.abs(splitsSum - netAmount) > 0.05) {
+          const proceed = await dialogConfirm(
+            `A soma dos responsáveis (R$ ${splitsSum.toFixed(2)}) difere do valor líquido (R$ ${netAmount.toFixed(2)}). Deseja continuar mesmo assim?`
+          );
+          if (!proceed) return;
+        }
+      }
+
+      let payload: any = { 
+        ...finTransactionForm,
+        amount: netAmount
+      };
+      if (payload.due_date === '') {
+        payload.due_date = null;
+      }
+
+      let scope = 'single';
+      if (editingFinTransaction && editingFinTransaction.is_installment && (Number(editingFinTransaction.total_installments || 1) > 1)) {
+        const choice = await askOptions({
+          title: 'Editar Compra Parcelada',
+          message: `Esta é a parcela ${editingFinTransaction.installment_number || 1}/${editingFinTransaction.total_installments || 1}. Onde deseja aplicar as alterações?`,
+          options: [
+            { label: 'Apenas nesta parcela', value: 'single' },
+            { label: 'Em todas as parcelas da compra', value: 'all' },
+            { label: 'Nesta e nas parcelas futuras', value: 'future' }
+          ]
+        });
+        if (!choice) return;
+        scope = choice;
+      }
 
       let res;
       if (editingFinTransaction) {
-        res = await fetchWithAuth(`/api/finance/transactions/${editingFinTransaction.id}`, {
+        res = await fetchWithAuth(`/api/finance/transactions/${editingFinTransaction.id}?scope=${scope}`, {
           method: 'PUT',
           body: JSON.stringify(payload)
         });
@@ -796,6 +875,7 @@ Escalas GMNL ${year}`;
       setFinTransactionForm({ 
         description: '', 
         amount: '', 
+        discount: '',
         type: 'despesa', 
         category_id: '', 
         account_id: '', 
@@ -845,10 +925,41 @@ Escalas GMNL ${year}`;
     }
   };
 
-  const handleDeleteFinTransaction = async (id: number) => {
-    if (!(await dialogConfirm('Tem certeza?'))) return;
-    await fetchWithAuth(`/api/finance/transactions/${id}`, { method: 'DELETE' });
-    fetchFinancialData();
+  const handleDeleteFinTransaction = async (txOrId: any) => {
+    try {
+      const transaction = typeof txOrId === 'object' ? txOrId : finTransactions.find(t => t.id === txOrId);
+      if (!transaction) return;
+
+      const isInst = transaction.is_installment && (Number(transaction.total_installments || 1) > 1);
+      let scope = 'all';
+
+      if (isInst) {
+        const choice = await askOptions({
+          title: 'Excluir Compra Parcelada',
+          message: `Esta é a parcela ${transaction.installment_number || 1}/${transaction.total_installments || 1} de "${transaction.description}". Como deseja excluir?`,
+          options: [
+            { label: 'Excluir apenas esta parcela', value: 'single' },
+            { label: 'Excluir todas as parcelas da compra', value: 'all' },
+            { label: 'Excluir desta parcela em diante', value: 'future' }
+          ]
+        });
+        if (!choice) return;
+        scope = choice;
+      } else {
+        if (!(await dialogConfirm(`Deseja realmente excluir o lançamento "${transaction.description}"?`))) return;
+      }
+
+      const res = await fetchWithAuth(`/api/finance/transactions/${transaction.id}?scope=${scope}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchFinancialData();
+        dialogAlert('Lançamento excluído com sucesso!', 'Sucesso');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        dialogAlert(`Erro ao excluir: ${err.message || 'Falha na exclusão'}`);
+      }
+    } catch (err) {
+      console.error("Error in handleDeleteFinTransaction:", err);
+    }
   };
 
   const handleToggleSplitStatus = async (transaction: FinancialTransaction, splitIndex: number) => {
@@ -2805,42 +2916,93 @@ Escalas GMNL ${year}`;
 
           {/* --- Financial Module Tabs --- */}
           {activeModule === 'financial' && (
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-2">
-                <Calendar size={20} className="text-indigo-600" />
-                <h2 className="font-bold text-gray-800 text-sm md:text-base">Filtro Mensal</h2>
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                {activeTab === 'fin_dashboard' && (
-                  <button
-                    onClick={exportFinancialDashboardPDF}
-                    className="flex items-center gap-2 px-3 md:px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors text-xs md:text-sm font-bold"
-                    title="Exportar PDF"
-                  >
-                    <Download size={16} />
-                    <span className="hidden sm:inline">Exportar</span>
-                  </button>
-                )}
-                <select 
-                  className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs md:text-sm font-medium"
-                  value={finFilter.month}
-                  onChange={(e) => setFinFilter({ ...finFilter, month: Number(e.target.value) })}
-                >
-                  {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
-                    <option key={i} value={i}>{m}</option>
-                  ))}
-                </select>
-                <select 
-                  className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs md:text-sm font-medium"
-                  value={finFilter.year}
-                  onChange={(e) => setFinFilter({ ...finFilter, year: Number(e.target.value) })}
-                >
-                  {[2024, 2025, 2026, 2027].map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <FinancialHeader
+              title={
+                activeTab === 'fin_dashboard' ? 'Dashboard Financeiro' :
+                activeTab === 'fin_extract' ? 'Extrato de Movimentações' :
+                activeTab === 'fin_credit' ? 'Gestão de Cartões de Crédito' :
+                activeTab === 'fin_transactions' ? 'Lançamentos Financeiros' :
+                activeTab === 'fin_fixed_bills' ? 'Contas Fixas & Recorrentes' : 'Configurações do Financeiro'
+              }
+              subtitle={
+                activeTab === 'fin_dashboard' ? 'Visão consolidada de receitas, despesas, saldos e faturas' :
+                activeTab === 'fin_extract' ? 'Histórico analítico de transações com filtros combinados' :
+                activeTab === 'fin_credit' ? 'Controle de fechamento, vencimentos, faturas e parcelamentos' :
+                activeTab === 'fin_transactions' ? 'Registro de receitas, despesas, parcelamentos e divisões' :
+                activeTab === 'fin_fixed_bills' ? 'Acompanhamento mensal de contas fixas e concessionárias' : 'Gerenciamento de categorias, contas, cartões e responsáveis'
+              }
+              icon={
+                activeTab === 'fin_dashboard' ? LayoutDashboard :
+                activeTab === 'fin_extract' ? Search :
+                activeTab === 'fin_credit' ? CreditCard :
+                activeTab === 'fin_transactions' ? ArrowRightLeft :
+                activeTab === 'fin_fixed_bills' ? History : Settings
+              }
+              rightContent={
+                <>
+                  {['fin_dashboard', 'fin_extract', 'fin_credit'].includes(activeTab) && (
+                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-200">
+                      <div className="flex items-center gap-1.5 pl-2 text-gray-400">
+                        <Calendar size={14} />
+                      </div>
+                      <select 
+                        className="bg-transparent border-0 py-1.5 pr-2 pl-1 text-xs md:text-sm font-bold text-gray-700 focus:outline-none cursor-pointer"
+                        value={finFilter.month}
+                        onChange={(e) => setFinFilter({ ...finFilter, month: Number(e.target.value) })}
+                      >
+                        {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
+                          <option key={i} value={i}>{m}</option>
+                        ))}
+                      </select>
+                      <span className="text-gray-300">/</span>
+                      <select 
+                        className="bg-transparent border-0 py-1.5 pr-2 pl-1 text-xs md:text-sm font-bold text-gray-700 focus:outline-none cursor-pointer"
+                        value={finFilter.year}
+                        onChange={(e) => setFinFilter({ ...finFilter, year: Number(e.target.value) })}
+                      >
+                        {[2024, 2025, 2026, 2027].map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {activeTab === 'fin_dashboard' && (
+                    <button
+                      onClick={exportFinancialDashboardPDF}
+                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors text-xs font-bold shadow-sm"
+                      title="Exportar Relatório PDF"
+                    >
+                      <Download size={15} />
+                      <span className="hidden sm:inline">Exportar PDF</span>
+                    </button>
+                  )}
+
+                  {(activeTab === 'fin_dashboard' || activeTab === 'fin_extract') && (
+                    <button
+                      onClick={() => {
+                        setEditingFinTransaction(null);
+                        setActiveTab('fin_transactions');
+                      }}
+                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs font-bold shadow-sm shadow-emerald-200"
+                    >
+                      <Plus size={15} />
+                      <span className="hidden sm:inline">Novo Lançamento</span>
+                    </button>
+                  )}
+
+                  {activeTab === 'fin_transactions' && (
+                    <button
+                      onClick={() => setActiveTab('fin_extract')}
+                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-xs font-bold"
+                    >
+                      <Search size={15} />
+                      <span>Ver Extrato</span>
+                    </button>
+                  )}
+                </>
+              }
+            />
           )}
 
           {activeTab === 'fin_fixed_bills' && (
@@ -2853,75 +3015,162 @@ Escalas GMNL ${year}`;
 
           {activeTab === 'fin_dashboard' && (
             <motion.div key="fin_dashboard" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-emerald-50 rounded-lg">
-                      <TrendingUp className="text-emerald-600 md:w-6 md:h-6" size={20} />
-                    </div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Receitas (Mês)</span>
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-emerald-600">
-                    R$ {(finDashboard?.month_income || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </h3>
-                </div>
+              {/* 4 Standard Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <FinancialMetricCard
+                  title="Receitas (Mês)"
+                  value={finDashboard?.month_income || 0}
+                  icon={TrendingUp}
+                  variant="emerald"
+                  subtitle="Entradas confirmadas no mês"
+                />
 
-                <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-red-50 rounded-lg">
-                      <TrendingDown className="text-red-600 md:w-6 md:h-6" size={20} />
-                    </div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Despesas (Mês)</span>
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-red-600">
-                    R$ {(finDashboard?.month_expense || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </h3>
-                </div>
+                <FinancialMetricCard
+                  title="Despesas (Mês)"
+                  value={finDashboard?.month_expense || 0}
+                  icon={TrendingDown}
+                  variant="red"
+                  subtitle="Saídas e gastos do mês"
+                />
 
-                <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-indigo-50 rounded-lg">
-                      <Wallet className="text-indigo-600 md:w-6 md:h-6" size={20} />
-                    </div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Saldo Final</span>
-                  </div>
-                  <h3 className={cn("text-xl md:text-2xl font-bold", ((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0)) < 0 ? "text-red-600" : "text-gray-900")}>
-                    R$ {((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">Saldo Anterior + Receita - Despesa</p>
-                </div>
+                <FinancialMetricCard
+                  title="Saldo Final Previsto"
+                  value={((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0))}
+                  icon={Wallet}
+                  variant={((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0)) < 0 ? 'red' : 'indigo'}
+                  subtitle={`Saldo anterior: R$ ${(finDashboard?.previous_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                />
+
+                <FinancialMetricCard
+                  title="Faturas de Cartão"
+                  value={finDashboard?.credit_card_total || 0}
+                  icon={CreditCard}
+                  variant="amber"
+                  subtitle={`Pendente: R$ ${(finDashboard?.credit_card_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  onClick={() => setActiveTab('fin_credit')}
+                />
               </div>
 
               {/* Alerts */}
               {(finDashboard?.month_expense > finDashboard?.month_income) && (
-                <div className="mb-6 bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-800 text-sm font-medium">
-                  <AlertTriangle size={20} />
-                  Atenção: Suas despesas superam as receitas deste mês!
+                <div className="mb-6 bg-red-50/80 border border-red-200/80 p-4 rounded-2xl flex items-center gap-3 text-red-800 text-sm shadow-sm">
+                  <div className="p-2 bg-red-100 rounded-xl shrink-0">
+                    <AlertTriangle size={18} className="text-red-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-red-900 text-sm">Atenção ao Déficit Mensal</p>
+                    <p className="text-xs text-red-700">
+                      As despesas superam as receitas deste mês em R$ {(finDashboard.month_expense - finDashboard.month_income).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.
+                    </p>
+                  </div>
                 </div>
               )}
+
+              {/* Expenses Chart in Dashboard */}
+              {(() => {
+                const currentMonthTransactions = finTransactions.filter(t => {
+                  const [y, m] = t.date.split('-');
+                  return Number(y) === finFilter.year && Number(m) - 1 === finFilter.month;
+                });
+
+                const expensesByCategory = currentMonthTransactions
+                  .filter(t => t.type === 'despesa')
+                  .reduce((acc, t) => {
+                    const catName = finCategories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
+                    acc[catName] = (acc[catName] || 0) + Number(t.amount);
+                    return acc;
+                  }, {} as Record<string, number>);
+
+                const chartData = Object.entries(expensesByCategory)
+                  .map(([name, value]) => ({ name, value: Number(value) }))
+                  .sort((a, b) => b.value - a.value);
+
+                const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#14b8a6'];
+
+                if (chartData.length === 0) return null;
+
+                const totalExp = chartData.reduce((sum, item) => sum + item.value, 0);
+
+                return (
+                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <PieChart size={18} className="text-indigo-600" />
+                        <h3 className="text-base font-bold text-gray-800">Distribuição das Despesas por Categoria</h3>
+                      </div>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Total: R$ {totalExp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="h-60 flex flex-col md:flex-row items-center justify-center gap-4">
+                      <div className="w-full md:w-1/2 h-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsPieChart>
+                            <Pie
+                              data={chartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={4}
+                              dataKey="value"
+                            >
+                              {chartData.map((entry, index) => (
+                                <Cell key={`cell-dash-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                              formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
+                            />
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="w-full md:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto max-h-48 pr-1">
+                        {chartData.map((entry, index) => {
+                          const pct = totalExp > 0 ? ((entry.value / totalExp) * 100).toFixed(0) : '0';
+                          return (
+                            <div key={index} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                <span className="text-gray-700 font-medium truncate">{entry.name}</span>
+                              </div>
+                              <div className="text-right shrink-0 ml-2">
+                                <span className="font-bold text-gray-900 block">R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                <span className="text-[10px] text-gray-400 font-semibold">{pct}%</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               
-              {/* Accounts Summary */}
+              {/* Accounts Summary & Responsibility */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card title="Saldos das Contas" icon={CreditCard}>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {finDashboard?.accounts_summary && finDashboard.accounts_summary.length > 0 ? (
                       finDashboard.accounts_summary.map((acc: any, index: number) => (
                         <div 
                           key={index} 
                           onClick={() => setSelectedAccountForDetails(acc)}
-                          className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
+                          className="flex justify-between items-center p-3.5 bg-gray-50/70 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-500 shrink-0">
                               {acc.type === 'dinheiro' ? <Banknote size={16} /> : <CreditCard size={16} />}
                             </div>
-                            <div>
-                              <span className="font-bold text-gray-700 block">{acc.name}</span>
-                              <span className="text-xs text-gray-500 uppercase">{acc.type}</span>
+                            <div className="min-w-0">
+                              <span className="font-bold text-gray-800 text-sm block truncate">{acc.name}</span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{acc.type}</span>
                             </div>
                           </div>
-                          <span className={cn("font-bold", acc.balance < 0 ? "text-red-600" : "text-emerald-600")}>
+                          <span className={cn("font-bold text-sm shrink-0 ml-2", acc.balance < 0 ? "text-red-600" : "text-emerald-600")}>
                             R$ {Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -2936,17 +3185,17 @@ Escalas GMNL ${year}`;
                 </Card>
 
                 <Card title="Responsabilidade (Mês)" icon={Users}>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {finDashboard?.responsibility_summary && Object.entries(finDashboard.responsibility_summary).length > 0 ? (
                       Object.entries(finDashboard.responsibility_summary).map(([name, amount]: [string, any]) => (
-                        <div key={name} className="flex justify-between items-center p-4 bg-indigo-50/30 rounded-xl border border-indigo-100/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                        <div key={name} className="flex justify-between items-center p-3.5 bg-indigo-50/30 rounded-xl border border-indigo-100/50">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
                               {name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="font-bold text-gray-700">{name}</span>
+                            <span className="font-bold text-gray-800 text-sm truncate">{name}</span>
                           </div>
-                          <span className="font-bold text-indigo-600">
+                          <span className="font-bold text-indigo-600 text-sm shrink-0 ml-2">
                             R$ {Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -2954,7 +3203,7 @@ Escalas GMNL ${year}`;
                     ) : (
                       <div className="text-center py-8 text-gray-400">
                         <Users size={32} className="mx-auto mb-2 opacity-20" />
-                        <p className="text-sm">Nenhuma divisão definida para este mês.</p>
+                        <p className="text-sm">Nenhuma divisão registrada para este mês.</p>
                       </div>
                     )}
                   </div>
@@ -3009,114 +3258,13 @@ Escalas GMNL ${year}`;
 
           {activeTab === 'fin_extract' && (
             <motion.div key="fin_extract" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <Filter size={20} className="text-indigo-600" />
-                  <h3 className="text-lg font-bold text-gray-800">Filtros Avançados</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Tipo</label>
-                    <select 
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                      value={finExtractFilter.type}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, type: e.target.value })}
-                    >
-                      <option value="all">Todos os Tipos</option>
-                      <option value="receita">Receita</option>
-                      <option value="despesa">Despesa</option>
-                    </select>
+              {/* Standardized Filters */}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Filter size={18} className="text-indigo-600" />
+                    <h3 className="text-sm font-bold text-gray-800">Filtros de Movimentação</h3>
                   </div>
-                  
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Categoria</label>
-                    <select 
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                      value={finExtractFilter.category_id}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, category_id: e.target.value })}
-                    >
-                      <option value="all">Todas as Categorias</option>
-                      {finCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Conta</label>
-                    <select 
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                      value={finExtractFilter.account_id}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, account_id: e.target.value })}
-                    >
-                      <option value="all">Todas as Contas</option>
-                      {finAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Status</label>
-                    <select 
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                      value={finExtractFilter.status}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, status: e.target.value })}
-                    >
-                      <option value="all">Todos os Status</option>
-                      <option value="pago">Pago / Recebido</option>
-                      <option value="pendente">Pendente</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Responsável</label>
-                    <select 
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                      value={finExtractFilter.responsible}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, responsible: e.target.value })}
-                    >
-                      <option value="all">Todos os Responsáveis</option>
-                      {finResponsibles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Busca</label>
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <input 
-                        type="text"
-                        placeholder="Pesquisar..."
-                        className="w-full pl-12 pr-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                        value={finExtractFilter.search}
-                        onChange={(e) => setFinExtractFilter({ ...finExtractFilter, search: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Ordenar Por</label>
-                    <select 
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                      value={finExtractFilter.sortBy}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, sortBy: e.target.value })}
-                    >
-                      <option value="date">Data (Mais Recente)</option>
-                      <option value="id">Ordem de Lançamento</option>
-                    </select>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 pt-6">
-                    <input 
-                      type="checkbox" 
-                      id="showAllMonths"
-                      checked={finExtractFilter.showAllMonths}
-                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, showAllMonths: e.target.checked })}
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label htmlFor="showAllMonths" className="text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer">Ver Todos os Meses</label>
-                  </div>
-                </div>
-                
-                <div className="mt-4 flex justify-end">
                   <button 
                     onClick={() => setFinExtractFilter({
                       type: 'all',
@@ -3126,12 +3274,119 @@ Escalas GMNL ${year}`;
                       responsible: 'all',
                       search: '',
                       showAllMonths: false,
-                      sortBy: 'id'
+                      sortBy: 'date'
                     })}
-                    className="px-4 py-2 text-[10px] font-bold text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl uppercase tracking-widest transition-all"
+                    className="text-xs font-bold text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-xl transition-all"
                   >
                     Limpar Filtros
                   </button>
+                </div>
+                
+                {/* Row 1: Primary Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tipo</label>
+                    <select 
+                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      value={finExtractFilter.type}
+                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, type: e.target.value })}
+                    >
+                      <option value="all">Todos os Tipos</option>
+                      <option value="receita">Receitas (+)</option>
+                      <option value="despesa">Despesas (-)</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</label>
+                    <select 
+                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      value={finExtractFilter.status}
+                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, status: e.target.value })}
+                    >
+                      <option value="all">Todos os Status</option>
+                      <option value="pago">Pago / Recebido</option>
+                      <option value="pendente">Pendente</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Ordenação</label>
+                    <select 
+                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      value={finExtractFilter.sortBy}
+                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, sortBy: e.target.value })}
+                    >
+                      <option value="date">Data (Mais Recente)</option>
+                      <option value="id">Ordem de Lançamento</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Período</label>
+                    <label className="flex items-center gap-2 h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={finExtractFilter.showAllMonths}
+                        onChange={(e) => setFinExtractFilter({ ...finExtractFilter, showAllMonths: e.target.checked })}
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs font-bold text-gray-700 truncate">Ver Todos os Meses</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Row 2: Secondary Refinements */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Categoria</label>
+                    <select 
+                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      value={finExtractFilter.category_id}
+                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, category_id: e.target.value })}
+                    >
+                      <option value="all">Todas as Categorias</option>
+                      {finCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Conta / Cartão</label>
+                    <select 
+                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      value={finExtractFilter.account_id}
+                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, account_id: e.target.value })}
+                    >
+                      <option value="all">Todas as Contas</option>
+                      {finAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Responsável</label>
+                    <select 
+                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      value={finExtractFilter.responsible}
+                      onChange={(e) => setFinExtractFilter({ ...finExtractFilter, responsible: e.target.value })}
+                    >
+                      <option value="all">Todos os Responsáveis</option>
+                      {finResponsibles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Busca</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                      <input 
+                        type="text"
+                        placeholder="Buscar por descrição..."
+                        className="w-full h-10 pl-9 pr-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-medium text-gray-700"
+                        value={finExtractFilter.search}
+                        onChange={(e) => setFinExtractFilter({ ...finExtractFilter, search: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -3172,41 +3427,43 @@ Escalas GMNL ${year}`;
                 if (chartData.length === 0) return null;
 
                 return (
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6" id="expenses-pie-chart-container">
-                    <div className="flex items-center gap-2 mb-6">
-                      <PieChart size={20} className="text-indigo-600" />
-                      <h3 className="text-lg font-bold text-gray-800">Despesas por Categoria</h3>
+                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6" id="expenses-pie-chart-container">
+                    <div className="flex items-center gap-2 mb-4">
+                      <PieChart size={18} className="text-indigo-600" />
+                      <h3 className="text-base font-bold text-gray-800">Despesas por Categoria (Filtradas)</h3>
                     </div>
-                    <div className="h-64 flex flex-col md:flex-row items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={chartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {chartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                            formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
-                          />
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                      <div className="mt-4 md:mt-0 md:ml-8 flex flex-col gap-2 w-full md:w-1/3 overflow-y-auto max-h-full">
+                    <div className="h-60 flex flex-col md:flex-row items-center justify-center gap-4">
+                      <div className="w-full md:w-1/2 h-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsPieChart>
+                            <Pie
+                              data={chartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={4}
+                              dataKey="value"
+                            >
+                              {chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                              formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
+                            />
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="w-full md:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto max-h-48 pr-1">
                         {chartData.map((entry, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                              <span className="text-gray-600 truncate max-w-[100px] md:max-w-[150px]">{entry.name}</span>
+                          <div key={index} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                              <span className="text-gray-700 font-medium truncate">{entry.name}</span>
                             </div>
-                            <span className="font-semibold text-gray-800">
+                            <span className="font-bold text-gray-900 shrink-0 ml-2">
                               R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -3217,8 +3474,9 @@ Escalas GMNL ${year}`;
                 );
               })()}
 
-              <div className="space-y-4">
-                {finTransactions
+              {/* Transactions List */}
+              {(() => {
+                const filteredTransactions = finTransactions
                   .filter(t => {
                     // Month/Year filter
                     if (!finExtractFilter.showAllMonths) {
@@ -3245,100 +3503,148 @@ Escalas GMNL ${year}`;
                     } else {
                       return new Date(b.date).getTime() - new Date(a.date).getTime();
                     }
-                  })
-                  .map(t => {
-                    const isExpanded = expandedTransactions.has(t.id);
-                    const isLongDescription = t.description.length > 40;
-                    const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
-                    const category = finCategories.find(c => c.id === t.category_id);
-                    const account = finAccounts.find(a => a.id === t.account_id);
-                    
-                    return (
-                      <div key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:border-indigo-200 transition-all">
-                        <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-1 sm:mt-0",
-                              t.type === 'receita' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                            )}>
-                              {t.type === 'receita' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="font-bold text-gray-800 truncate max-w-full">{displayDescription}</h4>
-                                {isLongDescription && (
-                                  <button onClick={() => toggleTransaction(t.id)} className="text-indigo-600 hover:text-indigo-800 shrink-0">
-                                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                  </button>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 sm:mt-0 truncate">
-                                {category?.name || 'Sem Categoria'} • {account?.name || 'Sem Conta'} • Venc: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
-                            <p className={cn("font-black text-lg", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
-                              {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <div className="flex items-center justify-end gap-2 sm:mt-1">
-                              <span className={cn(
-                                "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
-                                t.status === 'pago' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                              )}>
-                                {t.status === 'pago' ? 'Pago' : 'Pendente'}
-                              </span>
-                              <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => {
-                                  setEditingFinTransaction(t);
-                                  setFinTransactionForm({
-                                    description: t.description,
-                                    amount: t.amount.toString(),
-                                    type: t.type,
-                                    category_id: t.category_id?.toString() || '',
-                                    account_id: t.account_id?.toString() || '',
-                                    date: t.date,
-                                    due_date: t.due_date || '',
-                                    status: t.status,
-                                    is_installment: t.is_installment || false,
-                                    total_installments: t.total_installments?.toString() || '1',
-                                    splits: t.splits || []
-                                  });
-                                  setActiveTab('fin_transactions');
-                                }} className="p-2 text-gray-400 hover:text-indigo-600 bg-gray-50 md:bg-transparent rounded-lg"><Edit2 size={16} /></button>
-                                <button onClick={() => handleDeleteFinTransaction(t.id)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 md:bg-transparent rounded-lg"><Trash2 size={16} /></button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        {t.splits && t.splits.length > 0 && (
-                          <div className="px-4 pb-4 pt-2 bg-gray-50/50 border-t border-gray-50 flex flex-wrap gap-2">
-                            {t.splits.map((s, i) => (
-                              <button 
-                                key={i} 
-                                onClick={() => handleToggleSplitStatus(t, i)}
-                                className={cn(
-                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-sm transition-all",
-                                  s.status === 'pago' ? "bg-emerald-50 border-emerald-100" : "bg-white border-gray-100"
-                                )}
-                              >
-                                <div className={cn(
-                                  "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold",
-                                  s.status === 'pago' ? "bg-emerald-200 text-emerald-700" : "bg-indigo-100 text-indigo-600"
-                                )}>
-                                  {s.name.charAt(0).toUpperCase()}
-                                </div>
-                                <span className={cn("text-[10px] font-bold", s.status === 'pago' ? "text-emerald-700 line-through" : "text-gray-600")}>{s.name}:</span>
-                                <span className={cn("text-[10px] font-black", s.status === 'pago' ? "text-emerald-700" : "text-indigo-600")}>R$ {Number(s.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                {s.status === 'pago' && <Check size={10} className="text-emerald-600" />}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                  });
+
+                const totalIncome = filteredTransactions.filter(t => t.type === 'receita').reduce((sum, t) => sum + Number(t.amount), 0);
+                const totalExpense = filteredTransactions.filter(t => t.type === 'despesa').reduce((sum, t) => sum + Number(t.amount), 0);
+
+                return (
+                  <div className="space-y-4">
+                    {/* Header List Summary */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        {filteredTransactions.length} {filteredTransactions.length === 1 ? 'Lançamento Encontrado' : 'Lançamentos Encontrados'}
+                      </span>
+                      <div className="flex items-center gap-3 text-xs font-bold">
+                        <span className="text-emerald-600">+ R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-red-600">- R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className={cn(totalIncome - totalExpense >= 0 ? "text-indigo-600" : "text-amber-600")}>
+                          Saldo: R$ {(totalIncome - totalExpense).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
                       </div>
-                    );
-                  })}
-              </div>
+                    </div>
+
+                    {filteredTransactions.length === 0 ? (
+                      <div className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center">
+                        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3 text-gray-400">
+                          <Search size={24} />
+                        </div>
+                        <h4 className="font-bold text-gray-800 text-base mb-1">Nenhum lançamento encontrado</h4>
+                        <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
+                          Não foram encontrados registros para os filtros selecionados ou no período consultado.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setEditingFinTransaction(null);
+                            setActiveTab('fin_transactions');
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                          <Plus size={16} />
+                          Cadastrar Novo Lançamento
+                        </button>
+                      </div>
+                    ) : (
+                      filteredTransactions.map(t => {
+                        const isExpanded = expandedTransactions.has(t.id);
+                        const isLongDescription = t.description.length > 40;
+                        const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
+                        const category = finCategories.find(c => c.id === t.category_id);
+                        const account = finAccounts.find(a => a.id === t.account_id);
+                        
+                        return (
+                          <div key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:border-indigo-200 transition-all">
+                            <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0",
+                                  t.type === 'receita' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                                )}>
+                                  {t.type === 'receita' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-bold text-gray-800 text-sm truncate max-w-full">{displayDescription}</h4>
+                                    {isLongDescription && (
+                                      <button onClick={() => toggleTransaction(t.id)} className="text-indigo-600 hover:text-indigo-800 shrink-0">
+                                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                      </button>
+                                    )}
+                                    {t.is_installment && (
+                                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+                                        Parcela {t.installment_number}/{t.total_installments}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-gray-500 font-medium mt-0.5 truncate">
+                                    {category?.name || 'Sem Categoria'} • {account?.name || 'Sem Conta'} • Venc: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
+                                <p className={cn("font-black text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                                  {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                                <div className="flex items-center justify-end gap-2 sm:mt-1">
+                                  <FinancialStatusBadge status={t.status} />
+                                  <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => {
+                                      setEditingFinTransaction(t);
+                                      setFinTransactionForm({
+                                        description: t.description,
+                                        amount: t.amount.toString(),
+                                        discount: '',
+                                        type: t.type,
+                                        category_id: t.category_id?.toString() || '',
+                                        account_id: t.account_id?.toString() || '',
+                                        date: t.date,
+                                        due_date: t.due_date || '',
+                                        status: t.status,
+                                        is_installment: t.is_installment || false,
+                                        total_installments: t.total_installments?.toString() || '1',
+                                        splits: t.splits || []
+                                      });
+                                      setActiveTab('fin_transactions');
+                                    }} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar"><Edit2 size={15} /></button>
+                                    <button onClick={() => handleDeleteFinTransaction(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={15} /></button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            {t.splits && t.splits.length > 0 && (
+                              <div className="px-4 pb-3 pt-2 bg-gray-50/50 border-t border-gray-50 flex flex-wrap gap-2">
+                                {t.splits.map((s, i) => (
+                                  <button 
+                                    key={i} 
+                                    onClick={() => handleToggleSplitStatus(t, i)}
+                                    className={cn(
+                                      "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-xs transition-all",
+                                      s.status === 'pago' ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-white border-gray-200 text-gray-700"
+                                    )}
+                                    title="Clique para alternar status deste responsável"
+                                  >
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold",
+                                      s.status === 'pago' ? "bg-emerald-200 text-emerald-800" : "bg-indigo-100 text-indigo-700"
+                                    )}>
+                                      {s.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className={cn("text-[10px] font-bold", s.status === 'pago' ? "line-through text-emerald-700" : "text-gray-700")}>{s.name}:</span>
+                                    <span className={cn("text-[10px] font-black", s.status === 'pago' ? "text-emerald-700" : "text-indigo-600")}>
+                                      R$ {Number(s.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                    {s.status === 'pago' && <Check size={10} className="text-emerald-600" />}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
 
@@ -3669,18 +3975,18 @@ Escalas GMNL ${year}`;
                                     
                                     doc.save(`fatura_${cardName}_${finFilter.month + 1}_${finFilter.year}.pdf`);
                                   }}
-                                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 font-bold text-xs uppercase transition-colors"
+                                  className="h-10 px-4 bg-white text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                                 >
-                                  <Download size={14} />
-                                  PDF
+                                  <Download size={15} />
+                                  <span>Exportar PDF</span>
                                 </button>
                                 
                                 <select
                                   value={selectedPersonFilter}
                                   onChange={(e) => setSelectedPersonFilter(e.target.value)}
-                                  className="flex-1 md:flex-none px-3 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 font-bold text-xs uppercase transition-colors focus:outline-none"
+                                  className="h-10 px-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 font-bold text-xs transition-colors focus:outline-none cursor-pointer"
                                 >
-                                  <option value="all">Todos</option>
+                                  <option value="all">Todos os Responsáveis</option>
                                   {availablePeople.map(p => (
                                     <option key={p} value={p}>{p}</option>
                                   ))}
@@ -3688,18 +3994,27 @@ Escalas GMNL ${year}`;
                               </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-indigo-100">
-                              <div className="text-left">
-                                <p className="text-xs text-gray-500 uppercase font-bold">Total</p>
-                                <p className="text-lg md:text-xl font-bold text-gray-900 truncate">R$ {totalInvoice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              </div>
-                              <div className="text-left">
-                                <p className="text-xs text-emerald-600 uppercase font-bold">Pago</p>
-                                <p className="text-lg md:text-xl font-bold text-emerald-600 truncate">R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              </div>
-                              <div className="text-left">
-                                <p className="text-xs text-red-600 uppercase font-bold">Pendente</p>
-                                <p className="text-lg md:text-xl font-bold text-red-600 truncate">R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              </div>
+                              <FinancialMetricCard
+                                title="Total da Fatura"
+                                value={totalInvoice}
+                                icon={CreditCard}
+                                variant="indigo"
+                                subtitle="Valor consolidado da fatura"
+                              />
+                              <FinancialMetricCard
+                                title="Total Pago"
+                                value={totalPaid}
+                                icon={CheckCircle2}
+                                variant="emerald"
+                                subtitle="Pagamentos já confirmados"
+                              />
+                              <FinancialMetricCard
+                                title="Total Pendente"
+                                value={totalPending}
+                                icon={AlertCircle}
+                                variant={totalPending > 0 ? "red" : "slate"}
+                                subtitle={totalPending > 0 ? "Aguardando liquidação" : "Fatura quitada"}
+                              />
                             </div>
                           </div>
 
@@ -3822,20 +4137,71 @@ Escalas GMNL ${year}`;
           )}
 
           {activeTab === 'fin_transactions' && (
-            <motion.div key="fin_transactions" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <Card title="Novo Lançamento" icon={Plus}>
+            <motion.div key="fin_transactions" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }} className="space-y-6">
+              <Card title={editingFinTransaction ? "Editar Lançamento" : "Novo Lançamento"} icon={editingFinTransaction ? Edit2 : Plus}>
+                {editingFinTransaction && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                      <span className="font-bold text-amber-900 truncate">
+                        Editando lançamento #{editingFinTransaction.id}: "{editingFinTransaction.description}"
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingFinTransaction(null);
+                        setFinTransactionForm({
+                          description: '',
+                          amount: '',
+                          discount: '',
+                          type: 'despesa',
+                          category_id: '',
+                          account_id: '',
+                          date: new Date().toISOString().split('T')[0],
+                          due_date: '',
+                          status: 'pago',
+                          is_installment: false,
+                          total_installments: '1',
+                          splits: []
+                        });
+                      }}
+                      className="text-xs font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer shrink-0 ml-2"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input 
                     label="Descrição" 
                     value={finTransactionForm.description} 
                     onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, description: e.target.value })} 
                   />
-                  <Input 
-                    label="Valor" 
-                    type="number" 
-                    value={finTransactionForm.amount} 
-                    onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, amount: e.target.value })} 
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input 
+                      label="Valor Bruto (R$)" 
+                      type="number" 
+                      step="0.01"
+                      value={finTransactionForm.amount} 
+                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, amount: e.target.value })} 
+                    />
+                    <Input 
+                      label="Desconto (R$)" 
+                      type="number" 
+                      step="0.01"
+                      placeholder="0.00"
+                      value={finTransactionForm.discount} 
+                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, discount: e.target.value })} 
+                    />
+                  </div>
+                  {Number(finTransactionForm.discount) > 0 && (
+                    <div className="md:col-span-2 -mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-semibold text-emerald-800">Valor Líquido com Desconto:</span>
+                      <span className="font-black text-emerald-700 text-sm">
+                        R$ {Math.max(0, (Number(finTransactionForm.amount) || 0) - (Number(finTransactionForm.discount) || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
                   <div className="mb-4">
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Tipo</label>
                     <select
@@ -3941,11 +4307,11 @@ Escalas GMNL ${year}`;
 
                   <div className="space-y-4 sm:space-y-3">
                     {finTransactionForm.splits.map((split, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end bg-white sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-indigo-100 shadow-sm sm:shadow-none">
+                      <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-indigo-100 shadow-sm sm:shadow-none">
                         <div className="flex-1">
-                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Responsável</label>
+                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Responsável</label>
                           <select
-                            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
                             value={split.name}
                             onChange={async (e) => {
                               if (e.target.value === 'ADD_NEW') {
@@ -3984,45 +4350,44 @@ Escalas GMNL ${year}`;
                             <option value="ADD_NEW" className="font-bold text-indigo-600">+ Adicionar Novo...</option>
                           </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-2">
-                          <div className="sm:w-32">
-                            <Input 
-                              label="Valor" 
-                              type="number"
-                              value={split.amount}
-                              onChange={(e: any) => {
-                                const newSplits = [...finTransactionForm.splits];
-                                newSplits[index].amount = Number(e.target.value);
-                                setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                              }}
-                            />
-                          </div>
-                          <div className="sm:w-32">
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
-                            <select
-                              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                              value={split.status || 'pendente'}
-                              onChange={(e: any) => {
-                                const newSplits = [...finTransactionForm.splits];
-                                newSplits[index].status = e.target.value;
-                                setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                              }}
-                            >
-                              <option value="pendente">Pendente</option>
-                              <option value="pago">Pago</option>
-                            </select>
-                          </div>
+                        <div className="w-full sm:w-36">
+                          <Input 
+                            label="Valor" 
+                            type="number"
+                            noMargin={true}
+                            value={split.amount}
+                            onChange={(e: any) => {
+                              const newSplits = [...finTransactionForm.splits];
+                              newSplits[index].amount = Number(e.target.value);
+                              setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                            }}
+                          />
                         </div>
-                        <div className="flex justify-end">
+                        <div className="w-full sm:w-36">
+                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Status</label>
+                          <select
+                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                            value={split.status || 'pendente'}
+                            onChange={(e: any) => {
+                              const newSplits = [...finTransactionForm.splits];
+                              newSplits[index].status = e.target.value;
+                              setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                            }}
+                          >
+                            <option value="pendente">Pendente</option>
+                            <option value="pago">Pago</option>
+                          </select>
+                        </div>
+                        <div className="flex justify-end sm:pb-1">
                           <button 
                             onClick={() => {
                               const newSplits = finTransactionForm.splits.filter((_, i) => i !== index);
                               setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
                             }}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2 text-xs font-bold sm:mb-4"
+                            className="p-3 text-red-500 hover:bg-red-50 rounded-xl flex items-center justify-center transition-colors"
+                            title="Remover responsável"
                           >
-                            <Trash2 size={16} />
-                            <span className="sm:hidden">Remover</span>
+                            <Trash2 size={18} />
                           </button>
                         </div>
                       </div>
@@ -4041,17 +4406,58 @@ Escalas GMNL ${year}`;
                     )}
                   </div>
                 </div>
-                <button 
-                  onClick={handleSaveFinTransaction}
-                  disabled={!finTransactionForm.description || !finTransactionForm.amount || !finTransactionForm.category_id || !finTransactionForm.account_id}
-                  className="w-full mt-6 bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transform active:scale-95"
-                >
-                  <Save size={20} />
-                  {editingFinTransaction ? 'Atualizar Lançamento' : 'Salvar Lançamento'}
-                </button>
+                <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                  {editingFinTransaction && (
+                    <button
+                      onClick={() => {
+                        setEditingFinTransaction(null);
+                        setFinTransactionForm({
+                          description: '',
+                          amount: '',
+                          discount: '',
+                          type: 'despesa',
+                          category_id: '',
+                          account_id: '',
+                          date: new Date().toISOString().split('T')[0],
+                          due_date: '',
+                          status: 'pago',
+                          is_installment: false,
+                          total_installments: '1',
+                          splits: []
+                        });
+                      }}
+                      className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleSaveFinTransaction}
+                    disabled={!finTransactionForm.description || !finTransactionForm.amount || !finTransactionForm.category_id || !finTransactionForm.account_id}
+                    className="flex-1 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Save size={16} />
+                    {editingFinTransaction ? 'Atualizar Lançamento' : 'Salvar Lançamento'}
+                  </button>
+                </div>
               </Card>
 
               <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Lançamentos do Mês ({finTransactions.filter(t => {
+                      const [year, month] = t.date.split('-');
+                      return Number(year) === finFilter.year && Number(month) - 1 === finFilter.month;
+                    }).length})
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab('fin_extract')}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Ver Extrato Completo</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
                 {finTransactions
                   .filter(t => {
                     const [year, month] = t.date.split('-');
@@ -4103,7 +4509,9 @@ Escalas GMNL ${year}`;
                                 ))}
                               </div>
                             )}
-                            {t.status === 'pendente' && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full mt-1 inline-block">Pendente</span>}
+                            <div className="mt-1">
+                              <FinancialStatusBadge status={t.status} />
+                            </div>
                           </div>
                         </div>
                           <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
@@ -4150,64 +4558,73 @@ Escalas GMNL ${year}`;
           )}
 
           {activeTab === 'fin_settings' && (
-            <motion.div key="fin_settings" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <div className="mb-6 flex justify-end gap-2">
-                <button 
-                  onClick={async () => {
-                    if (await dialogConfirm('Deseja recalcular e atualizar a data de vencimento de TODOS os lançamentos em cartões de crédito? Isso será feito com base nos dias de fechamento e vencimento de cada cartão.')) {
-                      setIsUpdatingDueDates(true);
-                      try {
-                        let updatedCount = 0;
-                        for (const transaction of finTransactions) {
-                          const account = finAccounts.find(a => a.id === transaction.account_id);
-                          if (account && account.type === 'credito' && account.closing_day && account.due_day) {
-                             const newDueDate = calculateDueDate(transaction.date, Number(account.closing_day), Number(account.due_day));
-                             if (newDueDate && newDueDate !== transaction.due_date) {
-                               await fetchWithAuth(`/api/finance/transactions/${transaction.id}`, {
-                                 method: 'PUT',
-                                 body: JSON.stringify({ due_date: newDueDate })
-                               });
-                               updatedCount++;
-                             }
+            <motion.div key="fin_settings" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }} className="space-y-6">
+              {/* Maintenance Tools Toolbar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">Ferramentas de Manutenção</h3>
+                  <p className="text-xs text-gray-500">Recálculo de vencimentos de cartões e diagnóstico</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <button 
+                    onClick={async () => {
+                      if (await dialogConfirm('Deseja recalcular e atualizar a data de vencimento de TODOS os lançamentos em cartões de crédito? Isso será feito com base nos dias de fechamento e vencimento de cada cartão.')) {
+                        setIsUpdatingDueDates(true);
+                        try {
+                          let updatedCount = 0;
+                          for (const transaction of finTransactions) {
+                            const account = finAccounts.find(a => a.id === transaction.account_id);
+                            if (account && account.type === 'credito' && account.closing_day && account.due_day) {
+                              const installmentOffset = transaction.is_installment ? Math.max(0, (Number(transaction.installment_number) || 1) - 1) : 0;
+                              const newDueDate = calculateDueDate(transaction.date, Number(account.closing_day), Number(account.due_day), installmentOffset);
+                              if (newDueDate && newDueDate !== transaction.due_date) {
+                                await fetchWithAuth(`/api/finance/transactions/${transaction.id}`, {
+                                  method: 'PUT',
+                                  body: JSON.stringify({ due_date: newDueDate })
+                                });
+                                updatedCount++;
+                              }
+                            }
                           }
+                          dialogAlert(`Atualização concluída! ${updatedCount} lançamentos foram atualizados.`);
+                          fetchFinancialData();
+                        } catch (e) {
+                          dialogAlert('Erro durante a atualização em massa.');
+                        } finally {
+                          setIsUpdatingDueDates(false);
                         }
-                        dialogAlert(`Atualização concluída! ${updatedCount} lançamentos foram atualizados.`);
-                        fetchFinancialData();
-                      } catch (e) {
-                        dialogAlert('Erro durante a atualização em massa.');
-                      } finally {
-                        setIsUpdatingDueDates(false);
                       }
-                    }
-                  }}
-                  disabled={isUpdatingDueDates}
-                  className="text-xs font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1 bg-amber-50 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  <Clock size={14} className={isUpdatingDueDates ? "animate-spin" : ""} /> 
-                  {isUpdatingDueDates ? "Atualizando..." : "Recalcular Vencimentos"}
-                </button>
+                    }}
+                    disabled={isUpdatingDueDates}
+                    className="h-10 px-3.5 bg-amber-50 border border-amber-200/80 text-amber-700 hover:text-amber-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                  >
+                    <Clock size={15} className={isUpdatingDueDates ? "animate-spin" : ""} /> 
+                    {isUpdatingDueDates ? "Atualizando..." : "Recalcular Vencimentos"}
+                  </button>
 
-                <button 
-                  onClick={async () => {
-                    if (await dialogConfirm('Deseja verificar e configurar as tabelas do banco de dados?')) {
-                      try {
-                        const res = await fetchWithAuth('/api/setup-finance', { method: 'POST' });
-                        if (res.ok) {
-                          const data = await res.json();
-                          dialogAlert(data.message);
-                        } else {
-                          const err = await res.json().catch(() => ({ message: res.statusText }));
-                          dialogAlert(`Erro: ${err.message || 'Falha na configuração'}`);
+                  <button 
+                    onClick={async () => {
+                      if (await dialogConfirm('Deseja verificar e configurar as tabelas do banco de dados?')) {
+                        try {
+                          const res = await fetchWithAuth('/api/setup-finance', { method: 'POST' });
+                          if (res.ok) {
+                            const data = await res.json();
+                            dialogAlert(data.message);
+                          } else {
+                            const err = await res.json().catch(() => ({ message: res.statusText }));
+                            dialogAlert(`Erro: ${err.message || 'Falha na configuração'}`);
+                          }
+                        } catch (e) {
+                          dialogAlert('Erro ao conectar com o servidor.');
                         }
-                      } catch (e) {
-                        dialogAlert('Erro ao conectar com o servidor.');
                       }
-                    }
-                  }}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-3 py-2 rounded-lg transition-colors"
-                >
-                  <Shield size={14} /> Verificar Banco de Dados
-                </button>
+                    }}
+                    className="h-10 px-3.5 bg-indigo-50 border border-indigo-200/80 text-indigo-700 hover:text-indigo-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Shield size={15} /> 
+                    <span>Verificar Banco de Dados</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4237,7 +4654,7 @@ Escalas GMNL ${year}`;
                     <button 
                       onClick={handleSaveFinCategory}
                       disabled={!finCategoryForm.name}
-                      className="px-6 h-[48px] bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200 flex items-center justify-center shrink-0"
+                      className="px-6 h-[48px] bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200 flex items-center justify-center shrink-0 cursor-pointer"
                     >
                       <Plus size={20} />
                     </button>
@@ -4247,11 +4664,11 @@ Escalas GMNL ${year}`;
                       <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 group">
                         <div className="flex items-center gap-2">
                           <div className={cn("w-2 h-2 rounded-full", c.type === 'receita' ? "bg-emerald-500" : "bg-red-500")} />
-                          <span className="font-medium text-gray-700">{c.name}</span>
+                          <span className="font-medium text-gray-700 text-sm">{c.name}</span>
                         </div>
                         <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setEditingFinCategory(c); setFinCategoryForm({ name: c.name, type: c.type }); }} className="p-1 text-gray-400 hover:text-indigo-600"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDeleteFinCategory(c.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                          <button onClick={() => { setEditingFinCategory(c); setFinCategoryForm({ name: c.name, type: c.type }); }} className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-white" title="Editar"><Edit2 size={14} /></button>
+                          <button onClick={() => handleDeleteFinCategory(c.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-white" title="Excluir"><Trash2 size={14} /></button>
                         </div>
                       </div>
                     ))}
@@ -4259,7 +4676,7 @@ Escalas GMNL ${year}`;
                 </Card>
 
                 {/* Accounts */}
-                <Card title="Contas" icon={CreditCard}>
+                <Card title="Contas e Cartões" icon={CreditCard}>
                   <div className="grid grid-cols-1 gap-2 mb-6">
                     <Input 
                       label="Nome da Conta" 
@@ -4305,7 +4722,7 @@ Escalas GMNL ${year}`;
                     <button 
                       onClick={handleSaveFinAccount}
                       disabled={!finAccountForm.name}
-                      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-indigo-200"
                     >
                       {editingFinAccount ? 'Atualizar Conta' : 'Adicionar Conta'}
                     </button>
@@ -4314,7 +4731,7 @@ Escalas GMNL ${year}`;
                     {finAccounts.map(a => (
                       <div key={a.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 group">
                         <div>
-                          <span className="font-bold text-gray-800 block">{a.name}</span>
+                          <span className="font-bold text-gray-800 text-sm block">{a.name}</span>
                           <span className="text-xs text-gray-500 uppercase">{a.type} • Inicial: R$ {Number(a.initial_balance).toFixed(2)}</span>
                         </div>
                         <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -4327,19 +4744,19 @@ Escalas GMNL ${year}`;
                               closing_day: a.closing_day?.toString() || '',
                               due_day: a.due_day?.toString() || ''
                             }); 
-                          }} className="p-1 text-gray-400 hover:text-indigo-600"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDeleteFinAccount(a.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                          }} className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-white" title="Editar"><Edit2 size={14} /></button>
+                          <button onClick={() => handleDeleteFinAccount(a.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-white" title="Excluir"><Trash2 size={14} /></button>
                         </div>
                       </div>
                     ))}
                   </div>
                 </Card>
-
-                {/* Responsible Manager */}
-                <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div></div>}>
-                  <ResponsibleManager fetchWithAuth={fetchWithAuth} onUpdate={fetchResponsibles} />
-                </Suspense>
               </div>
+
+              {/* Responsible Manager as balanced full-width section */}
+              <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div></div>}>
+                <ResponsibleManager fetchWithAuth={fetchWithAuth} onUpdate={fetchResponsibles} />
+              </Suspense>
             </motion.div>
           )}
 

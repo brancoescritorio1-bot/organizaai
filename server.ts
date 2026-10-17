@@ -758,161 +758,439 @@ app.get("/api/config", (req, res) => {
     res.json({ success: true });
   });
 
+  // --- Financial Module Helper Functions ---
+  const addMonthsPreservingDay = (dateStr, monthsToAdd) => {
+    if (!dateStr) return dateStr;
+    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+    let targetYear = y;
+    let targetMonth = (m - 1) + monthsToAdd;
+    targetYear += Math.floor(targetMonth / 12);
+    targetMonth = ((targetMonth % 12) + 12) % 12;
+
+    const maxDays = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const clampedDay = Math.min(d, maxDays);
+
+    return targetYear + '-' + String(targetMonth + 1).padStart(2, '0') + '-' + String(clampedDay).padStart(2, '0');
+  };
+
+  const calculateCreditCardInvoiceDates = (purchaseDateStr, closingDay, dueDay) => {
+    if (!purchaseDateStr) return { invoiceYear: new Date().getFullYear(), invoiceMonth: new Date().getMonth(), dueDateStr: '' };
+    const [y, m, d] = purchaseDateStr.split('T')[0].split('-').map(Number);
+    let invoiceMonth = m - 1; // 0-indexed
+    let invoiceYear = y;
+
+    // Rule: Purchases ON or BEFORE closingDay fall into current billing cycle.
+    // Purchases AFTER closingDay fall into next billing cycle.
+    if (d > closingDay) {
+      invoiceMonth += 1;
+    }
+    if (invoiceMonth > 11) {
+      invoiceYear += Math.floor(invoiceMonth / 12);
+      invoiceMonth = invoiceMonth % 12;
+    }
+
+    let dueMonth = invoiceMonth;
+    let dueYear = invoiceYear;
+    if (dueDay <= closingDay) {
+      dueMonth += 1;
+      if (dueMonth > 11) {
+        dueYear += Math.floor(dueMonth / 12);
+        dueMonth = dueMonth % 12;
+      }
+    }
+
+    const maxDueDays = new Date(dueYear, dueMonth + 1, 0).getDate();
+    const clampedDueDay = Math.min(dueDay, maxDueDays);
+
+    const dueDateStr = dueYear + '-' + String(dueMonth + 1).padStart(2, '0') + '-' + String(clampedDueDay).padStart(2, '0');
+    return { invoiceYear, invoiceMonth, dueDateStr };
+  };
+
+  const distributeInstallments = (totalAmount, totalInstallments) => {
+    const totalCents = Math.round(Number(totalAmount) * 100);
+    const n = Math.max(1, Math.floor(totalInstallments));
+    const baseCents = Math.floor(totalCents / n);
+    const remainderCents = totalCents % n;
+
+    const results = [];
+    for (let i = 1; i <= n; i++) {
+      const cents = baseCents + (i <= remainderCents ? 1 : 0);
+      results.push(Number((cents / 100).toFixed(2)));
+    }
+    return results;
+  };
+
+  const distributeSplits = (splits, totalInstallments) => {
+    if (!Array.isArray(splits) || splits.length === 0) return [];
+
+    const distributedPerPerson = splits.map(s => {
+      const amounts = distributeInstallments(s.amount, totalInstallments);
+      return { name: s.name, amounts, status: s.status || 'pendente' };
+    });
+
+    const perInstallmentSplits = [];
+    for (let i = 0; i < totalInstallments; i++) {
+      perInstallmentSplits.push(
+        distributedPerPerson.map(p => ({
+          name: p.name,
+          amount: p.amounts[i],
+          status: p.status
+        }))
+      );
+    }
+    return perInstallmentSplits;
+  };
+
   // Transactions
-  app.get("/api/finance/transactions", async (req, res) => { try { 
-    const user = (req as any).user;
-    const { data, error } = await supabase.from("financial_transactions")
-      .select(`
-        *,
-        financial_categories (name),
-        financial_accounts (name)
-      `)
-      .eq("user_id", user.id)
-      .order('date', { ascending: false });
-    
-    if (error) return res.status(500).json(error);
-     res.json(data || []); } catch (err: any) { res.status(500).json({ error: err.message }); } });
+  app.get("/api/finance/transactions", async (req, res) => { 
+    try { 
+      const user = (req as any).user;
+      const { data, error } = await supabase.from("financial_transactions")
+        .select(`
+          *,
+          financial_categories (name),
+          financial_accounts (name)
+        `)
+        .eq("user_id", user.id)
+        .order('date', { ascending: false })
+        .order('id', { ascending: false });
+      
+      if (error) return res.status(500).json(error);
+      res.json(data || []); 
+    } catch (err: any) { 
+      res.status(500).json({ error: err.message }); 
+    } 
+  });
 
   app.post("/api/finance/transactions", async (req, res) => {
-    const user = (req as any).user;
-    const { 
-      description, amount, type, category_id, account_id, date, due_date, status,
-      is_installment, total_installments, splits 
-    } = req.body;
+    try {
+      const user = (req as any).user;
+      const { 
+        description, amount, type, category_id, account_id, date, due_date, status,
+        is_installment, total_installments, splits 
+      } = req.body;
 
-    const catId = category_id === '' ? null : category_id;
-    const accId = account_id === '' ? null : account_id;
+      const catId = category_id === '' ? null : category_id;
+      const accId = account_id === '' ? null : account_id;
+      const parsedAmount = Number(amount) || 0;
+      const count = Number(total_installments) || 1;
 
-    if (is_installment && total_installments > 1) {
-      const installments = [];
-      const startDate = new Date(date);
-      const installmentAmount = Number((amount / total_installments).toFixed(2));
-      
-      // Calculate split amounts for installments
-      const installmentSplits = (splits || []).map((s: any) => ({
-        ...s,
-        amount: Number((s.amount / total_installments).toFixed(2))
-      }));
-      
-      // Create the first installment to get its ID
-      const { data: firstInstallment, error: firstError } = await supabase.from("financial_transactions").insert([{
-        description, 
-        amount: installmentAmount, 
-        type, 
-        category_id: catId, 
-        account_id: accId, 
-        date, 
-        status, 
-        user_id: user.id,
-        is_installment: true,
-        installment_number: 1,
-        total_installments,
-        splits: installmentSplits,
-        due_date
-      }]).select().single();
+      // Get account to determine if credit card
+      let account: any = null;
+      if (accId) {
+        const { data: accData } = await supabase
+          .from("financial_accounts")
+          .select("*")
+          .eq("id", accId)
+          .eq("user_id", user.id)
+          .single();
+        account = accData;
+      }
 
-      if (firstError) return res.status(500).json(firstError);
+      if (is_installment && count > 1) {
+        const installmentAmounts = distributeInstallments(parsedAmount, count);
+        const installmentSplits = distributeSplits(splits || [], count);
 
-      // Create subsequent installments
-      for (let i = 2; i <= total_installments; i++) {
-        const nextDate = new Date(startDate);
-        nextDate.setMonth(startDate.getMonth() + (i - 1));
-        
-        installments.push({
-          description,
-          amount: installmentAmount,
-          type,
-          category_id: catId,
-          account_id: accId,
-          date: nextDate.toISOString().split('T')[0],
-          status: 'pendente', // Subsequent installments are usually pending
+        let firstDueDate = due_date;
+        if (!firstDueDate && account && account.type === 'credito' && account.closing_day && account.due_day) {
+          const invInfo = calculateCreditCardInvoiceDates(date, Number(account.closing_day), Number(account.due_day));
+          firstDueDate = invInfo.dueDateStr;
+        }
+
+        // 1. Create first installment (parent)
+        const { data: firstInstallment, error: firstError } = await supabase.from("financial_transactions").insert([{
+          description, 
+          amount: installmentAmounts[0], 
+          type, 
+          category_id: catId, 
+          account_id: accId, 
+          date, 
+          status: status || 'pendente', 
           user_id: user.id,
           is_installment: true,
-          installment_number: i,
-          total_installments,
-          parent_transaction_id: firstInstallment.id,
-          splits: installmentSplits,
-          due_date: (() => {
-            if (!due_date) return null;
-            const d = new Date(due_date + 'T12:00:00');
-            d.setMonth(d.getMonth() + (i - 1));
-            return d.toISOString().split('T')[0];
-          })()
-        });
-      }
+          installment_number: 1,
+          total_installments: count,
+          splits: installmentSplits[0] || [],
+          due_date: firstDueDate
+        }]).select().single();
 
-      if (installments.length > 0) {
-        const { error: bulkError } = await supabase.from("financial_transactions").insert(installments);
-        if (bulkError) return res.status(500).json(bulkError);
-      }
+        if (firstError) return res.status(500).json(firstError);
 
-      return res.json(firstInstallment);
-    } else {
-      const { data, error } = await supabase.from("financial_transactions").insert([{
-        description, amount, type, category_id: catId, account_id: accId, date, due_date, status, user_id: user.id,
-        splits: splits || []
-      }]).select().single();
-      if (error) return res.status(500).json(error);
-      res.json(data);
+        // 2. Create subsequent installments
+        const subsequentInstallments = [];
+        for (let i = 2; i <= count; i++) {
+          const installmentDate = addMonthsPreservingDay(date, i - 1);
+          const installmentDueDate = firstDueDate ? addMonthsPreservingDay(firstDueDate, i - 1) : null;
+
+          subsequentInstallments.push({
+            description,
+            amount: installmentAmounts[i - 1],
+            type,
+            category_id: catId,
+            account_id: accId,
+            date: installmentDate,
+            status: 'pendente',
+            user_id: user.id,
+            is_installment: true,
+            installment_number: i,
+            total_installments: count,
+            parent_transaction_id: firstInstallment.id,
+            splits: installmentSplits[i - 1] || [],
+            due_date: installmentDueDate
+          });
+        }
+
+        if (subsequentInstallments.length > 0) {
+          const { error: bulkError } = await supabase.from("financial_transactions").insert(subsequentInstallments);
+          if (bulkError) console.error("Error creating subsequent installments:", bulkError);
+        }
+
+        return res.json(firstInstallment);
+      } else {
+        // Single transaction
+        let calculatedDueDate = due_date;
+        if (!calculatedDueDate && account && account.type === 'credito' && account.closing_day && account.due_day) {
+          const invInfo = calculateCreditCardInvoiceDates(date, Number(account.closing_day), Number(account.due_day));
+          calculatedDueDate = invInfo.dueDateStr;
+        }
+
+        const { data, error } = await supabase.from("financial_transactions").insert([{
+          description, 
+          amount: parsedAmount, 
+          type, 
+          category_id: catId, 
+          account_id: accId, 
+          date, 
+          due_date: calculatedDueDate, 
+          status: status || 'pago', 
+          user_id: user.id,
+          splits: splits || []
+        }]).select().single();
+
+        if (error) return res.status(500).json(error);
+        res.json(data);
+      }
+    } catch (err: any) {
+      console.error("Error in POST /api/finance/transactions:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
     }
   });
 
   app.put("/api/finance/transactions/:id", async (req, res) => {
-    const user = (req as any).user;
-    const updateData: any = {};
-    
-    // Only update fields that are actually provided in the request body
-    const fields = ['description', 'amount', 'type', 'category_id', 'account_id', 'date', 'due_date', 'status', 'splits', 'is_installment', 'installment_number', 'total_installments'];
-    fields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        if ((field === 'category_id' || field === 'account_id') && req.body[field] === '') {
-          updateData[field] = null;
-        } else {
-          updateData[field] = req.body[field];
-        }
-      }
-    });
-
-    const { error } = await supabase.from("financial_transactions")
-      .update(updateData)
-      .eq("id", req.params.id)
-      .eq("user_id", user.id);
+    try {
+      const user = (req as any).user;
+      const id = req.params.id;
+      const scope = req.query.scope || req.body.scope || 'single';
+      const updateData: any = {};
       
-    if (error) return res.status(500).json(error);
-    res.json({ success: true });
+      const fields = ['description', 'amount', 'type', 'category_id', 'account_id', 'date', 'due_date', 'status', 'splits', 'is_installment', 'installment_number', 'total_installments'];
+      fields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          if ((field === 'category_id' || field === 'account_id') && req.body[field] === '') {
+            updateData[field] = null;
+          } else {
+            updateData[field] = req.body[field];
+          }
+        }
+      });
+
+      if (scope === 'single') {
+        const { error } = await supabase.from("financial_transactions")
+          .update(updateData)
+          .eq("id", id)
+          .eq("user_id", user.id);
+          
+        if (error) return res.status(500).json(error);
+        return res.json({ success: true });
+      }
+
+      // Propagate across installments if 'all' or 'future'
+      const { data: currentTx } = await supabase
+        .from("financial_transactions")
+        .select("id, is_installment, parent_transaction_id, installment_number")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!currentTx || !currentTx.is_installment) {
+        const { error } = await supabase.from("financial_transactions").update(updateData).eq("id", id).eq("user_id", user.id);
+        if (error) return res.status(500).json(error);
+        return res.json({ success: true });
+      }
+
+      const parentId = currentTx.parent_transaction_id || currentTx.id;
+      const sharedFields: any = {};
+      ['description', 'category_id', 'account_id', 'type'].forEach(f => {
+        if (updateData[f] !== undefined) sharedFields[f] = updateData[f];
+      });
+
+      let query = supabase.from("financial_transactions").update(sharedFields).eq("user_id", user.id);
+      if (scope === 'future') {
+        query = query.or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`).gte('installment_number', currentTx.installment_number || 1);
+      } else {
+        query = query.or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`);
+      }
+
+      const { error } = await query;
+      if (error) return res.status(500).json(error);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Error in PUT /api/finance/transactions:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
   });
 
   app.delete("/api/finance/transactions/:id", async (req, res) => {
-    const user = (req as any).user;
-    const id = req.params.id;
+    try {
+      const user = (req as any).user;
+      const id = req.params.id;
+      const scope = req.query.scope || 'all';
 
-    // First fetch the transaction to check if it's an installment
-    const { data: transaction, error: fetchError } = await supabase
-      .from("financial_transactions")
-      .select("id, is_installment, parent_transaction_id")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .single();
+      const { data: transaction, error: fetchError } = await supabase
+        .from("financial_transactions")
+        .select("id, is_installment, parent_transaction_id, installment_number")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
 
-    if (fetchError) return res.status(500).json(fetchError);
-    if (!transaction) return res.status(404).json({ error: "Transaction not found" });
+      if (fetchError) return res.status(500).json(fetchError);
+      if (!transaction) return res.status(404).json({ error: "Transaction not found" });
 
-    let idToDelete = id;
-    
-    // If it's a child installment, delete the parent (which cascades to all children)
-    if (transaction.is_installment && transaction.parent_transaction_id) {
-      idToDelete = transaction.parent_transaction_id;
+      if (!transaction.is_installment || scope === 'single') {
+        if (transaction.is_installment && !transaction.parent_transaction_id) {
+          const { data: children } = await supabase
+            .from("financial_transactions")
+            .select("id")
+            .eq("parent_transaction_id", transaction.id)
+            .order("installment_number", { ascending: true });
+
+          if (children && children.length > 0) {
+            const newParentId = children[0].id;
+            await supabase.from("financial_transactions").update({ parent_transaction_id: null }).eq("id", newParentId);
+            if (children.length > 1) {
+              const remainingChildIds = children.slice(1).map(c => c.id);
+              await supabase.from("financial_transactions").update({ parent_transaction_id: newParentId }).in("id", remainingChildIds);
+            }
+          }
+        }
+
+        const { error } = await supabase.from("financial_transactions").delete().eq("id", id).eq("user_id", user.id);
+        if (error) return res.status(500).json(error);
+        return res.json({ success: true });
+      }
+
+      const parentId = transaction.parent_transaction_id || transaction.id;
+
+      if (scope === 'future') {
+        const currentInstNum = transaction.installment_number || 1;
+        const { error } = await supabase
+          .from("financial_transactions")
+          .delete()
+          .eq("user_id", user.id)
+          .or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`)
+          .gte("installment_number", currentInstNum);
+
+        if (error) return res.status(500).json(error);
+        return res.json({ success: true });
+      }
+
+      // Default: scope === 'all'
+      await supabase.from("financial_transactions").delete().eq("parent_transaction_id", parentId).eq("user_id", user.id);
+      const { error } = await supabase.from("financial_transactions").delete().eq("id", parentId).eq("user_id", user.id);
+      if (error) return res.status(500).json(error);
+
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Error in DELETE /api/finance/transactions:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
     }
-    // If it's a parent installment (no parent_id but is_installment is true), delete it directly (cascades to children)
-    
-    const { error } = await supabase
-      .from("financial_transactions")
-      .delete()
-      .eq("id", idToDelete)
-      .eq("user_id", user.id);
+  });
 
-    if (error) return res.status(500).json(error);
-    res.json({ success: true });
+  // Credit Card Invoice Settlement
+  app.post("/api/finance/pay-invoice", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { card_account_id, paying_account_id, month, year } = req.body;
+
+      if (!card_account_id) {
+        return res.status(400).json({ error: "card_account_id is required" });
+      }
+
+      const { data: card } = await supabase.from("financial_accounts").select("*").eq("id", card_account_id).single();
+      const closingDay = card?.closing_day || 1;
+
+      const { data: allTxs } = await supabase
+        .from("financial_transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("account_id", card_account_id);
+
+      const targetMonth = Number(month);
+      const targetYear = Number(year);
+
+      const invoiceItemIds = [];
+      let totalAmountToPay = 0;
+
+      (allTxs || []).forEach(t => {
+        let belongs = false;
+        if (t.due_date) {
+          const [dY, dM] = t.due_date.split('-').map(Number);
+          if (dY === targetYear && dM - 1 === targetMonth) belongs = true;
+        } else {
+          const inv = calculateCreditCardInvoiceDates(t.date, closingDay, card?.due_day || 10);
+          if (inv.invoiceYear === targetYear && inv.invoiceMonth === targetMonth) belongs = true;
+        }
+
+        if (belongs && t.status !== 'pago') {
+          invoiceItemIds.push(t.id);
+          totalAmountToPay += Number(t.amount || 0);
+        }
+      });
+
+      if (invoiceItemIds.length > 0) {
+        for (const tId of invoiceItemIds) {
+          const tx = allTxs?.find(t => t.id === tId);
+          const updatedSplits = (tx?.splits || []).map((s: any) => ({ ...s, status: 'pago' }));
+          await supabase.from("financial_transactions").update({
+            status: 'pago',
+            splits: updatedSplits
+          }).eq("id", tId);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        paid_items_count: invoiceItemIds.length, 
+        total_paid: totalAmountToPay 
+      });
+    } catch (err: any) {
+      console.error("Error in /api/finance/pay-invoice:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
+  // Controlled Reset of Operational Financial Data
+  app.post("/api/finance/reset", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { confirm } = req.body;
+      if (!confirm) {
+        return res.status(400).json({ error: "Confirmation required" });
+      }
+
+      console.log(`[FINANCE RESET] Initiated by user ${user.id}`);
+      await supabase.from("financial_transactions").delete().eq("user_id", user.id).not("parent_transaction_id", "is", null);
+      await supabase.from("financial_transactions").delete().eq("user_id", user.id);
+      await supabase.from("fixed_bill_payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      res.json({
+        success: true,
+        message: "Módulo financeiro reinicializado com sucesso! Todos os lançamentos operacionais foram removidos, mantendo suas contas, cartões e categorias intactos."
+      });
+    } catch (err: any) {
+      console.error("Error in /api/finance/reset:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
   });
 
   // Dashboard Summary
@@ -921,174 +1199,210 @@ app.get("/api/config", (req, res) => {
       const user = (req as any).user;
       const { month, year } = req.query;
       
-      // Get all transactions
-      const { data: transactions, error: tError } = await supabase.from("financial_transactions").select("*").eq("user_id", user.id);
-      if (tError) return res.status(500).json(tError);
+      const now = new Date();
+      const filterMonth = month !== undefined ? Number(month) : now.getMonth();
+      const filterYear = year !== undefined ? Number(year) : now.getFullYear();
 
-      // Get all accounts (for initial balance)
-      const { data: accounts, error: aError } = await supabase.from("financial_accounts").select("*").eq("user_id", user.id);
+      const { data: accounts, error: aError } = await supabase
+        .from("financial_accounts")
+        .select("*")
+        .eq("user_id", user.id);
       if (aError) return res.status(500).json(aError);
 
-      // Calculate totals
-      let initialBalance = 0;
-      const accountMap: Record<string, string> = {};
-      if (accounts) {
-        accounts.forEach(acc => {
-          accountMap[String(acc.id)] = acc.type;
-          if (acc.type !== 'credito') {
-            initialBalance += Number(acc.initial_balance || 0);
-          }
-        });
-      }
+      const { data: categories } = await supabase
+        .from("financial_categories")
+        .select("*")
+        .eq("user_id", user.id);
 
-      let totalIncome = 0;
-      let totalExpense = 0;
-      let cashIncome = 0;
-      let cashExpense = 0;
+      const { data: transactions, error: tError } = await supabase
+        .from("financial_transactions")
+        .select("*")
+        .eq("user_id", user.id);
+      if (tError) return res.status(500).json(tError);
+
+      const accountMap = new Map<number, any>();
+      (accounts || []).forEach(acc => accountMap.set(Number(acc.id), acc));
+
+      const categoryMap = new Map<number, string>();
+      (categories || []).forEach(cat => categoryMap.set(Number(cat.id), cat.name.toLowerCase()));
+
+      let liquidInitialBalance = 0;
+      (accounts || []).forEach(acc => {
+        if (acc.type !== 'credito') {
+          liquidInitialBalance += Number(acc.initial_balance || 0);
+        }
+      });
+
       let monthIncome = 0;
       let monthExpense = 0;
-      let previousBalance = initialBalance;
+      let previousLiquidBalance = liquidInitialBalance;
 
-      const now = new Date();
-      const filterMonth = month ? Number(month) : now.getMonth();
-      const filterYear = year ? Number(year) : now.getFullYear();
+      let pendingReceivablesMonth = 0;
+      let pendingPayablesMonth = 0;
+
+      let creditCardMonthTotal = 0;
+      let creditCardMonthPaid = 0;
+      let creditCardMonthPending = 0;
 
       const responsibilitySummary: Record<string, number> = {};
-      const accountsSummary: Record<string, { id: string, name: string, type: string, balance: number, responsibles: Record<string, number> }> = {};
+      const accountsSummaryMap = new Map<number, {
+        id: number;
+        name: string;
+        type: string;
+        balance: number;
+        invoice_total?: number;
+        invoice_paid?: number;
+        invoice_pending?: number;
+        responsibles: Record<string, number>;
+      }>();
 
-      if (accounts) {
-        accounts.forEach(acc => {
-          accountsSummary[String(acc.id)] = {
-            id: String(acc.id),
-            name: acc.name,
-            type: acc.type,
-            balance: Number(acc.initial_balance || 0),
-            responsibles: {}
-          };
+      (accounts || []).forEach(acc => {
+        accountsSummaryMap.set(Number(acc.id), {
+          id: Number(acc.id),
+          name: acc.name,
+          type: acc.type,
+          balance: Number(acc.initial_balance || 0),
+          invoice_total: 0,
+          invoice_paid: 0,
+          invoice_pending: 0,
+          responsibles: {}
         });
-      }
+      });
 
-      if (transactions) {
-        transactions.forEach(t => {
-          if (!t.date) return; // Skip if no date
-          
-          const amount = Number(t.amount || 0);
-          const accType = accountMap[String(t.account_id)];
-          const account = accounts?.find(a => String(a.id) === String(t.account_id));
-          
-          // Update account balance
-          if (accountsSummary[String(t.account_id)]) {
-            if (t.type === 'receita') {
-              accountsSummary[String(t.account_id)].balance += amount;
-            } else {
-              if (!t.is_installment) {
-                accountsSummary[String(t.account_id)].balance -= amount;
-              }
-            }
-          }
-          
-          // 1. Global Balances (Total and Cash)
-          if (t.type === 'receita') {
-            totalIncome += amount;
-            if (accType !== 'credito') cashIncome += amount;
-          } else {
-            // Exclude installments entirely from main expenses as they are tracked in Credit Management
-            if (t.is_installment) {
-              // Skip
-            } else {
-              totalExpense += amount;
-              if (accType !== 'credito') cashExpense += amount;
-            }
-          }
+      (transactions || []).forEach(t => {
+        if (!t.date) return;
+        const amount = Number(t.amount || 0);
+        const acc = accountMap.get(Number(t.account_id));
+        const isCreditCard = acc?.type === 'credito';
+        const isPaid = t.status === 'pago';
+        const catName = categoryMap.get(Number(t.category_id)) || '';
 
-          // 2. Monthly Dashboard Logic (Aligned with Invoices)
-          let belongsToMonth = false;
-          let isBeforeMonth = false;
-          
-          const dateStr = t.date.split('T')[0];
-          
-          if (accType === 'credito') {
-            const closingDay = account?.closing_day || 1;
-            const [y, m, d] = dateStr.split('-').map(Number);
-            const tDate = new Date(y, m - 1, d);
-            
-            const invoiceEnd = new Date(filterYear, filterMonth, closingDay);
-            const invoiceStart = new Date(filterYear, filterMonth - 1, closingDay + 1);
-            
-            if (tDate >= invoiceStart && tDate <= invoiceEnd) {
+        const isInvoicePayment = catName.includes('fatura') || t.description?.toLowerCase().includes('pagamento fatura');
+
+        let belongsToMonth = false;
+        let isBeforeMonth = false;
+
+        if (isCreditCard) {
+          if (t.due_date) {
+            const [dY, dM] = t.due_date.split('-').map(Number);
+            if (dY === filterYear && dM - 1 === filterMonth) {
               belongsToMonth = true;
-            } else if (tDate < invoiceStart) {
+            } else if (dY < filterYear || (dY === filterYear && dM - 1 < filterMonth)) {
               isBeforeMonth = true;
             }
           } else {
-            const [tYear, tMonth] = dateStr.split('-').map(Number);
-            if (tYear === filterYear && tMonth - 1 === filterMonth) {
+            const inv = calculateCreditCardInvoiceDates(t.date, acc?.closing_day || 1, acc?.due_day || 10);
+            if (inv.invoiceYear === filterYear && inv.invoiceMonth === filterMonth) {
               belongsToMonth = true;
-            } else if (tYear < filterYear || (tYear === filterYear && tMonth - 1 < filterMonth)) {
+            } else if (inv.invoiceYear < filterYear || (inv.invoiceYear === filterYear && inv.invoiceMonth < filterMonth)) {
               isBeforeMonth = true;
             }
           }
-
-          // Add to previous balance if it's before the filtered month
-          if (isBeforeMonth) {
-            if (t.type === 'receita') {
-              previousBalance += amount;
-            } else {
-              if (!t.is_installment) {
-                previousBalance -= amount;
-              }
-            }
+        } else {
+          const [tY, tM] = t.date.split('T')[0].split('-').map(Number);
+          if (tY === filterYear && tM - 1 === filterMonth) {
+            belongsToMonth = true;
+          } else if (tY < filterYear || (tY === filterYear && tM - 1 < filterMonth)) {
+            isBeforeMonth = true;
           }
+        }
 
-          if (belongsToMonth) {
+        const accSummary = accountsSummaryMap.get(Number(t.account_id));
+        if (accSummary) {
+          if (!isCreditCard) {
             if (t.type === 'receita') {
-              monthIncome += amount;
+              accSummary.balance += amount;
             } else {
-              if (t.is_installment) {
-                // Skip
+              accSummary.balance -= amount;
+            }
+          } else {
+            if (belongsToMonth) {
+              accSummary.invoice_total = (accSummary.invoice_total || 0) + amount;
+              if (isPaid) {
+                accSummary.invoice_paid = (accSummary.invoice_paid || 0) + amount;
               } else {
-                monthExpense += amount;
+                accSummary.invoice_pending = (accSummary.invoice_pending || 0) + amount;
+              }
+            }
+          }
+        }
+
+        if (isBeforeMonth) {
+          if (!isCreditCard) {
+            if (t.type === 'receita') {
+              previousLiquidBalance += amount;
+            } else {
+              previousLiquidBalance -= amount;
+            }
+          }
+        }
+
+        if (belongsToMonth) {
+          if (t.type === 'receita') {
+            monthIncome += amount;
+            if (!isPaid) {
+              pendingReceivablesMonth += amount;
+            }
+          } else {
+            if (!isInvoicePayment) {
+              monthExpense += amount;
+            }
+
+            if (!isPaid) {
+              pendingPayablesMonth += amount;
+            }
+
+            if (isCreditCard) {
+              creditCardMonthTotal += amount;
+              if (isPaid) {
+                creditCardMonthPaid += amount;
+              } else {
+                creditCardMonthPending += amount;
               }
             }
 
-            // Add to responsibility summary for expenses
-            if (t.type === 'despesa' && t.splits && Array.isArray(t.splits)) {
+            if (Array.isArray(t.splits)) {
               t.splits.forEach((s: any) => {
-                // Only include pending splits in the responsibility summary
+                const sName = s.name?.trim() || 'Outros';
+                const sAmount = Number(s.amount || 0);
                 if (s.status !== 'pago') {
-                  const name = s.name || 'Outros';
-                  const sAmount = Number(s.amount || 0);
-                  responsibilitySummary[name] = (responsibilitySummary[name] || 0) + sAmount;
-                  
-                  if (accountsSummary[String(t.account_id)]) {
-                    accountsSummary[String(t.account_id)].responsibles[name] = (accountsSummary[String(t.account_id)].responsibles[name] || 0) + sAmount;
+                  responsibilitySummary[sName] = (responsibilitySummary[sName] || 0) + sAmount;
+                  pendingReceivablesMonth += sAmount;
+                  if (accSummary) {
+                    accSummary.responsibles[sName] = (accSummary.responsibles[sName] || 0) + sAmount;
                   }
                 }
               });
             }
           }
-        });
-      }
+        }
+      });
 
-      const totalBalance = initialBalance + totalIncome - totalExpense;
-      const cashBalance = initialBalance + cashIncome - cashExpense;
+      const endLiquidBalance = previousLiquidBalance + monthIncome - monthExpense;
 
-      res.json({ 
-        total_balance: totalBalance,
-        cash_balance: cashBalance,
+      res.json({
+        total_balance: endLiquidBalance,
+        cash_balance: endLiquidBalance,
         month_income: monthIncome,
         month_expense: monthExpense,
-        previous_balance: previousBalance,
+        month_net: monthIncome - monthExpense,
+        previous_balance: previousLiquidBalance,
+        pending_receivables: pendingReceivablesMonth,
+        pending_payables: pendingPayablesMonth,
+        credit_card_total: creditCardMonthTotal,
+        credit_card_paid: creditCardMonthPaid,
+        credit_card_pending: creditCardMonthPending,
         responsibility_summary: responsibilitySummary,
-        accounts_summary: Object.values(accountsSummary),
-        transactions, 
-        accounts 
+        accounts_summary: Array.from(accountsSummaryMap.values()),
+        transactions: transactions || [],
+        accounts: accounts || []
       });
     } catch (error: any) {
       console.error("Error in /api/finance/dashboard:", error);
       res.status(500).json({ error: error.message || "Internal server error" });
     }
   });
+
 
   // --- Client Module Routes ---
 

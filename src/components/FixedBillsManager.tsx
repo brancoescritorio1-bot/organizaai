@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { WhatsAppIcon } from '../MainApp';
 import { useDialog } from './DialogContext';
+import { FinancialMetricCard } from './FinancialComponents';
 import { PdfService } from '../lib/PdfService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -680,39 +681,32 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 max-w-full overflow-hidden">
-      {/* Header with Navigation - Optimized for Mobile */}
-      <div className="bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="p-3 bg-indigo-50 rounded-2xl shrink-0">
-            <DollarSign className="text-indigo-600" size={20} />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight truncate">Cestas Fixas</h2>
-            <p className="text-[10px] md:text-xs text-gray-500 font-medium whitespace-nowrap truncate tracking-tight">Gestão Inteligente de Contas</p>
-          </div>
+      {/* Sub-navigation views - Dash, Histórico, Contas */}
+      <div className="bg-white p-3 md:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="flex items-center gap-2">
+          <History className="text-indigo-600" size={18} />
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Modo de Visualização:</span>
         </div>
 
-        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0">
-          <div className="flex bg-gray-100 p-1 rounded-xl">
-            <button 
-              onClick={() => setView('dashboard')}
-              className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all", view === 'dashboard' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
-            >
-              Dash
-            </button>
-            <button 
-              onClick={() => setView('history')}
-              className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all", view === 'history' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
-            >
-              Histórico
-            </button>
-            <button 
-              onClick={() => setView('register')}
-              className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all", view === 'register' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
-            >
-              Contas
-            </button>
-          </div>
+        <div className="flex bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
+          <button 
+            onClick={() => setView('dashboard')}
+            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'dashboard' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setView('history')}
+            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'history' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+          >
+            Histórico
+          </button>
+          <button 
+            onClick={() => setView('register')}
+            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'register' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+          >
+            Contas Cadastradas
+          </button>
         </div>
       </div>
 
@@ -808,25 +802,43 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       <div id="printable-dashboard" className="space-y-4 md:space-y-6">
       {view === 'dashboard' && (
         <div className="space-y-4 md:space-y-6">
-          {/* Dashboard Summary - Optimized Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
-            {[
-              { label: 'Total', value: totals.total, color: 'text-gray-900', bg: 'bg-white', icon: DollarSign },
-              { label: 'Pago', value: totals.paid, color: 'text-emerald-600', bg: 'bg-emerald-50/30', icon: CheckCircle2 },
-              { label: 'Pendente', value: totals.pending, color: 'text-amber-600', bg: 'bg-amber-50/30', icon: Clock },
-              { label: 'Vencido', value: totals.overdue, color: 'text-red-600', bg: 'bg-red-50/30', icon: AlertCircle },
-              { label: 'Retido', value: totals.retained, color: 'text-indigo-600', bg: 'bg-indigo-50/30', icon: Filter },
-            ].map((card, idx) => (
-              <div key={idx} className={cn("p-3 md:p-4 rounded-3xl border border-gray-100 shadow-sm", card.bg, idx === 4 ? "col-span-2 md:col-span-1" : "")}>
-                <div className="flex items-center justify-between mb-1">
-                  <card.icon size={14} className={card.color} />
-                  <span className="text-[9px] font-black uppercase text-gray-400 tracking-tighter">{card.label}</span>
-                </div>
-                <div className={cn("text-base md:text-lg font-black truncate", card.color)}>
-                  R$ {card.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-            ))}
+          {/* Dashboard Summary - Standardized Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <FinancialMetricCard
+              title="Total Previsto"
+              value={totals.total}
+              icon={DollarSign}
+              variant="slate"
+              subtitle="Total das contas no período"
+            />
+            <FinancialMetricCard
+              title="Total Pago"
+              value={totals.paid}
+              icon={CheckCircle2}
+              variant="emerald"
+              subtitle="Contas quitadas"
+            />
+            <FinancialMetricCard
+              title="Pendente"
+              value={totals.pending}
+              icon={Clock}
+              variant="amber"
+              subtitle="Aguardando liquidação"
+            />
+            <FinancialMetricCard
+              title="Vencido"
+              value={totals.overdue}
+              icon={AlertCircle}
+              variant={totals.overdue > 0 ? "red" : "slate"}
+              subtitle={totals.overdue > 0 ? "Contas em atraso" : "Em dia"}
+            />
+            <FinancialMetricCard
+              title="Retido"
+              value={totals.retained}
+              icon={Filter}
+              variant="indigo"
+              subtitle="Retenção / bloqueio"
+            />
           </div>
 
 
