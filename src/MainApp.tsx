@@ -1560,15 +1560,7 @@ Escalas GMNL ${year}`;
               </button>
             </div>
             
-            <NotificationCenter 
-              supabase={supabaseClient} 
-              user={session?.user} 
-              dashboardData={dashboardData}
-              onNavigate={(mod, tab) => {
-                setActiveModule(mod as any);
-                setActiveTab(tab);
-              }}
-            />
+
 
             <button onClick={handleGlobalExport} className="p-2 text-gray-500 hover:text-indigo-600 transition-colors" title="Exportar PDF">
               <Download size={20} />
@@ -3592,7 +3584,7 @@ Escalas GMNL ${year}`;
                                       setEditingFinTransaction(t);
                                       setFinTransactionForm({
                                         description: t.description,
-                                        amount: t.amount.toString(),
+                                        amount: (Number(t.amount) * Number(t.total_installments || 1)).toString(),
                                         discount: '',
                                         type: t.type,
                                         category_id: t.category_id?.toString() || '',

@@ -1344,11 +1344,11 @@ app.get("/api/config", (req, res) => {
               pendingReceivablesMonth += amount;
             }
           } else {
-            if (!isInvoicePayment) {
+            if (!isInvoicePayment && !isCreditCard) {
               monthExpense += amount;
             }
 
-            if (!isPaid) {
+            if (!isPaid && !isCreditCard) {
               pendingPayablesMonth += amount;
             }
 
@@ -2398,9 +2398,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       .from("chacara_bills")
       .select("*")
       .eq("user_id", user.id)
-      .in("status", ["paid", "partial"])
-      .gte("payment_date", `${month}-01`)
-      .lte("payment_date", `${month}-31`);
+      .in("status", ["paid", "partial", "Pago", "Parcial"])
+      .eq("month_reference", month);
 
     if (billsError) {
       console.error("Error fetching bills for accountability:", billsError);
@@ -2415,9 +2414,9 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
 
     if (bills) {
       bills.forEach(bill => {
-        const isPaid = bill.status === 'paid';
-        const amountPaid = isPaid ? bill.total : (bill.amount_paid || 0);
-        const ratio = bill.total > 0 ? amountPaid / bill.total : 0;
+        const isPaid = bill.status === 'paid' || bill.status === 'Pago';
+        const amountPaid = isPaid ? Number(bill.total || 0) : Number(bill.amount_paid || 0);
+        const ratio = bill.total > 0 ? amountPaid / Number(bill.total) : 0;
         
         total_collected += amountPaid;
 
