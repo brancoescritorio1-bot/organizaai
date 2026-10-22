@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React from 'react';
+const { useState, useMemo, useRef, useEffect } = React;
 import { Wallet, TrendingUp, Droplets, Zap, Building2, Briefcase, Users, Download, Plus, Trash2, FileText, Image as ImageIcon, X, Eye } from 'lucide-react';
 import { ChacaraBill } from '../types';
 import { PdfService } from '../lib/PdfService';

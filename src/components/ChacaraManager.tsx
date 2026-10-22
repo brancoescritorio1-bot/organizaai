@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
 import { createPortal } from 'react-dom';
 import { 
   Users, 

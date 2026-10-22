@@ -53,7 +53,9 @@ import {
   BrainCircuit,
   Megaphone,
   Key,
-  Lock
+  Lock,
+  Menu,
+  Home
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
@@ -68,6 +70,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { NotificationCenter } from './components/NotificationCenter';
 import { WorkEscalas } from './components/WorkEscalas';
 import { FinancialMetricCard, FinancialHeader, FinancialStatusBadge } from './components/FinancialComponents';
+import { Sidebar, AppModule } from './components/Sidebar';
+import { HomePage } from './components/HomePage';
+import { ModuleBottomNav, ModuleSubNav } from './components/ModuleSubNav';
 
 const parseMonthYear = (str: string) => {
   if (!str) return { m: 0, y: 0 };
@@ -241,8 +246,26 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
 
   const [settingsForm, setSettingsForm] = useState<Partial<Activities>>({});
 
-  // Financial Module State
-  const [activeModule, setActiveModule] = useState<'academic' | 'financial' | 'chacara' | 'work' | 'personal'>('academic');
+  // Main Module State (includes 'home' as default)
+  const [activeModule, setActiveModule] = useState<AppModule>('home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
   const [finCategories, setFinCategories] = useState<FinancialCategory[]>([]);
   const [finAccounts, setFinAccounts] = useState<FinancialAccount[]>([]);
   const [finTransactions, setFinTransactions] = useState<FinancialTransaction[]>([]);
@@ -666,9 +689,16 @@ Escalas GMNL ${year}`;
   };
 
   useEffect(() => {
-    if (activeModule === 'financial' || activeModule === 'work') {
+    if (activeModule === 'home') {
+      fetchFinancialData();
+      fetchPersonalTasks();
+      fetchChacaraBills();
+      fetchClients();
+      fetchClientSales();
+      fetchClientInstallments();
+    } else if (activeModule === 'financial' || activeModule === 'work') {
+      fetchFinancialData();
       if (activeModule === 'financial') {
-        fetchFinancialData();
         fetchResponsibles();
       }
       fetchClients();
@@ -1461,120 +1491,143 @@ Escalas GMNL ${year}`;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 print:hidden">
-        <div className="max-w-6xl mx-auto px-2 md:px-6 py-3 md:py-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className={cn("p-1.5 md:p-2 rounded-xl text-white transition-colors shadow-sm", 
+    <div className={cn(
+      "min-h-screen bg-slate-50/70 text-gray-900 font-sans pb-24 transition-all duration-200",
+      sidebarCollapsed ? "md:pl-20" : "md:pl-64"
+    )}>
+      {/* Sidebar Navigation */}
+      <Sidebar 
+        activeModule={activeModule}
+        activeTab={activeTab}
+        onSelectModule={(mod) => {
+          setActiveModule(mod);
+          if (mod !== 'home') {
+            setSidebarCollapsed(true);
+          }
+          if (mod === 'academic') setActiveTab('dashboard');
+          else if (mod === 'financial') setActiveTab('fin_dashboard');
+          else if (mod === 'chacara') setActiveTab('chacara_dashboard');
+          else if (mod === 'personal') setActiveTab('personal_tasks');
+          else if (mod === 'work') setActiveTab('work_clients');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
+        isOpenMobile={sidebarOpenMobile}
+        onCloseMobile={() => setSidebarOpenMobile(false)}
+        onLogout={onLogout}
+        userEmail={session?.user?.email}
+      />
+
+      {/* Top Header */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-gray-200/80 sticky top-0 z-30 print:hidden shadow-xs">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Mobile hamburger button */}
+            <button 
+              onClick={() => setSidebarOpenMobile(true)}
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors shrink-0 cursor-pointer"
+              title="Abrir Menu Lateral"
+              aria-label="Abrir Menu Lateral"
+            >
+              <Menu size={20} />
+            </button>
+
+            {/* Active module icon & title */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={cn("p-2 rounded-xl text-white transition-colors shadow-xs shrink-0", 
+                activeModule === 'home' ? "bg-indigo-600" :
                 activeModule === 'academic' ? "bg-indigo-600" : 
                 activeModule === 'financial' ? "bg-emerald-600" : 
                 activeModule === 'chacara' ? "bg-amber-600" :
                 activeModule === 'personal' ? "bg-purple-600" : "bg-blue-600")}>
-                {activeModule === 'academic' ? <GraduationCap size={18} className="md:w-6 md:h-6" /> :
-                activeModule === 'financial' ? <Wallet size={18} className="md:w-6 md:h-6" /> :
-                activeModule === 'chacara' ? <Trees size={18} className="md:w-6 md:h-6" /> :
-                activeModule === 'personal' ? <User size={18} className="md:w-6 md:h-6" /> :
-                <Briefcase size={18} className="md:w-6 md:h-6" />}
+                {activeModule === 'home' ? <Home size={18} /> :
+                 activeModule === 'academic' ? <GraduationCap size={18} /> :
+                 activeModule === 'financial' ? <Wallet size={18} /> :
+                 activeModule === 'chacara' ? <Trees size={18} /> :
+                 activeModule === 'personal' ? <User size={18} /> :
+                 <Briefcase size={18} />}
               </div>
-              <div>
-                <h1 className="font-bold text-base md:text-xl leading-tight text-gray-900 tracking-tight">
-                  OrganizaAI
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm sm:text-base md:text-lg leading-none text-gray-900 tracking-tight truncate">
+                  {activeModule === 'home' ? 'Página Inicial' :
+                   activeModule === 'academic' ? 'Módulo Acadêmico' : 
+                   activeModule === 'financial' ? 'Módulo Financeiro' : 
+                   activeModule === 'chacara' ? 'Gestão da Chácara' : 
+                   activeModule === 'personal' ? 'Produtividade Pessoal' : 'Trabalho & Clientes'}
                 </h1>
-                <p className="text-[9px] md:text-xs text-gray-500 font-semibold uppercase tracking-wider">
-                  {activeModule === 'academic' ? 'Acadêmico' : 
-                   activeModule === 'financial' ? 'Financeiro' : 
-                   activeModule === 'chacara' ? 'Gestão' : 
-                   activeModule === 'personal' ? 'Pessoal' : 'Trabalho'}
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5 truncate hidden sm:block">
+                  {activeModule === 'home' ? 'Painel de Acesso Rápido' : 
+                   activeModule === 'financial' ? 'Fluxo de Caixa & Cartões' : 
+                   activeModule === 'chacara' ? 'Hidrômetros & Rateios' : 
+                   activeModule === 'academic' ? 'Períodos, Notas & Frequência' :
+                   activeModule === 'personal' ? 'Tarefas & Rotinas' : 'Clientes, Vendas & Escalas'}
                 </p>
               </div>
             </div>
-
-            <div className="hidden md:flex bg-gray-100 p-1 rounded-lg items-center border border-gray-200">
-              <button 
-                onClick={() => { setActiveModule('academic'); setActiveTab('dashboard'); }}
-                className={cn("flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-bold transition-all", activeModule === 'academic' ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" : "text-gray-500 hover:text-gray-700")}
-              >
-                <GraduationCap size={16} /> Acadêmico
-              </button>
-              <button 
-                onClick={() => { setActiveModule('financial'); setActiveTab('fin_dashboard'); }}
-                className={cn("flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-bold transition-all", activeModule === 'financial' ? "bg-white text-emerald-600 shadow-sm ring-1 ring-black/5" : "text-gray-500 hover:text-gray-700")}
-              >
-                <Wallet size={16} /> Financeiro
-              </button>
-              <button 
-                onClick={() => { setActiveModule('chacara'); setActiveTab('chacara_main'); }}
-                className={cn("flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-bold transition-all", activeModule === 'chacara' ? "bg-white text-amber-600 shadow-sm ring-1 ring-black/5" : "text-gray-500 hover:text-gray-700")}
-              >
-                <Trees size={16} /> Chácara
-              </button>
-              <button 
-                onClick={() => { setActiveModule('work'); setActiveTab('work_clients'); }}
-                className={cn("flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-bold transition-all", activeModule === 'work' ? "bg-white text-blue-600 shadow-sm ring-1 ring-black/5" : "text-gray-500 hover:text-gray-700")}
-              >
-                <Briefcase size={16} /> Trabalho
-              </button>
-              <button 
-                onClick={() => { setActiveModule('personal'); setActiveTab('personal_tasks'); }}
-                className={cn("flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-bold transition-all", activeModule === 'personal' ? "bg-white text-purple-600 shadow-sm ring-1 ring-black/5" : "text-gray-500 hover:text-gray-700")}
-              >
-                <User size={16} /> Pessoal
-              </button>
-            </div>
           </div>
 
-          <div className="flex gap-3 items-center">
-            {/* Mobile Module Switcher */}
-            <div className="md:hidden flex bg-gray-100 p-1 rounded-lg items-center border border-gray-200">
-              <button 
-                onClick={() => { setActiveModule('academic'); setActiveTab('dashboard'); }}
-                className={cn("p-2 rounded-md transition-all", activeModule === 'academic' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500")}
-              >
-                <GraduationCap size={18} />
-              </button>
-              <button 
-                onClick={() => { setActiveModule('financial'); setActiveTab('fin_dashboard'); }}
-                className={cn("p-2 rounded-md transition-all", activeModule === 'financial' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500")}
-              >
-                <Wallet size={18} />
-              </button>
-              <button 
-                onClick={() => { setActiveModule('chacara'); setActiveTab('chacara_main'); }}
-                className={cn("p-2 rounded-md transition-all", activeModule === 'chacara' ? "bg-white text-amber-600 shadow-sm" : "text-gray-500")}
-              >
-                <Trees size={18} />
-              </button>
-              <button 
-                onClick={() => { setActiveModule('work'); setActiveTab('work_clients'); }}
-                className={cn("p-2 rounded-md transition-all", activeModule === 'work' ? "bg-white text-blue-600 shadow-sm" : "text-gray-500")}
-              >
-                <Briefcase size={18} />
-              </button>
-              <button 
-                onClick={() => { setActiveModule('personal'); setActiveTab('personal_tasks'); }}
-                className={cn("p-2 rounded-md transition-all", activeModule === 'personal' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500")}
-              >
-                <User size={18} />
-              </button>
-            </div>
-            
-
-
-            <button onClick={handleGlobalExport} className="p-2 text-gray-500 hover:text-indigo-600 transition-colors" title="Exportar PDF">
-              <Download size={20} />
+          {/* Header Right Actions */}
+          <div className="flex gap-2 items-center shrink-0">
+            <button 
+              onClick={handleGlobalExport} 
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer" 
+              title="Exportar Relatório PDF"
+              aria-label="Exportar Relatório PDF"
+            >
+              <Download size={19} />
             </button>
-            <button onClick={onLogout} className="p-2 text-gray-500 hover:text-red-600 transition-colors" title="Sair">
-              <LogOut size={20} />
+            <button 
+              onClick={onLogout} 
+              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer" 
+              title="Encerrar Sessão (Sair)"
+              aria-label="Encerrar Sessão"
+            >
+              <LogOut size={19} />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32 md:pb-28">
         <AnimatePresence mode="wait">
-          {activeTab === 'subjects' && (
+          {activeModule === 'home' && (
+            <motion.div 
+              key="home" 
+              initial={{ opacity: 0, y: 12 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -12 }} 
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <HomePage 
+                onNavigate={(mod, tab, filterParams) => {
+                  setActiveModule(mod);
+                  if (mod !== 'home') {
+                    setSidebarCollapsed(true);
+                  }
+                  if (tab) setActiveTab(tab);
+                  if (filterParams) {
+                    setFinExtractFilter(prev => ({ ...prev, ...filterParams }));
+                  }
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                dashboardData={finDashboard}
+                personalTasks={personalTasks}
+                finTransactions={finTransactions}
+                chacaraBills={chacaraBills}
+                clientInstallments={clientInstallments}
+                onTogglePersonalTask={handleTogglePersonalTask}
+              />
+            </motion.div>
+          )}
+
+          {activeModule === 'academic' && (
+            <>
+              {activeTab === 'subjects' && (
             <motion.div key="subjects" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}>
               <Card title="Cadastrar Mês / Matéria" icon={Plus}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2904,6 +2957,8 @@ Escalas GMNL ${year}`;
                 )}
               </Card>
             </motion.div>
+          )}
+          </>
           )}
 
           {/* --- Financial Module Tabs --- */}
@@ -5606,53 +5661,18 @@ Escalas GMNL ${year}`;
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-1 pb-safe z-40 print:hidden">
-        <div className="max-w-6xl mx-auto flex justify-between w-full">
-          {activeModule === 'academic' ? (
-            <>
-              <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={LayoutDashboard} label="Dash" />
-              <TabButton active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} icon={Users} label="Presença" />
-              <TabButton active={activeTab === 'activities'} onClick={() => setActiveTab('activities')} icon={FileText} label="Notas" />
-              <TabButton active={activeTab === 'web'} onClick={() => setActiveTab('web')} icon={MonitorPlay} label="Web" />
-              <TabButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={Settings} label="Config" />
-              <TabButton active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={Shield} label="Usuários" />
-            </>
-          ) : activeModule === 'financial' ? (
-            <>
-              <TabButton active={activeTab === 'fin_dashboard'} onClick={() => setActiveTab('fin_dashboard')} icon={LayoutDashboard} label="Dash" />
-              <TabButton active={activeTab === 'fin_extract'} onClick={() => setActiveTab('fin_extract')} icon={Search} label="Extrato" />
-              <TabButton active={activeTab === 'fin_credit'} onClick={() => setActiveTab('fin_credit')} icon={CreditCard} label="Crédito" />
-              <TabButton active={activeTab === 'fin_transactions'} onClick={() => setActiveTab('fin_transactions')} icon={ArrowRightLeft} label="Lançamentos" />
-              <TabButton active={activeTab === 'fin_fixed_bills'} onClick={() => setActiveTab('fin_fixed_bills')} icon={History} label="Contas Fixas" />
-              <TabButton active={activeTab === 'fin_settings'} onClick={() => setActiveTab('fin_settings')} icon={Settings} label="Config" />
-            </>
-          ) : activeModule === 'chacara' ? (
-            <>
-              <TabButton active={activeTab === 'chacara_dashboard'} onClick={() => setActiveTab('chacara_dashboard')} icon={LayoutDashboard} label="Dashboard" />
-              <TabButton active={activeTab === 'chacara_pending'} onClick={() => setActiveTab('chacara_pending')} icon={AlertCircle} label="Pendências" />
-              <TabButton active={activeTab === 'chacara_expenses'} onClick={() => setActiveTab('chacara_expenses')} icon={Banknote} label="Despesas" />
-              <TabButton active={activeTab === 'chacara_main'} onClick={() => setActiveTab('chacara_main')} icon={PlusCircle} label="Lançar Conta" />
-              <TabButton active={activeTab === 'chacara_history'} onClick={() => setActiveTab('chacara_history')} icon={History} label="Histórico" />
-              <TabButton active={activeTab === 'chacara_messages'} onClick={() => setActiveTab('chacara_messages')} icon={WhatsAppIcon} label="Mensagens" />
-              <TabButton active={activeTab === 'chacara_users'} onClick={() => setActiveTab('chacara_users')} icon={Users} label="Usuários" />
-              <TabButton active={activeTab === 'chacara_settings'} onClick={() => setActiveTab('chacara_settings')} icon={Settings} label="Config" />
-            </>
-          ) : activeModule === 'personal' ? (
-            <>
-              <TabButton active={activeTab === 'personal_tasks'} onClick={() => setActiveTab('personal_tasks')} icon={ListTodo} label="Tarefas" />
-              <TabButton active={activeTab === 'personal_eisenhower'} onClick={() => setActiveTab('personal_eisenhower')} icon={LayoutGrid} label="Matriz" />
-            </>
-          ) : (
-            <>
-              <TabButton active={activeTab === 'work_clients'} onClick={() => setActiveTab('work_clients')} icon={Users} label="Clientes" />
-              <TabButton active={activeTab === 'work_marketing'} onClick={() => setActiveTab('work_marketing')} icon={Megaphone} label="Marketing" />
-              <TabButton active={activeTab === 'work_escalas'} onClick={() => setActiveTab('work_escalas')} icon={Calendar} label="Escalas" />
-              <TabButton active={activeTab === 'work_messages'} onClick={() => setActiveTab('work_messages')} icon={WhatsAppIcon} label="Mensagens" />
-              <TabButton active={activeTab === 'work_safety'} onClick={() => setActiveTab('work_safety')} icon={AlertTriangle} label="Segurança" />
-            </>
-          )}
-        </div>
-      </nav>
+      {/* Bottom Sub-Tabs Navigation for active module */}
+      {activeModule !== 'home' && (
+        <ModuleBottomNav 
+          module={activeModule}
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          sidebarCollapsed={sidebarCollapsed}
+        />
+      )}
     </div>
   );
 }

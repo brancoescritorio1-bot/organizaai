@@ -7,46 +7,98 @@ import { Download } from 'lucide-react';
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [supabaseConfig, setSupabaseConfig] = useState<{ supabaseUrl: string, supabaseKey: string } | null>(null);
   const [supabaseClient, setSupabaseClient] = useState<SupabaseClient | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    async function fetchConfig() {
-      try {
-        const res = await fetch('/api/config');
-        if (!res.ok) throw new Error('Failed to fetch config');
-        
-        const config = await res.json();
-        
-        // Secure frontend diagnostics
-        const maskFrontSecret = (key: string | undefined): string => {
-          if (!key) return "UNDEFINED / EMPTY";
-          if (key.length <= 8) return `DEFINED (Length: ${key.length}, format too short to mask)`;
-          return `DEFINED (Length: ${key.length}, starts with: "${key.slice(0, 4)}...", ends with: "...${key.slice(-4)}")`;
-        };
-        console.log("=== CLIENT-SIDE CONFIGURATION DIAGNOSTICS ===");
-        console.log(`[CLIENT-CONFIG] Received URL: ${config.supabaseUrl}`);
-        console.log(`[CLIENT-CONFIG] Received Anon Key: ${maskFrontSecret(config.supabaseKey)}`);
-        console.log("=============================================");
+    let isMounted = true;
+    let authSubscription: any = null;
 
-        setSupabaseConfig(config);
-        const defaultUrl = "https://gymxdeijrgorugqqiteh.supabase.co";
-        const defaultKey = "sb_publishable_" + "KPeLuuPs7mOf395Jv0YmeQ_mueP5jXE";
-        const url = (config.supabaseUrl && !config.supabaseUrl.includes('placeholder')) ? config.supabaseUrl : defaultUrl;
-        const key = (config.supabaseKey && !config.supabaseKey.includes('placeholder')) ? config.supabaseKey : defaultKey;
+    async function initializeAuth() {
+      try {
+        // 1. Fetch server-provided config or fallback
+        let url = "https://gymxdeijrgorugqqiteh.supabase.co";
+        let key = "sb_publishable_" + "KPeLuuPs7mOf395Jv0YmeQ_mueP5jXE";
+
         try {
-          setSupabaseClient(createClient(url, key));
-        } catch (err) {
-          console.error('Failed to create Supabase client:', err);
+          const res = await fetch('/api/config');
+          if (res.ok) {
+            const config = await res.json();
+            if (config.supabaseUrl && !config.supabaseUrl.includes('placeholder')) {
+              url = config.supabaseUrl;
+            }
+            if (config.supabaseKey && !config.supabaseKey.includes('placeholder')) {
+              key = config.supabaseKey;
+            }
+          }
+        } catch (cfgErr) {
+          console.warn('Could not fetch /api/config, using default credentials:', cfgErr);
         }
-      } catch (error) {
-        console.error('Failed to fetch config:', error);
+
+        // 2. Create Supabase client with persistent session enabled
+        const client = createClient(url, key, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        });
+
+        if (!isMounted) return;
+        setSupabaseClient(client);
+
+        // 3. Check for existing session in localStorage / cookies
+        const { data, error } = await client.auth.getSession();
+        
+        if (error) {
+          console.error('Session retrieval error:', error.message);
+          const errorMsg = (error.message || '').toLowerCase();
+          if (errorMsg.includes('refresh token') || errorMsg.includes('refresh_token')) {
+            // Invalid refresh token: cleanly reset Supabase auth keys
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && (k.startsWith('sb-') || k.startsWith('supabase'))) {
+                localStorage.removeItem(k);
+              }
+            }
+          }
+          if (isMounted) setSession(null);
+        } else if (data?.session) {
+          if (isMounted) setSession(data.session);
+        } else {
+          if (isMounted) setSession(null);
+        }
+
+        // 4. Listen for auth changes (login, logout, token refresh)
+        const { data: subData } = client.auth.onAuthStateChange((event, newSession) => {
+          if (!isMounted) return;
+          console.log('[Auth] State changed:', event);
+
+          if (event === 'SIGNED_OUT' || (event as string) === 'USER_DELETED') {
+            setSession(null);
+          } else if (newSession) {
+            setSession(newSession);
+          }
+        });
+
+        authSubscription = subData.subscription;
+      } catch (err: any) {
+        console.error('Auth initialization error:', err);
+        if (isMounted) setSession(null);
       } finally {
-        setAuthLoading(false);
+        // Crucial: Only stop loading after session has been verified, avoiding any flash of Login!
+        if (isMounted) {
+          setAuthLoading(false);
+        }
       }
     }
-    fetchConfig();
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      if (authSubscription) authSubscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -63,99 +115,37 @@ export default function App() {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then((choiceResult: any) => {
         if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
+          console.log('User accepted install prompt');
         }
         setDeferredPrompt(null);
       });
     }
   };
 
-  useEffect(() => {
-    if (!supabaseClient) return;
-
-    let subscription: any = null;
-
-    async function initSession() {
-      try {
-        const { data: { session }, error } = await supabaseClient!.auth.getSession();
-        
-        if (error) {
-          console.error('Session error:', error.message);
-          setSession(null);
-          // If refresh token is invalid, clear local storage manually to prevent infinite loop
-          const errorMsg = (error.message || '').toLowerCase();
-          if (errorMsg.includes('refresh token') || errorMsg.includes('refresh_token')) {
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-              const key = localStorage.key(i);
-              if (key && (key.startsWith('sb-') || key.startsWith('supabase'))) {
-                keysToRemove.push(key);
-              }
-            }
-            keysToRemove.forEach(k => localStorage.removeItem(k));
-            window.location.reload();
-            return;
-          }
-          await supabaseClient!.auth.signOut().catch(() => {});
-        } else {
-          setSession(session);
-        }
-
-        const { data: { subscription: authSubscription } } = supabaseClient!.auth.onAuthStateChange((event, session) => {
-          console.log('Auth state changed:', event);
-          if (event === 'SIGNED_OUT' || (event as string) === 'USER_DELETED' || event === 'TOKEN_REFRESHED' && !session) {
-            setSession(null);
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-              const key = localStorage.key(i);
-              if (key && (key.startsWith('sb-') || key.startsWith('supabase'))) {
-                keysToRemove.push(key);
-              }
-            }
-            keysToRemove.forEach(k => localStorage.removeItem(k));
-          } else {
-            setSession(session);
-          }
-        });
-        
-        subscription = authSubscription;
-      } catch (error: any) {
-        console.error('Failed to init session:', error);
-        setSession(null);
-        const errorMsg = (error?.message || '').toLowerCase();
-        if (errorMsg.includes('refresh token') || errorMsg.includes('refresh_token')) {
-          const keysToRemove = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && (key.startsWith('sb-') || key.startsWith('supabase'))) {
-              keysToRemove.push(key);
-            }
-          }
-          keysToRemove.forEach(k => localStorage.removeItem(k));
-          window.location.reload();
-          return;
-        }
-        await supabaseClient!.auth.signOut().catch(() => {});
-      } finally {
-        setAuthLoading(false);
-      }
+  const handleLogout = async () => {
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut().catch(() => {});
+      setSession(null);
     }
+  };
 
-    initSession();
-
-    return () => {
-      if (subscription) subscription.unsubscribe();
-    };
-  }, [supabaseClient]);
-
+  // While checking session on launch, show elegant branded loading screen (never flash Login screen!)
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-gray-800 p-4">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-200 mb-4 animate-pulse font-black text-xl">
+          OA
+        </div>
+        <h1 className="text-xl font-black text-gray-900 tracking-tight">OrganizaAI</h1>
+        <p className="text-xs text-gray-400 font-medium mt-1">Restaurando sua sessão...</p>
+        <div className="mt-5 w-40 h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-indigo-600 rounded-full animate-pulse w-3/4"></div>
+        </div>
       </div>
     );
   }
 
+  // Not logged in: show Login
   if (!session && supabaseClient) {
     return (
       <Login 
@@ -165,20 +155,14 @@ export default function App() {
     );
   }
 
-  const handleLogout = async () => {
-    if (supabaseClient) {
-      await supabaseClient.auth.signOut();
-      setSession(null);
-    }
-  };
-
+  // Logged in: render MainApp
   return (
     <>
       <MainApp onLogout={handleLogout} session={session} supabaseClient={supabaseClient} />
       {deferredPrompt && (
         <button 
           onClick={handleInstall}
-          className="fixed bottom-4 right-4 bg-indigo-600 text-white p-3 rounded-full shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition"
+          className="fixed bottom-4 right-4 bg-indigo-600 text-white p-3 rounded-full shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition z-50"
           title="Instalar App"
         >
           <Download size={20} />
