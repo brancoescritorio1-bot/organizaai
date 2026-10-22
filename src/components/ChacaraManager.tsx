@@ -65,16 +65,16 @@ interface ChacaraManagerProps {
 }
 
 const Card = ({ children, title, icon: Icon, className = "" }: { children: React.ReactNode, title?: string, icon?: any, key?: any, className?: string }) => (
-  <div className={cn("bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6 transition-all hover:shadow-md", className)}>
+  <div className={cn("bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-6 transition-all hover:border-slate-300", className)}>
     {title && (
-      <div className="px-5 md:px-6 py-4 md:py-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-        <div className="flex items-center gap-3">
-          {Icon && <Icon size={20} className="text-indigo-600" />}
-          <h3 className="font-bold text-gray-800 text-sm md:text-base tracking-tight uppercase">{title}</h3>
+      <div className="px-5 md:px-6 py-3.5 md:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+        <div className="flex items-center gap-2.5">
+          {Icon && <Icon size={18} className="text-slate-700" />}
+          <h3 className="font-bold text-slate-900 text-sm tracking-tight">{title}</h3>
         </div>
       </div>
     )}
-    <div className="p-5 md:p-8">
+    <div className="p-5 md:p-6">
       {children}
     </div>
   </div>

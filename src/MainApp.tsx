@@ -138,31 +138,31 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
 );
 
 const Card = ({ children, title, icon: Icon, className = "" }: { children: React.ReactNode, title?: string, icon?: any, key?: any, className?: string }) => (
-  <div className={cn("bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6 transition-all hover:shadow-md", className)}>
+  <div className={cn("bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-6 transition-all hover:border-slate-300", className)}>
     {title && (
-      <div className="px-5 md:px-6 py-4 md:py-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-        <div className="flex items-center gap-3">
-          {Icon && <Icon size={20} className="text-indigo-600" />}
-          <h3 className="font-bold text-gray-800 text-sm md:text-base tracking-tight uppercase">{title}</h3>
+      <div className="px-5 md:px-6 py-3.5 md:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+        <div className="flex items-center gap-2.5">
+          {Icon && <Icon size={18} className="text-slate-700" />}
+          <h3 className="font-bold text-slate-900 text-sm tracking-tight">{title}</h3>
         </div>
       </div>
     )}
-    <div className="p-5 md:p-8">
+    <div className="p-5 md:p-6">
       {children}
     </div>
   </div>
 );
 
 const Input = ({ label, type = "text", className = "", containerClassName = "", noMargin = false, ...props }: any) => (
-  <div className={cn("w-full", !noMargin && "mb-5", containerClassName)}>
-    {label && <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{label}</label>}
+  <div className={cn("w-full", !noMargin && "mb-4", containerClassName)}>
+    {label && <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">{label}</label>}
     <input
       type={type}
       autoComplete="off"
       spellCheck="false"
       {...props}
       className={cn(
-        "w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm md:text-base font-medium placeholder:text-gray-300",
+        "w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400/30 focus:border-slate-400 focus:bg-white transition-all text-sm font-medium placeholder:text-slate-400 text-slate-900",
         className
       )}
     />
@@ -170,12 +170,12 @@ const Input = ({ label, type = "text", className = "", containerClassName = "", 
 );
 
 const Select = ({ label, options, className = "", containerClassName = "", noMargin = false, ...props }: any) => (
-  <div className={cn("w-full", !noMargin && "mb-5", containerClassName)}>
-    {label && <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{label}</label>}
+  <div className={cn("w-full", !noMargin && "mb-4", containerClassName)}>
+    {label && <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">{label}</label>}
     <select
       {...props}
       className={cn(
-        "w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm md:text-base font-medium appearance-none cursor-pointer",
+        "w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400/30 focus:border-slate-400 focus:bg-white transition-all text-sm font-medium text-slate-900 appearance-none cursor-pointer",
         className
       )}
     >
@@ -1539,34 +1539,22 @@ Escalas GMNL ${year}`;
 
             {/* Active module icon & title */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={cn("p-2 rounded-xl text-white transition-colors shadow-xs shrink-0", 
-                activeModule === 'home' ? "bg-indigo-600" :
-                activeModule === 'academic' ? "bg-indigo-600" : 
-                activeModule === 'financial' ? "bg-emerald-600" : 
-                activeModule === 'chacara' ? "bg-amber-600" :
-                activeModule === 'personal' ? "bg-purple-600" : "bg-blue-600")}>
-                {activeModule === 'home' ? <Home size={18} /> :
-                 activeModule === 'academic' ? <GraduationCap size={18} /> :
-                 activeModule === 'financial' ? <Wallet size={18} /> :
-                 activeModule === 'chacara' ? <Trees size={18} /> :
-                 activeModule === 'personal' ? <User size={18} /> :
-                 <Briefcase size={18} />}
+              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0 font-bold border border-slate-800">
+                {activeModule === 'home' ? <Home size={17} /> :
+                 activeModule === 'academic' ? <GraduationCap size={17} /> :
+                 activeModule === 'financial' ? <Wallet size={17} /> :
+                 activeModule === 'chacara' ? <Trees size={17} /> :
+                 activeModule === 'personal' ? <User size={17} /> :
+                 <Briefcase size={17} />}
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold text-sm sm:text-base md:text-lg leading-none text-gray-900 tracking-tight truncate">
+                <h1 className="font-bold text-sm sm:text-base md:text-lg leading-none text-slate-900 tracking-tight truncate">
                   {activeModule === 'home' ? 'Página Inicial' :
                    activeModule === 'academic' ? 'Módulo Acadêmico' : 
                    activeModule === 'financial' ? 'Módulo Financeiro' : 
                    activeModule === 'chacara' ? 'Gestão da Chácara' : 
                    activeModule === 'personal' ? 'Produtividade Pessoal' : 'Trabalho & Clientes'}
                 </h1>
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5 truncate hidden sm:block">
-                  {activeModule === 'home' ? 'Painel de Acesso Rápido' : 
-                   activeModule === 'financial' ? 'Fluxo de Caixa & Cartões' : 
-                   activeModule === 'chacara' ? 'Hidrômetros & Rateios' : 
-                   activeModule === 'academic' ? 'Períodos, Notas & Frequência' :
-                   activeModule === 'personal' ? 'Tarefas & Rotinas' : 'Clientes, Vendas & Escalas'}
-                </p>
               </div>
             </div>
           </div>
@@ -1615,11 +1603,7 @@ Escalas GMNL ${year}`;
                   }
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                dashboardData={finDashboard}
                 personalTasks={personalTasks}
-                finTransactions={finTransactions}
-                chacaraBills={chacaraBills}
-                clientInstallments={clientInstallments}
                 onTogglePersonalTask={handleTogglePersonalTask}
               />
             </motion.div>
@@ -4898,7 +4882,7 @@ Escalas GMNL ${year}`;
                               }
                               await handleSavePersonalTask();
                             }}
-                            className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors shadow-sm"
+                            className="flex-1 py-2.5 bg-slate-900 text-white font-medium text-sm rounded-xl hover:bg-slate-800 transition-all shadow-xs active:scale-[0.99]"
                           >
                             {personalTaskForm.id ? 'Atualizar Tarefa' : 'Adicionar Tarefa'}
                           </button>
@@ -4913,44 +4897,44 @@ Escalas GMNL ${year}`;
                       <div className="space-y-3">
                         {personalTasks.length > 0 ? (
                           personalTasks.map(task => (
-                            <div key={task.id} className={cn("flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border gap-4 transition-all", task.status === 'completed' ? "bg-gray-50 border-gray-200 opacity-75" : "bg-white border-gray-100 shadow-sm")}>
+                            <div key={task.id} className={cn("flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border gap-4 transition-all", task.status === 'completed' ? "bg-slate-50/70 border-slate-200/60 opacity-60" : "bg-white border-slate-200/80 shadow-xs hover:border-slate-300")}>
                               <div className="flex items-start gap-3">
                                 <button 
                                   onClick={() => handleTogglePersonalTask(task)}
                                   className={cn(
-                                    "mt-1 flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all", 
+                                    "mt-1 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all", 
                                     task.status === 'completed' 
-                                      ? "bg-purple-600 border-purple-600 text-white" 
-                                      : "border-gray-300 bg-white text-transparent hover:border-purple-500"
+                                      ? "bg-slate-900 border-slate-900 text-white" 
+                                      : "border-slate-300 bg-white text-transparent hover:border-slate-700"
                                   )}
                                 >
-                                  <Check size={14} strokeWidth={3} />
+                                  <Check size={13} strokeWidth={3} />
                                 </button>
                                 <div>
-                                  <h5 className={cn("font-bold text-gray-800", task.status === 'completed' && "line-through text-gray-500")}>{task.title}</h5>
+                                  <h5 className={cn("font-medium text-sm text-slate-900", task.status === 'completed' && "line-through text-slate-400")}>{task.title}</h5>
                                   {task.description && (
-                                    <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                                    <p className="text-xs text-slate-500 mt-1">{task.description}</p>
                                   )}
                                   <div className="flex flex-wrap gap-2 mt-2">
                                     {task.due_date && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-medium">
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
                                         <Calendar size={12} />
                                         {new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                       </span>
                                     )}
-                                    <span className={cn("inline-flex items-center px-2 py-1 rounded-md text-xs font-medium", 
-                                      task.priority === 'high' ? "bg-red-100 text-red-700" : 
-                                      task.priority === 'medium' ? "bg-amber-100 text-amber-700" : 
-                                      "bg-blue-100 text-blue-700"
+                                    <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium", 
+                                      task.priority === 'high' ? "bg-rose-50 text-rose-700 border border-rose-100" : 
+                                      task.priority === 'medium' ? "bg-amber-50 text-amber-700 border border-amber-100" : 
+                                      "bg-slate-100 text-slate-700 border border-slate-200"
                                     )}>
                                       {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'} Prioridade
                                     </span>
                                     {task.eisenhower_quadrant && (
-                                      <span className={cn("inline-flex items-center px-2 py-1 rounded-md text-xs font-medium", 
-                                        task.eisenhower_quadrant === 'urgent_important' ? "bg-red-50 text-red-600 border border-red-100" : 
-                                        task.eisenhower_quadrant === 'not_urgent_important' ? "bg-blue-50 text-blue-600 border border-blue-100" : 
-                                        task.eisenhower_quadrant === 'urgent_not_important' ? "bg-amber-50 text-amber-600 border border-amber-100" : 
-                                        "bg-gray-50 text-gray-600 border border-gray-100"
+                                      <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium", 
+                                        task.eisenhower_quadrant === 'urgent_important' ? "bg-rose-50 text-rose-700 border border-rose-200/70" : 
+                                        task.eisenhower_quadrant === 'not_urgent_important' ? "bg-sky-50 text-sky-700 border border-sky-200/70" : 
+                                        task.eisenhower_quadrant === 'urgent_not_important' ? "bg-amber-50 text-amber-700 border border-amber-200/70" : 
+                                        "bg-slate-100 text-slate-600 border border-slate-200"
                                       )}>
                                         {task.eisenhower_quadrant === 'urgent_important' ? 'Fazer Agora' : 
                                          task.eisenhower_quadrant === 'not_urgent_important' ? 'Agendar' : 
@@ -4961,19 +4945,19 @@ Escalas GMNL ${year}`;
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 sm:self-center self-end">
-                                <button onClick={() => setPersonalTaskForm(task)} className="p-2 text-gray-400 hover:text-indigo-600 transition-colors bg-white rounded-lg border border-gray-100 shadow-sm">
-                                  <Edit2 size={16} />
+                                <button onClick={() => setPersonalTaskForm(task)} className="p-2 text-slate-400 hover:text-slate-800 transition-colors bg-white rounded-lg border border-slate-200 shadow-xs hover:bg-slate-50" title="Editar">
+                                  <Edit2 size={15} />
                                 </button>
-                                <button onClick={() => handleDeletePersonalTask(task.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-white rounded-lg border border-gray-100 shadow-sm">
-                                  <Trash2 size={16} />
+                                <button onClick={() => handleDeletePersonalTask(task.id)} className="p-2 text-slate-400 hover:text-rose-600 transition-colors bg-white rounded-lg border border-slate-200 shadow-xs hover:bg-rose-50" title="Excluir">
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
                           ))
                         ) : (
-                          <div className="text-center py-10 text-gray-400">
-                            <ListTodo size={48} className="mx-auto mb-3 opacity-20" />
-                            <p>Nenhuma tarefa cadastrada.</p>
+                          <div className="text-center py-12 text-slate-400">
+                            <ListTodo size={40} className="mx-auto mb-3 opacity-25" />
+                            <p className="text-sm">Nenhuma tarefa cadastrada.</p>
                           </div>
                         )}
                       </div>
@@ -4986,161 +4970,161 @@ Escalas GMNL ${year}`;
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Quadrant 1: Urgent & Important */}
-                    <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
-                      <div className="bg-red-500 px-4 py-3 flex items-center justify-between">
-                        <h3 className="text-white font-bold flex items-center gap-2">
-                          <AlertCircle size={18} />
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                      <div className="bg-rose-50/80 border-b border-rose-100/80 px-4 py-3.5 flex items-center justify-between">
+                        <h3 className="text-rose-950 font-semibold text-sm flex items-center gap-2">
+                          <AlertCircle size={17} className="text-rose-600" />
                           Fazer Agora (Urgente e Importante)
                         </h3>
-                        <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        <span className="bg-rose-100/80 text-rose-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
                           {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_important' && t.status === 'pending').length}
                         </span>
                       </div>
-                      <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
                         {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_important' && t.status === 'pending').length > 0 ? (
                           personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-red-50/50 rounded-xl border border-red-100 flex items-center justify-between group">
-                              <span className="text-sm font-semibold text-gray-800">{task.title}</span>
-                              <div className="flex items-center gap-1">
+                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-rose-200 transition-all">
+                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
+                              <div className="flex items-center gap-1.5">
                                 <button 
                                   onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-red-400 hover:text-green-600 transition-colors border border-red-100 rounded bg-white hover:bg-green-50"
+                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
                                   title="Concluir"
                                 >
-                                  <Check size={16} />
+                                  <Check size={15} />
                                 </button>
                                 <button 
                                   onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-red-400 hover:text-red-600 transition-colors border border-red-100 rounded bg-white hover:bg-red-50"
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
                                   title="Excluir"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="text-center py-4 text-gray-400 text-sm">Nada para agora.</p>
+                          <p className="text-center py-6 text-slate-400 text-xs">Nada para agora.</p>
                         )}
                       </div>
                     </div>
 
                     {/* Quadrant 2: Not Urgent & Important */}
-                    <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
-                      <div className="bg-blue-500 px-4 py-3 flex items-center justify-between">
-                        <h3 className="text-white font-bold flex items-center gap-2">
-                          <Calendar size={18} />
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                      <div className="bg-sky-50/80 border-b border-sky-100/80 px-4 py-3.5 flex items-center justify-between">
+                        <h3 className="text-sky-950 font-semibold text-sm flex items-center gap-2">
+                          <Calendar size={17} className="text-sky-600" />
                           Agendar (Importante, não Urgente)
                         </h3>
-                        <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        <span className="bg-sky-100/80 text-sky-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
                           {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_important' && t.status === 'pending').length}
                         </span>
                       </div>
-                      <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
                         {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_important' && t.status === 'pending').length > 0 ? (
                           personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex items-center justify-between group">
-                              <span className="text-sm font-semibold text-gray-800">{task.title}</span>
-                              <div className="flex items-center gap-1">
+                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-sky-200 transition-all">
+                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
+                              <div className="flex items-center gap-1.5">
                                 <button 
                                   onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-blue-400 hover:text-green-600 transition-colors border border-blue-100 rounded bg-white hover:bg-green-50"
+                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
                                   title="Concluir"
                                 >
-                                  <Check size={16} />
+                                  <Check size={15} />
                                 </button>
                                 <button 
                                   onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-blue-400 hover:text-red-600 transition-colors border border-blue-100 rounded bg-white hover:bg-red-50"
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
                                   title="Excluir"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="text-center py-4 text-gray-400 text-sm">Nada agendado.</p>
+                          <p className="text-center py-6 text-slate-400 text-xs">Nada agendado.</p>
                         )}
                       </div>
                     </div>
 
                     {/* Quadrant 3: Urgent & Not Important */}
-                    <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
-                      <div className="bg-amber-500 px-4 py-3 flex items-center justify-between">
-                        <h3 className="text-white font-bold flex items-center gap-2">
-                          <Users size={18} />
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                      <div className="bg-amber-50/80 border-b border-amber-100/80 px-4 py-3.5 flex items-center justify-between">
+                        <h3 className="text-amber-950 font-semibold text-sm flex items-center gap-2">
+                          <Users size={17} className="text-amber-600" />
                           Delegar (Urgente, não Importante)
                         </h3>
-                        <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        <span className="bg-amber-100/80 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
                           {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_not_important' && t.status === 'pending').length}
                         </span>
                       </div>
-                      <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
                         {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_not_important' && t.status === 'pending').length > 0 ? (
                           personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_not_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 flex items-center justify-between group">
-                              <span className="text-sm font-semibold text-gray-800">{task.title}</span>
-                              <div className="flex items-center gap-1">
+                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-amber-200 transition-all">
+                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
+                              <div className="flex items-center gap-1.5">
                                 <button 
                                   onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-amber-400 hover:text-green-600 transition-colors border border-amber-100 rounded bg-white hover:bg-green-50"
+                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
                                   title="Concluir"
                                 >
-                                  <Check size={16} />
+                                  <Check size={15} />
                                 </button>
                                 <button 
                                   onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-amber-400 hover:text-red-600 transition-colors border border-amber-100 rounded bg-white hover:bg-red-50"
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
                                   title="Excluir"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="text-center py-4 text-gray-400 text-sm">Nada para delegar.</p>
+                          <p className="text-center py-6 text-slate-400 text-xs">Nada para delegar.</p>
                         )}
                       </div>
                     </div>
 
                     {/* Quadrant 4: Not Urgent & Not Important */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="bg-gray-500 px-4 py-3 flex items-center justify-between">
-                        <h3 className="text-white font-bold flex items-center gap-2">
-                          <Trash2 size={18} />
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                      <div className="bg-slate-100/80 border-b border-slate-200/80 px-4 py-3.5 flex items-center justify-between">
+                        <h3 className="text-slate-900 font-semibold text-sm flex items-center gap-2">
+                          <Trash2 size={17} className="text-slate-500" />
                           Eliminar (Não Urgente, não Importante)
                         </h3>
-                        <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        <span className="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
                           {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_not_important' && t.status === 'pending').length}
                         </span>
                       </div>
-                      <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
                         {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_not_important' && t.status === 'pending').length > 0 ? (
                           personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_not_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between group">
-                              <span className="text-sm font-semibold text-gray-800">{task.title}</span>
-                              <div className="flex items-center gap-1">
+                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-slate-300 transition-all">
+                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
+                              <div className="flex items-center gap-1.5">
                                 <button 
                                   onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-gray-400 hover:text-green-600 transition-colors border border-gray-200 rounded bg-white hover:bg-green-50"
+                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
                                   title="Concluir"
                                 >
-                                  <Check size={16} />
+                                  <Check size={15} />
                                 </button>
                                 <button 
                                   onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-gray-400 hover:text-red-600 transition-colors border border-gray-200 rounded bg-white hover:bg-red-50"
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
                                   title="Excluir"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="text-center py-4 text-gray-400 text-sm">Nada para eliminar.</p>
+                          <p className="text-center py-6 text-slate-400 text-xs">Nada para eliminar.</p>
                         )}
                       </div>
                     </div>
@@ -5152,14 +5136,16 @@ Escalas GMNL ${year}`;
 
           {activeModule === 'work' && (
             <motion.div key="work" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar size={20} className="text-indigo-600" />
-                  <h2 className="font-bold text-gray-800 text-sm md:text-base">Filtro Mensal</h2>
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 md:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+                    <Calendar size={16} />
+                  </div>
+                  <h2 className="font-semibold text-slate-900 text-sm md:text-base">Filtro Mensal</h2>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <select 
-                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs md:text-sm font-medium"
+                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-xs md:text-sm font-medium text-slate-800"
                     value={finFilter.month}
                     onChange={(e) => setFinFilter({ ...finFilter, month: Number(e.target.value) })}
                   >
@@ -5168,7 +5154,7 @@ Escalas GMNL ${year}`;
                     ))}
                   </select>
                   <select 
-                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs md:text-sm font-medium"
+                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-xs md:text-sm font-medium text-slate-800"
                     value={finFilter.year}
                     onChange={(e) => setFinFilter({ ...finFilter, year: Number(e.target.value) })}
                   >
@@ -5183,36 +5169,36 @@ Escalas GMNL ${year}`;
                 <>
                   {/* Clients Dashboard */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-indigo-50 rounded-lg">
-                          <Wallet className="text-indigo-600 w-5 h-5" />
+                        <div className="p-2.5 bg-slate-100 text-slate-700 rounded-xl">
+                          <Wallet className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">A Receber (Mês)</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">A Receber (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900">
                         R$ {clientInstallments.reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-emerald-50 rounded-lg">
-                          <TrendingUp className="text-emerald-600 w-5 h-5" />
+                        <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                          <TrendingUp className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recebido (Mês)</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Recebido (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold text-emerald-600">
+                      <h3 className="text-xl font-bold tracking-tight text-emerald-700">
                         R$ {clientInstallments.filter(i => i.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-amber-50 rounded-lg">
-                          <Clock className="text-amber-600 w-5 h-5" />
+                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                          <Clock className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pendente (Mês)</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pendente (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold text-amber-600">
+                      <h3 className="text-xl font-bold tracking-tight text-amber-700">
                         R$ {clientInstallments.filter(i => i.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
