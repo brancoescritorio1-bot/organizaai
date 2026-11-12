@@ -92,11 +92,11 @@ export const ModuleBottomNav: React.FC<ModuleBottomNavProps> = ({
     <nav
       aria-label="Navegação interna do módulo"
       className={cn(
-        "fixed bottom-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg transition-all duration-200 print:hidden",
+        "fixed bottom-0 right-0 z-40 bg-white/85 backdrop-blur-2xl border-t border-black/[0.08] shadow-[0_-1px_3px_rgba(0,0,0,0.03)] transition-all duration-200 print:hidden",
         sidebarCollapsed ? "left-0 md:left-20" : "left-0 md:left-64"
       )}
     >
-      <div className="max-w-6xl mx-auto flex items-center justify-between w-full overflow-x-auto scrollbar-none">
+      <div className="max-w-6xl mx-auto flex items-center justify-between w-full overflow-x-auto scrollbar-none px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -108,18 +108,24 @@ export const ModuleBottomNav: React.FC<ModuleBottomNavProps> = ({
               aria-selected={isActive}
               onClick={() => onSelectTab(tab.id)}
               className={cn(
-                "relative flex flex-col items-center justify-center py-2.5 px-2 transition-all duration-200 flex-1 min-w-[70px] sm:min-w-[90px] cursor-pointer select-none group",
-                isActive ? "text-indigo-600 bg-indigo-50/40" : "text-slate-400 hover:text-slate-700 hover:bg-slate-50/60"
+                "relative flex flex-col items-center justify-center py-2 px-1 transition-all duration-150 flex-1 min-w-[64px] sm:min-w-[80px] cursor-pointer select-none group",
+                isActive ? "text-[#0071e3]" : "text-[#86868b] hover:text-[#1d1d1f]"
               )}
             >
               {isActive && (
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-600 shadow-xs" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#0071e3] rounded-full" />
               )}
               <div className="relative z-10 flex flex-col items-center w-full">
-                <Icon size={18} className={cn("mb-1 transition-transform group-hover:scale-110", isActive ? "text-indigo-600" : "text-slate-400")} />
+                <Icon 
+                  size={17} 
+                  className={cn(
+                    "mb-1 transition-transform group-hover:scale-105", 
+                    isActive ? "text-[#0071e3]" : "text-[#86868b] group-hover:text-[#1d1d1f]"
+                  )} 
+                />
                 <span className={cn(
-                  "text-[9px] sm:text-[11px] font-bold uppercase tracking-tight truncate w-full text-center",
-                  isActive ? "text-indigo-600 font-extrabold" : "text-slate-500 font-medium"
+                  "text-[10px] sm:text-[11px] font-medium tracking-tight truncate w-full text-center leading-none",
+                  isActive ? "text-[#0071e3] font-semibold" : "text-[#86868b]"
                 )}>
                   {tab.label}
                 </span>

@@ -105,31 +105,31 @@ const parseMonthYear = (str: string) => {
 
 const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, onClick: () => void, icon: any, label: string }) => (
   <motion.button
-    whileTap={{ scale: 0.95 }}
+    whileTap={{ scale: 0.96 }}
     onClick={onClick}
     className={cn(
-      "relative flex flex-col items-center justify-center py-3 px-1 transition-colors duration-200 flex-1 min-w-0",
-      active ? "text-indigo-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50/50"
+      "relative flex flex-col items-center justify-center py-2.5 px-1 transition-colors duration-150 flex-1 min-w-0 cursor-pointer",
+      active ? "text-[#0071e3]" : "text-[#86868b] hover:text-[#1d1d1f]"
     )}
   >
     {active && (
       <motion.div
         layoutId="activeTabIndicator"
-        className="absolute inset-0 bg-indigo-50/50 border-b-2 border-indigo-600"
+        className="absolute inset-0 bg-black/[0.04] rounded-xl"
         initial={false}
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        transition={{ type: "spring", stiffness: 500, damping: 35 }}
       />
     )}
     <div className="relative z-10 flex flex-col items-center w-full">
       <motion.div
-        animate={{ scale: active ? 1.1 : 1, y: active ? -2 : 0 }}
+        animate={{ scale: active ? 1.05 : 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
       >
-        <Icon size={18} className="mb-1" />
+        <Icon size={17} className="mb-1" />
       </motion.div>
       <span className={cn(
-        "text-[9px] md:text-[11px] font-bold uppercase tracking-tighter truncate w-full text-center transition-colors duration-200", 
-        active ? "text-indigo-600" : "text-gray-400"
+        "text-[10px] md:text-xs tracking-tight truncate w-full text-center transition-colors duration-150", 
+        active ? "text-[#0071e3] font-semibold" : "text-[#86868b] font-medium"
       )}>
         {label}
       </span>
@@ -138,12 +138,12 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
 );
 
 const Card = ({ children, title, icon: Icon, className = "" }: { children: React.ReactNode, title?: string, icon?: any, key?: any, className?: string }) => (
-  <div className={cn("bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-6 transition-all hover:border-slate-300", className)}>
+  <div className={cn("bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden mb-6 transition-all hover:border-black/[0.1]", className)}>
     {title && (
-      <div className="px-5 md:px-6 py-3.5 md:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+      <div className="px-5 md:px-6 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-white/70">
         <div className="flex items-center gap-2.5">
-          {Icon && <Icon size={18} className="text-slate-700" />}
-          <h3 className="font-bold text-slate-900 text-sm tracking-tight">{title}</h3>
+          {Icon && <Icon size={17} className="text-[#1d1d1f]" />}
+          <h3 className="font-semibold text-[#1d1d1f] text-sm tracking-tight">{title}</h3>
         </div>
       </div>
     )}
@@ -155,14 +155,14 @@ const Card = ({ children, title, icon: Icon, className = "" }: { children: React
 
 const Input = ({ label, type = "text", className = "", containerClassName = "", noMargin = false, ...props }: any) => (
   <div className={cn("w-full", !noMargin && "mb-4", containerClassName)}>
-    {label && <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">{label}</label>}
+    {label && <label className="block text-xs font-medium text-[#86868b] tracking-tight mb-1.5 ml-0.5">{label}</label>}
     <input
       type={type}
       autoComplete="off"
       spellCheck="false"
       {...props}
       className={cn(
-        "w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400/30 focus:border-slate-400 focus:bg-white transition-all text-sm font-medium placeholder:text-slate-400 text-slate-900",
+        "w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-black/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white transition-all text-xs sm:text-sm font-medium placeholder:text-[#86868b] text-[#1d1d1f]",
         className
       )}
     />
@@ -171,11 +171,11 @@ const Input = ({ label, type = "text", className = "", containerClassName = "", 
 
 const Select = ({ label, options, className = "", containerClassName = "", noMargin = false, ...props }: any) => (
   <div className={cn("w-full", !noMargin && "mb-4", containerClassName)}>
-    {label && <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">{label}</label>}
+    {label && <label className="block text-xs font-medium text-[#86868b] tracking-tight mb-1.5 ml-0.5">{label}</label>}
     <select
       {...props}
       className={cn(
-        "w-full px-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400/30 focus:border-slate-400 focus:bg-white transition-all text-sm font-medium text-slate-900 appearance-none cursor-pointer",
+        "w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-black/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white transition-all text-xs sm:text-sm font-medium text-[#1d1d1f] appearance-none cursor-pointer",
         className
       )}
     >
@@ -1551,32 +1551,32 @@ Escalas GMNL ${year}`;
         userEmail={session?.user?.email}
       />
 
-      {/* Top Header */}
-      <header className="bg-white/90 backdrop-blur-md border-b border-gray-200/80 sticky top-0 z-30 print:hidden shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-3.5 flex items-center justify-between gap-3">
+      {/* Top Header (Apple Glass Top Bar) */}
+      <header className="bg-white/80 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-30 print:hidden">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile hamburger button */}
             <button 
               onClick={() => setSidebarOpenMobile(true)}
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors shrink-0 cursor-pointer"
+              className="md:hidden p-1.5 text-[#515154] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-xl transition-colors shrink-0 cursor-pointer"
               title="Abrir Menu Lateral"
               aria-label="Abrir Menu Lateral"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
 
             {/* Active module icon & title */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0 font-bold border border-slate-800">
-                {activeModule === 'home' ? <Home size={17} /> :
-                 activeModule === 'academic' ? <GraduationCap size={17} /> :
-                 activeModule === 'financial' ? <Wallet size={17} /> :
-                 activeModule === 'chacara' ? <Trees size={17} /> :
-                 activeModule === 'personal' ? <User size={17} /> :
-                 <Briefcase size={17} />}
+              <div className="w-8 h-8 rounded-xl bg-[#1d1d1f] text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
+                {activeModule === 'home' ? <Home size={15} /> :
+                 activeModule === 'academic' ? <GraduationCap size={15} /> :
+                 activeModule === 'financial' ? <Wallet size={15} /> :
+                 activeModule === 'chacara' ? <Trees size={15} /> :
+                 activeModule === 'personal' ? <User size={15} /> :
+                 <Briefcase size={15} />}
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold text-sm sm:text-base md:text-lg leading-none text-slate-900 tracking-tight truncate">
+                <h1 className="font-semibold text-sm sm:text-base leading-none text-[#1d1d1f] tracking-tight truncate">
                   {activeModule === 'home' ? 'Página Inicial' :
                    activeModule === 'academic' ? 'Módulo Acadêmico' : 
                    activeModule === 'financial' ? 'Módulo Financeiro' : 
@@ -1588,22 +1588,22 @@ Escalas GMNL ${year}`;
           </div>
 
           {/* Header Right Actions */}
-          <div className="flex gap-2 items-center shrink-0">
+          <div className="flex gap-1.5 items-center shrink-0">
             <button 
               onClick={handleGlobalExport} 
-              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer" 
+              className="p-2 text-[#515154] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-xl transition-colors cursor-pointer" 
               title="Exportar Relatório PDF"
               aria-label="Exportar Relatório PDF"
             >
-              <Download size={19} />
+              <Download size={17} />
             </button>
             <button 
               onClick={onLogout} 
-              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer" 
+              className="p-2 text-[#86868b] hover:text-[#ff3b30] hover:bg-rose-50 rounded-xl transition-colors cursor-pointer" 
               title="Encerrar Sessão (Sair)"
               aria-label="Encerrar Sessão"
             >
-              <LogOut size={19} />
+              <LogOut size={17} />
             </button>
           </div>
         </div>

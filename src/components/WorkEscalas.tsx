@@ -477,47 +477,49 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
   return (
     <div className="space-y-6 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
       
-      {/* 1. Header & Quick stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 1. Header & Quick stats (Apple Minimalist Metrics) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Metric 1 */}
-        <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/80 p-4 rounded-2xl flex items-center gap-4 shadow-sm transition hover:shadow-md">
-          <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-indigo-200 shadow-md">
-            <Users size={22} />
+        <div className="bg-white border border-black/[0.06] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06]">
+            <Users size={18} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-indigo-900/60 uppercase tracking-wider">Total de Escalas</p>
-            <h4 className="text-2xl font-bold text-slate-800">{escalas.length}</h4>
+            <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">Total de Escalas</p>
+            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] tabular-nums">{escalas.length}</h4>
           </div>
         </div>
         
         {/* Metric 2 */}
-        <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100/80 p-4 rounded-2xl flex items-center gap-4 shadow-sm transition hover:shadow-md">
-          <div className="p-3 bg-purple-600 text-white rounded-xl shadow-purple-200 shadow-md">
-            <Mail size={22} />
+        <div className="bg-white border border-black/[0.06] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06]">
+            <Mail size={18} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-purple-900/60 uppercase tracking-wider">E-mails Cadastrados</p>
-            <h4 className="text-2xl font-bold text-slate-800">{totalUniqueEmails} <span className="text-xs font-medium text-slate-400">únicos</span></h4>
+            <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">E-mails Cadastrados</p>
+            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] tabular-nums">
+              {totalUniqueEmails} <span className="text-xs font-normal text-[#86868b]">únicos</span>
+            </h4>
           </div>
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-100/80 p-4 rounded-2xl flex items-center gap-4 shadow-sm transition hover:shadow-md">
-          <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-emerald-200 shadow-md">
-            <FileText size={22} />
+        <div className="bg-white border border-black/[0.06] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06]">
+            <FileText size={18} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-emerald-900/60 uppercase tracking-wider">Modelos Disponíveis</p>
-            <h4 className="text-2xl font-bold text-slate-800">{templates.length}</h4>
+            <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">Modelos Disponíveis</p>
+            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] tabular-nums">{templates.length}</h4>
           </div>
         </div>
       </div>
 
       {/* 2. Primary Buttons bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-black/[0.06] shadow-xs gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="text-indigo-500 animate-pulse" size={18} />
-          <span className="text-xs md:text-sm text-slate-500 font-medium">
+          <Sparkles className="text-[#1d1d1f]" size={16} />
+          <span className="text-xs text-[#515154] font-medium">
             Gerencie escalas de trabalho e envie mensagens prontas rapidamente.
           </span>
         </div>
@@ -530,9 +532,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               setSelectedTemplateId(null);
               setIsEscalaModalOpen(true);
             }} 
-            className="flex-1 sm:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-100 transition active:scale-95"
+            className="flex-1 sm:flex-none justify-center bg-[#1d1d1f] hover:bg-[#2c2c2e] text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
           >
-            <Plus size={16} /> Cadastrar Escala
+            <Plus size={15} /> Cadastrar Escala
           </button>
           <button 
             onClick={() => {
@@ -542,9 +544,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               setEditingTemplateId(null);
               setIsTemplateModalOpen(true);
             }} 
-            className="flex-1 sm:flex-none justify-center bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-emerald-100 transition active:scale-95"
+            className="flex-1 sm:flex-none justify-center bg-[#f5f5f7] hover:bg-black/[0.06] text-[#1d1d1f] border border-black/[0.08] px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
           >
-            <Plus size={16} /> Cadastrar Modelo
+            <Plus size={15} /> Cadastrar Modelo
           </button>
         </div>
       </div>
@@ -556,32 +558,32 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
         <div className="lg:col-span-5 space-y-6">
           
           {/* Card: Suas Escalas */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col max-h-[520px]">
-            <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden flex flex-col max-h-[520px]">
+            <div className="p-4 border-b border-black/[0.05] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="text-indigo-600" size={18} />
-                <h3 className="font-bold text-slate-800 text-base">Suas Escalas</h3>
+                <Calendar className="text-[#1d1d1f]" size={17} />
+                <h3 className="font-semibold text-[#1d1d1f] text-sm">Suas Escalas</h3>
               </div>
-              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-[#1d1d1f] bg-[#f5f5f7] px-2 py-0.5 rounded-md border border-black/[0.06] tabular-nums">
                 {filteredEscalas.length}
               </span>
             </div>
             
             {/* Escalas Search */}
-            <div className="p-3 border-b border-slate-100 bg-slate-50/20">
+            <div className="p-3 border-b border-black/[0.05] bg-[#fafafc]">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                <Search className="absolute left-3 top-2.5 text-[#86868b]" size={15} />
                 <input 
                   type="text" 
                   placeholder="Buscar escala por nome ou e-mail..." 
                   value={searchEscala}
                   onChange={(e) => setSearchEscala(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className="w-full pl-9 pr-8 py-2 border border-black/[0.08] rounded-xl text-xs focus:outline-none focus:border-[#0071e3] bg-white text-[#1d1d1f] placeholder:text-[#86868b]"
                 />
                 {searchEscala && (
                   <button 
                     onClick={() => setSearchEscala('')} 
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-2.5 text-[#86868b] hover:text-[#1d1d1f]"
                   >
                     <X size={14} />
                   </button>
@@ -590,10 +592,10 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
             </div>
 
             {/* Escalas List Container */}
-            <div className="p-3 overflow-y-auto divide-y divide-slate-50 flex-1 space-y-1">
+            <div className="p-3 overflow-y-auto divide-y divide-black/[0.04] flex-1 space-y-1">
               {filteredEscalas.length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-xs text-slate-400 font-medium">Nenhuma escala encontrada.</p>
+                  <p className="text-xs text-[#86868b] font-normal">Nenhuma escala encontrada.</p>
                 </div>
               ) : (
                 filteredEscalas.map(e => {
@@ -613,14 +615,14 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                         setIsEditSectionOpen(false); // Default to super clean preview
                       }}
                       className={cn(
-                        "group p-3 rounded-xl cursor-pointer transition-all duration-200 border text-left flex flex-col gap-2 relative",
+                        "group p-3 rounded-xl cursor-pointer transition-all duration-150 border text-left flex flex-col gap-2 relative",
                         isSelected 
-                          ? "bg-indigo-50/70 border-indigo-200 shadow-sm ring-1 ring-indigo-200" 
-                          : "bg-white hover:bg-slate-50 border-slate-100 hover:border-slate-200"
+                          ? "bg-[#f5f5f7] border-black/[0.12] shadow-xs text-[#1d1d1f]" 
+                          : "bg-white hover:bg-[#fafafc] border-black/[0.04] text-[#515154]"
                       )}
                     >
                       <div className="flex items-start justify-between pr-14">
-                        <span className={cn("font-bold text-sm transition-colors", isSelected ? "text-indigo-800" : "text-slate-700")}>
+                        <span className={cn("font-semibold text-xs tracking-tight transition-colors", isSelected ? "text-[#1d1d1f]" : "text-[#515154]")}>
                           {e.name}
                         </span>
                         
@@ -690,32 +692,32 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
           </div>
 
           {/* Card: Modelos de E-mail */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col max-h-[300px]">
-            <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden flex flex-col max-h-[300px]">
+            <div className="p-4 border-b border-black/[0.05] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="text-emerald-600" size={18} />
-                <h3 className="font-bold text-slate-800 text-base">Modelos de E-mail</h3>
+                <FileText className="text-[#1d1d1f]" size={17} />
+                <h3 className="font-semibold text-[#1d1d1f] text-sm">Modelos de E-mail</h3>
               </div>
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-[#1d1d1f] bg-[#f5f5f7] px-2 py-0.5 rounded-md border border-black/[0.06] tabular-nums">
                 {filteredTemplates.length}
               </span>
             </div>
 
             {/* Modelos Search */}
-            <div className="p-3 border-b border-slate-100 bg-slate-50/20">
+            <div className="p-3 border-b border-black/[0.05] bg-[#fafafc]">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                <Search className="absolute left-3 top-2.5 text-[#86868b]" size={15} />
                 <input 
                   type="text" 
                   placeholder="Buscar modelo de e-mail..." 
                   value={searchTemplate}
                   onChange={(e) => setSearchTemplate(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  className="w-full pl-9 pr-8 py-2 border border-black/[0.08] rounded-xl text-xs focus:outline-none focus:border-[#0071e3] bg-white text-[#1d1d1f] placeholder:text-[#86868b]"
                 />
                 {searchTemplate && (
                   <button 
                     onClick={() => setSearchTemplate('')} 
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-2.5 text-[#86868b] hover:text-[#1d1d1f]"
                   >
                     <X size={14} />
                   </button>
@@ -724,14 +726,14 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
             </div>
 
             {/* Modelos List */}
-            <div className="p-3 overflow-y-auto divide-y divide-slate-50 flex-1 space-y-1">
+            <div className="p-3 overflow-y-auto divide-y divide-black/[0.04] flex-1 space-y-1">
               {filteredTemplates.length === 0 ? (
                 <div className="text-center py-6">
-                  <p className="text-xs text-slate-400 font-medium">Nenhum modelo encontrado.</p>
+                  <p className="text-xs text-[#86868b] font-normal">Nenhum modelo encontrado.</p>
                 </div>
               ) : (
                 filteredTemplates.map(t => (
-                  <div key={t.id} className="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition group border border-transparent hover:border-slate-200/50 text-left">
+                  <div key={t.id} className="flex justify-between items-center p-2.5 rounded-xl bg-white hover:bg-[#fafafc] transition group border border-black/[0.04] hover:border-black/[0.08] text-left">
                     <div className="flex-1 min-w-0 pr-4">
                       <p className="font-bold text-slate-700 text-xs truncate">{t.name}</p>
                       <p className="text-[10px] text-slate-400 truncate mt-0.5">{t.subject_template || "Sem assunto padrão"}</p>
@@ -771,38 +773,38 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
           
           {!selectedEscala ? (
             /* Empty state placeholder */
-            <div className="bg-white rounded-3xl border-2 border-dashed border-slate-200 p-8 md:p-12 text-center flex flex-col items-center justify-center min-h-[500px] h-full shadow-sm">
-              <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-6 animate-pulse text-indigo-500">
-                <Sparkles size={28} />
+            <div className="bg-white rounded-2xl border border-dashed border-black/[0.12] p-8 md:p-12 text-center flex flex-col items-center justify-center min-h-[480px] h-full shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-4 text-[#1d1d1f] border border-black/[0.06]">
+                <Sparkles size={22} />
               </div>
-              <h3 className="text-slate-700 font-bold text-lg mb-2">Painel de Trabalho Ativo</h3>
-              <p className="text-slate-500 text-xs md:text-sm max-w-sm mx-auto leading-relaxed mb-6">
+              <h3 className="text-[#1d1d1f] font-semibold text-base mb-1.5">Painel de Trabalho Ativo</h3>
+              <p className="text-[#86868b] text-xs max-w-sm mx-auto leading-relaxed mb-5">
                 Selecione uma escala na lista de <strong>Suas Escalas</strong> ao lado para carregar os e-mails dos integrantes, visualizar e editar as mensagens de e-mail em tempo real.
               </p>
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full animate-bounce">
-                <ArrowRight size={14} /> Escolha uma escala para começar
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071e3] bg-[#0071e3]/10 px-3 py-1.5 rounded-xl border border-[#0071e3]/20">
+                <ArrowRight size={13} /> Escolha uma escala para começar
               </div>
             </div>
           ) : (
             /* Selected scale detail workspace */
-            <div className="bg-white rounded-2xl border border-indigo-100 shadow-md overflow-hidden flex flex-col h-full min-h-[500px]">
+            <div className="bg-white rounded-2xl border border-black/[0.08] shadow-xs overflow-hidden flex flex-col h-full min-h-[500px]">
               
               {/* Workspace Header */}
-              <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative shadow-sm">
+              <div className="p-5 bg-[#1d1d1f] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold bg-indigo-600 text-indigo-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold bg-white/15 text-white px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/10">
                       Escala Ativa
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-white/60">
                       ID #{selectedEscala.id}
                     </span>
                   </div>
-                  <h3 className="font-black text-xl text-white mt-1">
+                  <h3 className="font-semibold text-lg text-white mt-1 tracking-tight">
                     {selectedEscala.name}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    Modelo: <span className="font-semibold text-indigo-300">{templates.find(t => t.id === selectedEscala.template_id)?.name || "Nenhum modelo associado"}</span>
+                  <p className="text-xs text-white/70 mt-0.5">
+                    Modelo: <span className="font-medium text-white">{templates.find(t => t.id === selectedEscala.template_id)?.name || "Nenhum modelo associado"}</span>
                   </p>
                 </div>
                 
@@ -810,50 +812,50 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                   <button
                     onClick={() => setIsEditSectionOpen(!isEditSectionOpen)}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shrink-0",
+                      "px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border shrink-0 cursor-pointer",
                       isEditSectionOpen 
-                        ? "bg-white/10 border-white/20 text-white hover:bg-white/20" 
-                        : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
+                        ? "bg-white/15 border-white/20 text-white hover:bg-white/25" 
+                        : "bg-white text-[#1d1d1f] border-transparent hover:bg-white/90"
                     )}
                   >
-                    <Settings size={14} />
+                    <Settings size={13} />
                     {isEditSectionOpen ? "Visualização Limpa" : "Ajustar Modelo / Integrantes"}
                   </button>
                   
                   <button 
                     onClick={() => setSelectedEscala(null)}
-                    className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition"
+                    className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition cursor-pointer"
                     title="Fechar Painel"
                   >
-                    <X size={18} />
+                    <X size={16} />
                   </button>
                 </div>
               </div>
 
               {/* Workspace Contents */}
-              <div className="p-4 md:p-6 flex-1 bg-slate-50/10 flex flex-col gap-6 overflow-y-auto">
+              <div className="p-4 md:p-6 flex-1 bg-[#fbfbfd] flex flex-col gap-6 overflow-y-auto">
                 
                 {/* 1. MENSAGEM COMO VAI FICAR (Always visible, clean, prominent) */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-1.5">
-                      <Eye size={15} className="text-indigo-600" />
-                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Como vai ficar a mensagem</span>
+                      <Eye size={15} className="text-[#1d1d1f]" />
+                      <span className="text-xs font-semibold text-[#1d1d1f]">Como vai ficar a mensagem</span>
                     </div>
-                    <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                    <span className="text-[10px] text-[#515154] font-medium bg-[#f5f5f7] border border-black/[0.06] px-2.5 py-1 rounded-md flex items-center gap-1">
                       <Clock size={11} /> Mês: {getPortugueseMonthName(finFilter.month)} {finFilter.year}
                     </span>
                   </div>
 
                   {/* Mockup Window */}
-                  <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+                  <div className="border border-black/[0.08] rounded-2xl overflow-hidden shadow-xs bg-white">
                     {/* Title Bar with Mac OSX buttons */}
-                    <div className="bg-slate-50/80 px-4 py-2.5 flex items-center justify-between border-b border-slate-150">
+                    <div className="bg-[#f5f5f7] px-4 py-2 flex items-center justify-between border-b border-black/[0.06]">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                        <span className="text-[10px] text-slate-400 font-bold ml-2 select-none uppercase tracking-wider">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                        <span className="text-[10px] text-[#86868b] font-medium ml-2 select-none">
                           Visualização da Mensagem
                         </span>
                       </div>

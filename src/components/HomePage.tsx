@@ -134,80 +134,80 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
       {/* 1. Header: Apple-style Minimalist Welcome */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
-        <div className="space-y-2 max-w-2xl">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+      <div className="bg-white rounded-2xl border border-black/[0.06] p-6 sm:p-8 shadow-xs">
+        <div className="space-y-1.5 max-w-2xl">
+          <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider block">
             {formattedDate}
           </span>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1d1d1f]">
             {greeting}
           </h1>
 
-          <p className="text-slate-600 text-xs sm:text-sm font-normal leading-relaxed pt-0.5">
+          <p className="text-[#515154] text-xs sm:text-sm font-normal leading-relaxed pt-0.5">
             “{quote}”
           </p>
         </div>
 
         {/* Minimalist Personal Summary Bar */}
-        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 text-xs">
+        <div className="mt-6 pt-5 border-t border-black/[0.05] flex flex-wrap items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-slate-900" />
-            <span className="font-semibold text-slate-900">{pendingTasks.length}</span>
-            <span className="text-slate-500">tarefas a fazer</span>
+            <span className="w-2 h-2 rounded-full bg-[#1d1d1f]" />
+            <span className="font-semibold text-[#1d1d1f]">{pendingTasks.length}</span>
+            <span className="text-[#86868b]">tarefas a fazer</span>
           </div>
 
-          <div className="text-slate-300">•</div>
+          <div className="text-black/[0.15]">·</div>
 
           <div className="flex items-center gap-2">
-            <span className={cn("w-2 h-2 rounded-full", urgentTasks.length > 0 ? "bg-amber-500" : "bg-slate-300")} />
-            <span className="font-semibold text-slate-900">{urgentTasks.length}</span>
-            <span className="text-slate-500">alta prioridade</span>
+            <span className={cn("w-2 h-2 rounded-full", urgentTasks.length > 0 ? "bg-[#ff9500]" : "bg-black/[0.15]")} />
+            <span className="font-semibold text-[#1d1d1f]">{urgentTasks.length}</span>
+            <span className="text-[#86868b]">alta prioridade</span>
           </div>
 
           {overdueTasks.length > 0 && (
             <>
-              <div className="text-slate-300">•</div>
-              <div className="flex items-center gap-2 text-rose-600 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-rose-500" />
+              <div className="text-black/[0.15]">·</div>
+              <div className="flex items-center gap-2 text-[#ff3b30] font-semibold">
+                <span className="w-2 h-2 rounded-full bg-[#ff3b30]" />
                 <span>{overdueTasks.length} atrasada(s)</span>
               </div>
             </>
           )}
 
-          <div className="text-slate-300">•</div>
+          <div className="text-black/[0.15]">·</div>
 
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="font-semibold text-slate-900">{completedTasks.length}</span>
-            <span className="text-slate-500">concluídas</span>
+            <span className="w-2 h-2 rounded-full bg-[#34c759]" />
+            <span className="font-semibold text-[#1d1d1f]">{completedTasks.length}</span>
+            <span className="text-[#86868b]">concluídas</span>
           </div>
         </div>
       </div>
 
       {/* 2. Main Section: Suas Prioridades & Tarefas */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      <div className="bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-7 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.05]">
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <CheckSquare size={17} className="text-slate-800" />
+            <h2 className="text-base font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              <CheckSquare size={16} className="text-[#1d1d1f]" />
               Suas Prioridades
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-[#86868b] mt-0.5">
               Atividades e compromissos que exigem sua atenção
             </p>
           </div>
 
-          {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/70 rounded-xl border border-slate-200/60 text-xs">
+          {/* Apple Segmented Control */}
+          <div className="flex items-center gap-1 p-1 bg-[#f5f5f7] rounded-xl border border-black/[0.04] text-xs">
             <button
               type="button"
               onClick={() => setFilterView('all')}
               className={cn(
-                "px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer",
+                "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer",
                 filterView === 'all'
-                  ? "bg-white text-slate-900 shadow-xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#1d1d1f] shadow-xs font-semibold"
+                  : "text-[#515154] hover:text-[#1d1d1f] font-medium"
               )}
             >
               Todas ({pendingTasks.length})
@@ -216,10 +216,10 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="button"
               onClick={() => setFilterView('urgent')}
               className={cn(
-                "px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer",
+                "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer",
                 filterView === 'urgent'
-                  ? "bg-white text-slate-900 shadow-xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#1d1d1f] shadow-xs font-semibold"
+                  : "text-[#515154] hover:text-[#1d1d1f] font-medium"
               )}
             >
               Urgentes ({urgentTasks.length})
@@ -228,10 +228,10 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="button"
               onClick={() => setFilterView('today')}
               className={cn(
-                "px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer",
+                "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer",
                 filterView === 'today'
-                  ? "bg-white text-slate-900 shadow-xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#1d1d1f] shadow-xs font-semibold"
+                  : "text-[#515154] hover:text-[#1d1d1f] font-medium"
               )}
             >
               Para Hoje ({todayTasks.length + overdueTasks.length})
@@ -241,7 +241,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Task List with Direct Interactive Completion */}
         {displayedTasks.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {displayedTasks.map((task) => {
               const isOverdue = task.due_date && task.due_date < todayStr;
               const isUrgent = task.eisenhower_quadrant === 'urgent_important' || task.priority === 'high';
@@ -250,51 +250,51 @@ export const HomePage: React.FC<HomePageProps> = ({
               return (
                 <div 
                   key={task.id}
-                  className="group flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all"
+                  className="group flex items-start gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] border border-black/[0.04] hover:border-black/[0.08] transition-all"
                 >
                   {/* Interactive Checkbox */}
                   <button
                     type="button"
                     onClick={() => onTogglePersonalTask && onTogglePersonalTask(task)}
-                    className="mt-0.5 w-5 h-5 rounded-md border border-slate-300 hover:border-slate-900 flex items-center justify-center transition-colors text-slate-900 cursor-pointer shrink-0"
+                    className="mt-0.5 w-4 h-4 rounded-md border border-black/[0.2] hover:border-[#1d1d1f] flex items-center justify-center transition-colors text-[#1d1d1f] cursor-pointer shrink-0"
                     title="Marcar como concluída"
                     aria-label={`Concluir ${task.title}`}
                   >
-                    <CheckCircle2 size={13} className="opacity-0 group-hover:opacity-40 hover:opacity-100" />
+                    <CheckCircle2 size={12} className="opacity-0 group-hover:opacity-40 hover:opacity-100" />
                   </button>
 
                   <div 
                     className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => onNavigate('personal', 'personal_tasks')}
                   >
-                    <p className="text-xs font-semibold text-slate-800 group-hover:text-slate-950 truncate leading-snug">
+                    <p className="text-xs font-semibold text-[#1d1d1f] truncate leading-snug">
                       {task.title}
                     </p>
                     
                     {task.description && (
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                      <p className="text-[11px] text-[#86868b] truncate mt-0.5">
                         {task.description}
                       </p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-[#86868b]">
                       {isOverdue && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 bg-rose-50 text-rose-700 border border-rose-200/70 rounded-md">
+                        <span className="font-semibold text-[#ff3b30]">
                           Atrasada
                         </span>
                       )}
                       {isToday && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200/70 rounded-md">
+                        <span className="font-semibold text-[#ff9500]">
                           Para Hoje
                         </span>
                       )}
                       {isUrgent && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.2 bg-slate-100 text-slate-700 border border-slate-200 rounded-md">
+                        <span className="font-semibold text-[#1d1d1f]">
                           Alta Prioridade
                         </span>
                       )}
                       {task.due_date && (
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-[#86868b]">
                           <Clock size={10} />
                           Vence {task.due_date.split('-').reverse().join('/')}
                         </span>
@@ -305,40 +305,40 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <button
                     type="button"
                     onClick={() => onNavigate('personal', 'personal_tasks')}
-                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-[#86868b] hover:text-[#1d1d1f] p-1 rounded-lg transition-all"
                     title="Abrir no módulo Pessoal"
                   >
-                    <ChevronRight size={15} />
+                    <ChevronRight size={14} />
                   </button>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="py-12 text-center text-slate-400 space-y-1.5">
-            <CheckCircle2 size={26} className="mx-auto text-emerald-500 mb-1" />
-            <p className="text-sm font-semibold text-slate-700">Tudo em dia, Lara!</p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <div className="py-10 text-center text-[#86868b] space-y-1">
+            <CheckCircle2 size={24} className="mx-auto text-[#34c759] mb-1" />
+            <p className="text-sm font-semibold text-[#1d1d1f]">Tudo em dia, Lara!</p>
+            <p className="text-xs text-[#86868b] max-w-sm mx-auto">
               Nenhuma tarefa pendente com este filtro no momento.
             </p>
           </div>
         )}
 
         {/* Footer actions linking to Personal & Eisenhower Matrix */}
-        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="pt-3.5 border-t border-black/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <button
             type="button"
             onClick={() => onNavigate('personal', 'personal_eisenhower')}
-            className="font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer"
+            className="font-medium text-[#515154] hover:text-[#1d1d1f] flex items-center gap-1.5 cursor-pointer"
           >
-            <LayoutGrid size={13} className="text-slate-500" />
+            <LayoutGrid size={13} className="text-[#86868b]" />
             Abrir Matriz de Eisenhower
           </button>
 
           <button
             type="button"
             onClick={() => onNavigate('personal', 'personal_tasks')}
-            className="font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+            className="font-semibold text-[#0071e3] hover:text-[#0077ed] flex items-center gap-1 cursor-pointer"
           >
             Gerenciar todas as tarefas ({personalTasks.length})
             <ArrowRight size={12} />
@@ -348,33 +348,33 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 3. Lean Upcoming Commitments Section */}
       {upcomingTasks.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Calendar size={14} className="text-slate-400" />
+        <div className="bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between pb-3 border-b border-black/[0.05]">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#86868b] flex items-center gap-1.5">
+              <Calendar size={13} className="text-[#86868b]" />
               Prazos dos Próximos 7 Dias
             </h3>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-[#86868b]">
               {upcomingTasks.length} com prazo próximo
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {upcomingTasks.slice(0, 4).map((task) => (
               <div
                 key={task.id}
                 onClick={() => onNavigate('personal', 'personal_tasks')}
-                className="p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group flex items-center justify-between"
+                className="p-3 rounded-xl border border-black/[0.04] hover:border-black/[0.08] hover:bg-[#f5f5f7] transition-all cursor-pointer group flex items-center justify-between"
               >
                 <div className="min-w-0 pr-2">
-                  <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-slate-950">
+                  <p className="text-xs font-semibold text-[#1d1d1f] truncate">
                     {task.title}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-[10px] text-[#86868b] mt-0.5">
                     {task.due_date ? task.due_date.split('-').reverse().join('/') : ''}
                   </p>
                 </div>
-                <ChevronRight size={13} className="text-slate-300 group-hover:text-slate-600 shrink-0" />
+                <ChevronRight size={13} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0" />
               </div>
             ))}
           </div>
@@ -384,7 +384,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 4. Quick Module Access Grid (Apple Clean Cards) */}
       <div className="pt-2">
         <div className="flex items-center justify-between mb-3 px-1">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#86868b]">
             Acesso aos Módulos Principais
           </h2>
         </div>
@@ -392,66 +392,82 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div 
             onClick={() => onNavigate('financial', 'fin_dashboard')}
-            className="group cursor-pointer bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all flex items-center justify-between"
+            className="group cursor-pointer bg-white rounded-2xl p-4 border border-black/[0.06] shadow-xs hover:border-black/[0.12] hover:shadow-sm transition-all flex items-center justify-between"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/60 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                <Wallet size={17} />
+              <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 border border-black/[0.06] group-hover:bg-[#1d1d1f] group-hover:text-white transition-colors">
+                <Wallet size={16} />
               </div>
               <div className="truncate">
-                <h3 className="text-xs font-bold text-slate-900 truncate">Financeiro</h3>
-                <p className="text-[10px] text-slate-400 truncate">Fluxo, extrato & faturas</p>
+                <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Financeiro</h3>
+                <p className="text-[10px] text-[#86868b] truncate">Fluxo, extrato & faturas</p>
               </div>
             </div>
-            <ChevronRight size={15} className="text-slate-300 group-hover:text-slate-700 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
           </div>
 
           <div 
             onClick={() => onNavigate('chacara', 'chacara_dashboard')}
-            className="group cursor-pointer bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all flex items-center justify-between"
+            className="group cursor-pointer bg-white rounded-2xl p-4 border border-black/[0.06] shadow-xs hover:border-black/[0.12] hover:shadow-sm transition-all flex items-center justify-between"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/60 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                <Trees size={17} />
+              <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 border border-black/[0.06] group-hover:bg-[#1d1d1f] group-hover:text-white transition-colors">
+                <Trees size={16} />
               </div>
               <div className="truncate">
-                <h3 className="text-xs font-bold text-slate-900 truncate">Chácara</h3>
-                <p className="text-[10px] text-slate-400 truncate">Hidrômetros & rateios</p>
+                <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Chácara</h3>
+                <p className="text-[10px] text-[#86868b] truncate">Hidrômetros & rateios</p>
               </div>
             </div>
-            <ChevronRight size={15} className="text-slate-300 group-hover:text-slate-700 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
           </div>
 
           <div 
             onClick={() => onNavigate('academic', 'dashboard')}
-            className="group cursor-pointer bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all flex items-center justify-between"
+            className="group cursor-pointer bg-white rounded-2xl p-4 border border-black/[0.06] shadow-xs hover:border-black/[0.12] hover:shadow-sm transition-all flex items-center justify-between"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/60 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                <GraduationCap size={17} />
+              <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 border border-black/[0.06] group-hover:bg-[#1d1d1f] group-hover:text-white transition-colors">
+                <GraduationCap size={16} />
               </div>
               <div className="truncate">
-                <h3 className="text-xs font-bold text-slate-900 truncate">Acadêmico</h3>
-                <p className="text-[10px] text-slate-400 truncate">Notas, presença & web</p>
+                <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Acadêmico</h3>
+                <p className="text-[10px] text-[#86868b] truncate">Notas, presença & web</p>
               </div>
             </div>
-            <ChevronRight size={15} className="text-slate-300 group-hover:text-slate-700 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
           </div>
 
           <div 
             onClick={() => onNavigate('work', 'work_clients')}
-            className="group cursor-pointer bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all flex items-center justify-between"
+            className="group cursor-pointer bg-white rounded-2xl p-4 border border-black/[0.06] shadow-xs hover:border-black/[0.12] hover:shadow-sm transition-all flex items-center justify-between"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/60 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                <Briefcase size={17} />
+              <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 border border-black/[0.06] group-hover:bg-[#1d1d1f] group-hover:text-white transition-colors">
+                <Briefcase size={16} />
               </div>
               <div className="truncate">
-                <h3 className="text-xs font-bold text-slate-900 truncate">Trabalho & Clientes</h3>
-                <p className="text-[10px] text-slate-400 truncate">Vendas, escalas & WhatsApp</p>
+                <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Trabalho & Clientes</h3>
+                <p className="text-[10px] text-[#86868b] truncate">Vendas, escalas & WhatsApp</p>
               </div>
             </div>
-            <ChevronRight size={15} className="text-slate-300 group-hover:text-slate-700 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
+          </div>
+
+          <div 
+            onClick={() => onNavigate('personal', 'personal_tasks')}
+            className="group cursor-pointer bg-white rounded-2xl p-4 border border-black/[0.06] shadow-xs hover:border-black/[0.12] hover:shadow-sm transition-all flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 border border-black/[0.06] group-hover:bg-[#1d1d1f] group-hover:text-white transition-colors">
+                <CheckSquare size={16} />
+              </div>
+              <div className="truncate">
+                <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Produtividade Pessoal</h3>
+                <p className="text-[10px] text-[#86868b] truncate">Tarefas & Eisenhower</p>
+              </div>
+            </div>
+            <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </div>

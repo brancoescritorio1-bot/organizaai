@@ -153,39 +153,44 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/25 backdrop-blur-md"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white/95 backdrop-blur-2xl rounded-2xl border border-black/[0.08] shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col overflow-hidden text-[#1d1d1f]"
             >
               <div className="p-6 overflow-y-auto">
-                <div className="flex flex-col items-center text-center gap-4 mb-4">
-                  <div className={`p-4 rounded-full ${
+                <div className="flex flex-col items-center text-center gap-3 mb-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
                     dialog.type === 'confirm' 
                       ? dialog.dialogType === 'danger' 
-                        ? 'bg-red-100 text-red-600' 
-                        : 'bg-amber-100 text-amber-600' 
-                      : 'bg-indigo-100 text-indigo-600'
+                        ? 'bg-rose-50 text-[#ff3b30] border-rose-200/60' 
+                        : 'bg-amber-50 text-[#ff9500] border-amber-200/60' 
+                      : 'bg-emerald-50 text-[#34c759] border-emerald-200/60'
                   }`}>
                     {dialog.type === 'confirm' ? (
-                      dialog.dialogType === 'danger' ? <AlertTriangle size={32} /> : <AlertCircle size={32} />
+                      dialog.dialogType === 'danger' ? <AlertTriangle size={22} /> : <AlertCircle size={22} />
                     ) : (
-                      <CheckCircle2 size={32} />
+                      <CheckCircle2 size={22} />
                     )}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">{typeof dialog.title === 'string' ? dialog.title : 'Aviso'}</h3>
+                  <h3 className="text-base font-semibold text-[#1d1d1f] tracking-tight">
+                    {typeof dialog.title === 'string' ? dialog.title : 'Aviso'}
+                  </h3>
                 </div>
-                <p className="text-gray-600 text-center whitespace-pre-wrap">{typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message)}</p>
+                <p className="text-xs text-[#515154] text-center whitespace-pre-wrap leading-relaxed font-normal">
+                  {typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message)}
+                </p>
                 {dialog.type === 'options' && (
-                  <div className="mt-6 flex flex-col gap-3">
+                  <div className="mt-5 flex flex-col gap-2">
                     {dialog.options.map((opt: any, i: number) => (
                       <button
                         key={i}
                         onClick={() => handleClose(dialog.id, opt.value)}
-                        className="w-full px-4 py-3 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                        className="w-full px-4 py-2.5 text-xs font-semibold text-[#1d1d1f] bg-[#f5f5f7] border border-black/[0.06] rounded-xl hover:bg-[#e8e8ed] transition-colors cursor-pointer"
                       >
                         {opt.label}
                       </button>
@@ -193,11 +198,11 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   </div>
                 )}
               </div>
-              <div className="px-6 py-4 bg-gray-50 flex justify-center gap-3">
+              <div className="px-5 py-3.5 bg-black/[0.02] border-t border-black/[0.06] flex items-center justify-end gap-2.5">
                 {(dialog.type === 'confirm' || dialog.type === 'options') && (
                   <button
                     onClick={() => handleClose(dialog.id, dialog.type === 'options' ? null : false)}
-                    className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-xs font-medium text-[#515154] bg-[#f5f5f7] border border-black/[0.06] rounded-xl hover:bg-[#e8e8ed] hover:text-[#1d1d1f] transition-colors cursor-pointer"
                   >
                     {dialog.type === 'options' ? 'Cancelar' : (dialog.cancelText || 'Cancelar')}
                   </button>
@@ -205,12 +210,12 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 {dialog.type !== 'options' && (
                   <button
                     onClick={() => handleClose(dialog.id, dialog.type === 'confirm' ? true : undefined)}
-                    className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-colors ${
+                    className={`px-4 py-2 text-xs font-semibold text-white rounded-xl transition-all cursor-pointer shadow-xs ${
                       dialog.type === 'confirm' 
                         ? dialog.dialogType === 'danger'
-                          ? 'bg-red-600 hover:bg-red-700'
-                          : 'bg-amber-600 hover:bg-amber-700' 
-                        : 'bg-indigo-600 hover:bg-indigo-700'
+                          ? 'bg-[#ff3b30] hover:bg-[#e03126]'
+                          : 'bg-[#ff9500] hover:bg-[#e08400]' 
+                        : 'bg-[#0071e3] hover:bg-[#0077ed]'
                     }`}
                   >
                     {dialog.type === 'confirm' ? (dialog.confirmText || 'Confirmar') : 'OK'}

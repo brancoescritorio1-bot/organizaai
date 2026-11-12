@@ -535,11 +535,11 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pago': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Pendente': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'Vencida': return 'bg-red-100 text-red-700 border-red-200';
-      case 'Retida': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'Pago': return 'bg-[#34c759]/10 text-[#247c3b] border-[#34c759]/20';
+      case 'Pendente': return 'bg-[#ff9500]/10 text-[#b26a00] border-[#ff9500]/20';
+      case 'Vencida': return 'bg-[#ff3b30]/10 text-[#c92a24] border-[#ff3b30]/20';
+      case 'Retida': return 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20';
+      default: return 'bg-[#f5f5f7] text-[#515154] border-black/[0.08]';
     }
   };
 
@@ -919,7 +919,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                           <p className="text-[9px] text-gray-400 font-bold uppercase truncate">{payment.bill?.property}</p>
                         </div>
                       </div>
-                      <div className={cn("shrink-0 px-2 py-0.5 rounded-full text-[8px] font-black uppercase border", getStatusColor(payment.status))}>
+                      <div className={cn("shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border", getStatusColor(payment.status))}>
                         {payment.status}
                       </div>
                     </div>
@@ -1047,7 +1047,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                       R$ {Number(p.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase border", getStatusColor(p.status))}>
+                      <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border", getStatusColor(p.status))}>
                         {p.status}
                       </span>
                     </td>
