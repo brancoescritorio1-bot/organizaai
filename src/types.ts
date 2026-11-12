@@ -173,6 +173,8 @@ export interface ChacaraUser {
   last_water_reading_2?: number;
   energy_active?: boolean;
   water_active?: boolean;
+  energy_meter_statuses?: boolean[];
+  water_meter_statuses?: boolean[];
   energy_readings?: { prev: number; curr: number }[];
   water_readings?: { prev: number; curr: number }[];
 }

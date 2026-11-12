@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useMemo, useRef, useEffect } = React;
-import { Wallet, TrendingUp, Droplets, Zap, Building2, Briefcase, Users, Download, Plus, Trash2, FileText, Image as ImageIcon, X, Eye } from 'lucide-react';
+import { Wallet, TrendingUp, Droplets, Zap, Building2, Briefcase, Users, Download, Plus, Trash2, FileText, X, Eye } from 'lucide-react';
 import { ChacaraBill } from '../types';
 import { PdfService } from '../lib/PdfService';
 import { useDialog } from './DialogContext';
@@ -8,13 +8,22 @@ import { useDialog } from './DialogContext';
 interface ChacaraFinanceDashboardProps {
   bills: ChacaraBill[];
   expenses?: any[];
+  users?: any[];
   onUpdate?: () => void;
   fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
   filterMonth: string;
   setFilterMonth: (month: string) => void;
 }
 
-export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = ({ bills, expenses = [], onUpdate, fetchWithAuth, filterMonth, setFilterMonth }) => {
+export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = ({ 
+  bills, 
+  expenses = [], 
+  users = [],
+  onUpdate, 
+  fetchWithAuth, 
+  filterMonth, 
+  setFilterMonth 
+}) => {
   const { confirm: dialogConfirm, alert: dialogAlert, askOptions, preview } = useDialog();
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -35,22 +44,29 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
     const currentExpenses = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
     const prevExpenses = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
 
-    bills.forEach(bill => {
-      const isPaid = bill.status === 'paid';
-      const isPartial = bill.status === 'partial';
+    // Counts per category
+    const counts = {
+      fundoReserva: { total: 0, paid: 0, pending: 0 },
+      rateio: { total: 0, paid: 0, pending: 0 },
+      prestador: { total: 0, paid: 0, pending: 0 },
+      agua: { total: 0, paid: 0, pending: 0 },
+      energia: { total: 0, paid: 0, pending: 0 },
+      geral: { total: 0, paid: 0, pending: 0 }
+    };
 
+    bills.filter(b => b.month_reference === filterMonth).forEach(bill => {
+      const isPaid = bill.status === 'paid';
       const fundoReserva = bill.include_reserve_fund ? (bill.reserve_fund || 0) : 0;
       const rateio = bill.include_apportionment ? (bill.apportionment_value || 0) : 0;
       const prestador = bill.water_service_fee || 0;
 
       const energyReadings = bill.energy_readings || [];
       const waterReadings = bill.water_readings || [];
-
       const energyConsumption = energyReadings.length > 0
         ? energyReadings.reduce((acc: number, r: any) => acc + (r.curr - r.prev), 0)
         : (bill.curr_reading || 0) - (bill.prev_reading || 0) + ((bill.curr_reading_2 || 0) - (bill.prev_reading_2 || 0));
       const energia = energyConsumption * (bill.kwh_value || 0);
-      
+
       const waterConsumption = waterReadings.length > 0
         ? waterReadings.reduce((acc: number, r: any) => acc + (r.curr - r.prev), 0)
         : (bill.water_curr_reading || 0) - (bill.water_prev_reading || 0) + ((bill.water_curr_reading_2 || 0) - (bill.water_prev_reading_2 || 0));
@@ -58,51 +74,69 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
 
       const calculatedTotal = fundoReserva + rateio + prestador + agua + energia;
       const finalTotal = bill.total || calculatedTotal;
-      const adjustmentRatio = (calculatedTotal > 0 && Math.abs(finalTotal - calculatedTotal) > 0.01) ? finalTotal / calculatedTotal : 1;
-
-      const adjFundoReserva = fundoReserva * adjustmentRatio;
-      const adjRateio = rateio * adjustmentRatio;
-      const adjPrestador = prestador * adjustmentRatio;
-      const adjAgua = agua * adjustmentRatio;
-      const adjEnergia = energia * adjustmentRatio;
-
       const amountPaid = isPaid ? finalTotal : (bill.amount_paid || 0);
       const ratio = finalTotal > 0 ? amountPaid / finalTotal : 0;
+      const hasPaidCats = bill.paid_categories && Object.keys(bill.paid_categories).length > 0;
 
-      const hasPaidCategories = bill.paid_categories && Object.keys(bill.paid_categories).length > 0;
-      
-      const getReceived = (value: number, key: string) => {
-        if (isPaid) return value;
-        if (hasPaidCategories) {
-          return bill.paid_categories![key] ? value : 0;
-        }
-        return value * ratio;
+      const checkCatPaid = (catKey: string, val: number) => {
+        if (val <= 0) return false;
+        if (isPaid) return true;
+        if (hasPaidCats) return !!bill.paid_categories![catKey];
+        return ratio >= 1;
       };
 
-      if (bill.month_reference === filterMonth) {
-        // Add to expected
-        expected.fundoReserva += adjFundoReserva;
-        expected.rateio += adjRateio;
-        expected.prestador += adjPrestador;
-        expected.agua += adjAgua;
-        expected.energia += adjEnergia;
-        expected.geral += finalTotal;
-
-        // Add to received
-        received.fundoReserva += getReceived(adjFundoReserva, 'reserve_fund');
-        received.rateio += getReceived(adjRateio, 'apportionment');
-        received.prestador += getReceived(adjPrestador, 'water_service_fee');
-        received.agua += getReceived(adjAgua, 'water_total');
-        received.energia += getReceived(adjEnergia, 'energy_total');
-        received.geral += amountPaid;
-      } else if (bill.month_reference < filterMonth) {
-        prevReceived.fundoReserva += getReceived(adjFundoReserva, 'reserve_fund');
-        prevReceived.rateio += getReceived(adjRateio, 'apportionment');
-        prevReceived.prestador += getReceived(adjPrestador, 'water_service_fee');
-        prevReceived.agua += getReceived(adjAgua, 'water_total');
-        prevReceived.energia += getReceived(adjEnergia, 'energy_total');
-        prevReceived.geral += amountPaid;
+      // Fundo Reserva
+      if (fundoReserva > 0) {
+        counts.fundoReserva.total++;
+        if (checkCatPaid('reserve_fund', fundoReserva)) counts.fundoReserva.paid++;
+        else counts.fundoReserva.pending++;
+        expected.fundoReserva += fundoReserva;
+        received.fundoReserva += (isPaid || (hasPaidCats && bill.paid_categories?.reserve_fund)) ? fundoReserva : fundoReserva * ratio;
       }
+      // Rateio
+      if (rateio > 0) {
+        counts.rateio.total++;
+        if (checkCatPaid('apportionment', rateio)) counts.rateio.paid++;
+        else counts.rateio.pending++;
+        expected.rateio += rateio;
+        received.rateio += (isPaid || (hasPaidCats && bill.paid_categories?.apportionment)) ? rateio : rateio * ratio;
+      }
+      // Prestador
+      if (prestador > 0) {
+        counts.prestador.total++;
+        if (checkCatPaid('water_service_fee', prestador)) counts.prestador.paid++;
+        else counts.prestador.pending++;
+        expected.prestador += prestador;
+        received.prestador += (isPaid || (hasPaidCats && bill.paid_categories?.water_service_fee)) ? prestador : prestador * ratio;
+      }
+      // Agua
+      if (agua > 0) {
+        counts.agua.total++;
+        if (checkCatPaid('water_total', agua)) counts.agua.paid++;
+        else counts.agua.pending++;
+        expected.agua += agua;
+        received.agua += (isPaid || (hasPaidCats && bill.paid_categories?.water_total)) ? agua : agua * ratio;
+      }
+      // Energia
+      if (energia > 0) {
+        counts.energia.total++;
+        if (checkCatPaid('energy_total', energia)) counts.energia.paid++;
+        else counts.energia.pending++;
+        expected.energia += energia;
+        received.energia += (isPaid || (hasPaidCats && bill.paid_categories?.energy_total)) ? energia : energia * ratio;
+      }
+
+      counts.geral.total++;
+      if (isPaid) counts.geral.paid++;
+      else counts.geral.pending++;
+      expected.geral += finalTotal;
+      received.geral += amountPaid;
+    });
+
+    bills.filter(b => b.month_reference < filterMonth).forEach(bill => {
+      const isPaid = bill.status === 'paid';
+      const amountPaid = isPaid ? bill.total : (bill.amount_paid || 0);
+      prevReceived.geral += amountPaid;
     });
 
     expenses.forEach(exp => {
@@ -117,52 +151,20 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
       }
     });
 
-    return { expected, received, prevReceived, currentExpenses, prevExpenses };
+    return { expected, received, prevReceived, currentExpenses, prevExpenses, counts };
   }, [bills, expenses, filterMonth]);
-
-  const formatMonthYear = (dateString: string) => {
-    if (!dateString) return '';
-    const [year, month] = dateString.split('-');
-    const date = new Date(Number(year), Number(month) - 1);
-    const monthName = date.toLocaleString('pt-BR', { month: 'long' });
-    return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)}/${year}`;
-  };
 
   const handleExport = async () => {
     if (!dashboardRef.current) return;
-    
-    // Show preview first
-    const confirmed = await preview(dashboardRef.current, 'Dashboard Financeiro');
+    const confirmed = await preview(dashboardRef.current, 'Dashboard Financeiro da Chácara');
     if (!confirmed) return;
-
-    // Define pre/post-processing for the PDF export
-    const preProcess = (el: HTMLElement) => {
-      el.querySelectorAll('button, .no-export, .print\\:hidden').forEach((el: any) => {
-        el.style.display = 'none';
-      });
-    };
-
-    const postProcess = (el: HTMLElement) => {
-      el.querySelectorAll('button, .no-export, .print\\:hidden').forEach((el: any) => {
-        el.style.display = '';
-      });
-    };
-
     try {
-      await PdfService.exportToPDF(dashboardRef.current, `Dashboard_Chacara_${filterMonth}`, 'p', 'save', 'Segue o documento em PDF.', preProcess, postProcess);
+      await PdfService.exportToPDF(dashboardRef.current, `Dashboard_Chacara_${filterMonth}`, 'p', 'save', 'Segue o dashboard financeiro em PDF.');
     } catch (error: any) {
-      console.error('Erro ao exportar o dashboard:', error);
-      dialogAlert(`Ocorreu um erro ao tentar exportar o dashboard: ${error.message || error}. Tente novamente.`);
+      console.error('Erro ao exportar:', error);
+      dialogAlert(`Erro ao exportar: ${error.message || error}`);
     }
   };
-
-  useEffect(() => {
-    const handleGlobalExport = () => {
-      handleExport();
-    };
-    window.addEventListener('export-chacara-dashboard', handleGlobalExport);
-    return () => window.removeEventListener('export-chacara-dashboard', handleGlobalExport);
-  }, []);
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,9 +172,7 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
     try {
       const res = await fetchWithAuth('/api/chacara/expenses', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...expenseForm,
           month_reference: filterMonth
@@ -185,13 +185,7 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
         if (onUpdate) onUpdate();
       } else {
         const err = await res.json().catch(() => ({ message: res.statusText }));
-        let errorMessage = err.message || err.error || JSON.stringify(err);
-        if (errorMessage.includes('relation "chacara_expenses" does not exist') || errorMessage.includes("A tabela 'chacara_expenses' não existe")) {
-          errorMessage = 'A tabela "chacara_expenses" não existe no banco de dados. Por favor, crie-a no Supabase com as colunas: id, accountability_id, description, category, amount, date, receipt_url.';
-        } else if (errorMessage.includes('relation "chacara_accountability" does not exist') || errorMessage.includes("A tabela 'chacara_accountability' não existe")) {
-          errorMessage = 'A tabela "chacara_accountability" não existe no banco de dados. Por favor, crie-a no Supabase com as colunas: id, user_id, month_reference.';
-        }
-        dialogAlert(`Erro ao adicionar despesa:\n\n${errorMessage}`);
+        dialogAlert(`Erro ao adicionar despesa: ${err.message || err.error || JSON.stringify(err)}`);
       }
     } catch (error) {
       console.error('Error adding expense:', error);
@@ -204,9 +198,7 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
   const handleDeleteExpense = async (id: number) => {
     if (!(await dialogConfirm('Deseja realmente excluir esta despesa?'))) return;
     try {
-      const res = await fetchWithAuth(`/api/chacara/expenses/${id}`, {
-        method: 'DELETE'
-      });
+      const res = await fetchWithAuth(`/api/chacara/expenses/${id}`, { method: 'DELETE' });
       if (res.ok) {
         if (onUpdate) onUpdate();
       } else {
@@ -222,13 +214,11 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > 5 * 1024 * 1024) {
-      dialogAlert('O arquivo é muito grande. O tamanho máximo permitido é 5MB.');
+      dialogAlert('O arquivo deve ter no máximo 5MB.');
       e.target.value = '';
       return;
     }
-
     const reader = new FileReader();
     reader.onloadend = () => {
       setExpenseForm(prev => ({ ...prev, receipt_url: reader.result as string }));
@@ -236,148 +226,149 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
     reader.readAsDataURL(file);
   };
 
-  const overallExpected = data.expected.geral;
-  const overallReceived = data.received.geral;
-  const overallPrevReceived = data.prevReceived.geral;
-  const overallPrevExpenses = data.prevExpenses.geral;
-  const overallCurrentExpenses = data.currentExpenses.geral;
-
   const categories = [
-    { 
-      key: 'geral', 
-      title: 'Resumo Geral', 
-      expected: overallExpected, 
-      received: overallReceived, 
-      prevReceived: overallPrevReceived,
-      prevExpenses: overallPrevExpenses,
-      currentExpenses: overallCurrentExpenses,
-      icon: Wallet, 
-      color: 'text-indigo-600' 
-    },
-    { 
-      key: 'fundoReserva', 
-      title: 'Fundo de Reserva', 
-      expected: data.expected.fundoReserva, 
-      received: data.received.fundoReserva, 
-      prevReceived: data.prevReceived.fundoReserva,
-      prevExpenses: data.prevExpenses.fundoReserva,
-      currentExpenses: data.currentExpenses.fundoReserva,
-      icon: Building2, 
-      color: 'text-emerald-600' 
-    },
-    { 
-      key: 'rateio', 
-      title: 'Rateio', 
-      expected: data.expected.rateio, 
-      received: data.received.rateio, 
-      prevReceived: data.prevReceived.rateio,
-      prevExpenses: data.prevExpenses.rateio,
-      currentExpenses: data.currentExpenses.rateio,
-      icon: Users, 
-      color: 'text-purple-600' 
-    },
-    { 
-      key: 'prestador', 
-      title: 'Prestador de Serviço', 
-      expected: data.expected.prestador, 
-      received: data.received.prestador, 
-      prevReceived: data.prevReceived.prestador,
-      prevExpenses: data.prevExpenses.prestador,
-      currentExpenses: data.currentExpenses.prestador,
-      icon: Briefcase, 
-      color: 'text-blue-600' 
-    },
-    { 
-      key: 'agua', 
-      title: 'Conta de Água', 
-      expected: data.expected.agua, 
-      received: data.received.agua, 
-      prevReceived: data.prevReceived.agua,
-      prevExpenses: data.prevExpenses.agua,
-      currentExpenses: data.currentExpenses.agua,
-      icon: Droplets, 
-      color: 'text-cyan-600' 
-    },
-    { 
-      key: 'energia', 
-      title: 'Conta de Energia', 
-      expected: data.expected.energia, 
-      received: data.received.energia, 
-      prevReceived: data.prevReceived.energia,
-      prevExpenses: data.prevExpenses.energia,
-      currentExpenses: data.currentExpenses.energia,
-      icon: Zap, 
-      color: 'text-amber-600' 
-    },
+    { key: 'fundoReserva', title: 'Fundo de Reserva', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { key: 'rateio', title: 'Rateio', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { key: 'prestador', title: 'Prestador de Serviço', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { key: 'agua', title: 'Conta de Água', icon: Droplets, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+    { key: 'energia', title: 'Conta de Energia', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
   const currentMonthExpenses = expenses.filter(e => e.month_reference === filterMonth);
+  const totalReceived = data.received.geral;
+  const totalExpenses = data.currentExpenses.geral;
+  const inadimplencia = data.expected.geral - totalReceived;
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Dashboard Financeiro da Chácara</h2>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <div className="flex-1 md:flex-none flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 w-full sm:w-auto">
-            <label className="text-sm font-semibold text-gray-500 uppercase hidden sm:block">Mês de Referência:</label>
-            <input
-              type="month"
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-800 outline-none cursor-pointer w-full"
-            />
-          </div>
+    <div className="space-y-6">
+      {/* Top Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Dashboard Financeiro da Chácara</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Visão consolidada de receitas, despesas e recebimentos por categoria</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <input
+            type="month"
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value)}
+            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none cursor-pointer"
+          />
           <button
             onClick={handleExport}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-indigo-700 transition-colors font-medium print:hidden w-full sm:w-auto"
+            className="flex items-center gap-1.5 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 transition-all shadow-xs"
           >
-            <Download size={18} />
-            <span>Exportar</span>
+            <Download size={15} />
+            <span>Exportar PDF</span>
           </button>
         </div>
       </div>
-      
-      <div ref={dashboardRef} className="p-6 bg-gray-50 rounded-2xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <div ref={dashboardRef} className="space-y-6">
+        {/* Top Summary KPI Cards (No 'Saldo em Caixa') */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Receitas Recebidas</span>
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                <TrendingUp size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 tracking-tight">
+              R$ {totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">Total arrecadado no mês</p>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Despesas Pagas</span>
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                <Wallet size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-rose-700 tracking-tight">
+              R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">Gastos quitados no mês</p>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Inadimplência</span>
+              <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                <Users size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-amber-600 tracking-tight">
+              R$ {Math.max(0, inadimplencia).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">Valores pendentes de recebimento</p>
+          </div>
+        </div>
+
+        {/* Detailed Category Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {categories.map((cat) => {
-            const pending = cat.expected - cat.received;
-            const prevBalance = cat.prevReceived - cat.prevExpenses;
-            const finalBalance = prevBalance + cat.received - cat.currentExpenses;
-            
+            const expected = (data.expected as any)[cat.key] || 0;
+            const received = (data.received as any)[cat.key] || 0;
+            const pending = Math.max(0, expected - received);
+            const cnt = (data.counts as any)[cat.key] || { total: 0, paid: 0, pending: 0 };
+            const pct = expected > 0 ? Math.min(100, Math.round((received / expected) * 100)) : 0;
+
             return (
-              <div key={cat.key} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-medium text-gray-500">{cat.title}</h3>
-                  <cat.icon className={cat.color} size={24} />
-                </div>
-                
-                <div className="space-y-4 flex-1">
-                  <div className="flex justify-between items-end">
+              <div key={cat.key} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${cat.bg} ${cat.color}`}>
+                        <cat.icon size={18} />
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-sm tracking-tight">{cat.title}</h3>
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 font-mono bg-slate-100 px-2 py-0.5 rounded-lg">
+                      {pct}%
+                    </span>
+                  </div>
+
+                  {/* Progress bar (Green = received, Orange = pending) */}
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex mb-4">
+                    <div 
+                      className="bg-emerald-500 h-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                      title={`Recebido: ${pct}%`}
+                    />
+                    <div 
+                      className="bg-amber-400 h-full transition-all duration-500"
+                      style={{ width: `${100 - pct}%` }}
+                      title={`Pendente: ${100 - pct}%`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100">
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Saldo Final</p>
-                      <p className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        R$ {finalBalance.toFixed(2)}
-                      </p>
+                      <span className="text-slate-400 text-[10px] uppercase font-semibold block">Previsto</span>
+                      <span className="font-bold text-slate-800">R$ {expected.toFixed(2)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-[10px] uppercase font-semibold block">Recebido</span>
+                      <span className="font-bold text-emerald-600">R$ {received.toFixed(2)}</span>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Saldo Anterior</p>
-                      <p className="text-sm font-bold text-gray-600">R$ {prevBalance.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">A Receber</p>
-                      <p className="text-sm font-bold text-amber-500">R$ {Math.max(0, pending).toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Recebido (Mês)</p>
-                      <p className="text-sm font-bold text-emerald-600">R$ {cat.received.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Despesas (Mês)</p>
-                      <p className="text-sm font-bold text-red-500">R$ {cat.currentExpenses.toFixed(2)}</p>
-                    </div>
+                </div>
+
+                <div className="space-y-1 text-xs text-slate-500">
+                  <div className="flex justify-between">
+                    <span>Adesões / Moradores:</span>
+                    <strong className="text-slate-800">{cnt.total}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-emerald-600 flex items-center gap-1">✓ Já pagaram:</span>
+                    <strong className="text-emerald-700">{cnt.paid}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-amber-600 flex items-center gap-1">⏳ Pendentes:</span>
+                    <strong className="text-amber-700">{cnt.pending}</strong>
                   </div>
                 </div>
               </div>
@@ -385,81 +376,71 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
           })}
         </div>
 
-        <div className="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <TrendingUp className="text-red-500" size={20} />
-              Despesas do Mês
-            </h3>
+        {/* Expenses Section */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm tracking-tight flex items-center gap-2">
+                <Wallet size={17} className="text-rose-600" />
+                Despesas do Mês ({filterMonth})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Lançamentos de gastos da chácara por competência</p>
+            </div>
             <button
               onClick={() => setIsExpenseModalOpen(true)}
-              className="no-export w-full sm:w-auto flex items-center justify-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition-colors font-medium text-sm print:hidden"
+              className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
             >
-              <Plus size={16} />
-              Nova Despesa
+              <Plus size={15} />
+              <span>Nova Despesa</span>
             </button>
           </div>
 
-          {currentMonthExpenses.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-8">Nenhuma despesa lançada neste mês.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-500">
-                <thead className="text-xs text-gray-400 uppercase bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Data</th>
+          {currentMonthExpenses.length > 0 ? (
+            <div className="overflow-x-auto pt-4">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/80 font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="px-4 py-3">Data Pagamento</th>
                     <th className="px-4 py-3">Descrição</th>
                     <th className="px-4 py-3">Categoria</th>
                     <th className="px-4 py-3">Valor</th>
                     <th className="px-4 py-3">Comprovante</th>
-                    <th className="px-4 py-3 rounded-r-lg no-export print:hidden">Ações</th>
+                    <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                   {currentMonthExpenses.map((exp) => (
-                    <tr key={exp.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    <tr key={exp.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-4 py-3 font-mono">
+                        {exp.date ? exp.date.split('-').reverse().join('/') : '-'}
                       </td>
-                      <td className="px-4 py-3">{exp.description}</td>
-                      <td className="px-4 py-3">
-                        <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-medium">
-                          {categories.find(c => c.key === exp.category)?.title || 'Geral'}
-                        </span>
+                      <td className="px-4 py-3 font-semibold text-slate-900">{exp.description}</td>
+                      <td className="px-4 py-3 uppercase text-[10px] font-bold text-slate-500">
+                        {exp.category}
                       </td>
-                      <td className="px-4 py-3 font-bold text-red-600">
+                      <td className="px-4 py-3 font-bold text-rose-600 font-mono">
                         R$ {Number(exp.amount).toFixed(2)}
                       </td>
                       <td className="px-4 py-3">
                         {exp.receipt_url ? (
-                          <div className="flex items-center gap-2">
-                            {exp.receipt_url.startsWith('data:image') && (
-                              <img 
-                                src={exp.receipt_url} 
-                                alt="Thumbnail" 
-                                className="w-8 h-8 rounded object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => setPreviewUrl(exp.receipt_url)}
-                              />
-                            )}
-                            <button 
-                              onClick={() => setPreviewUrl(exp.receipt_url)}
-                              className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-xs font-medium"
-                            >
-                              <Eye size={14} />
-                              Visualizar
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => setPreviewUrl(exp.receipt_url)}
+                            className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg text-xs font-semibold"
+                          >
+                            <Eye size={13} />
+                            Ver
+                          </button>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 no-export print:hidden">
+                      <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleDeleteExpense(exp.id)}
-                          className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
-                          title="Excluir"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Excluir despesa"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
                       </td>
                     </tr>
@@ -467,107 +448,53 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
                 </tbody>
               </table>
             </div>
+          ) : (
+            <div className="py-12 text-center text-slate-400">
+              <p className="text-xs">Nenhuma despesa registrada para este mês de competência.</p>
+            </div>
           )}
-        </div>
-
-        {/* Print only: Receipts Gallery */}
-        <div className="hidden print:block mt-12 break-before-page">
-          <h3 className="text-xl font-bold mb-6 border-b pb-2 text-gray-800">Galeria de Comprovantes</h3>
-          <div className="grid grid-cols-2 gap-8">
-            {currentMonthExpenses.filter(e => e.receipt_url).map(exp => (
-              <div key={exp.id} className="border border-gray-200 p-4 rounded-xl">
-                <div className="mb-3">
-                  <p className="text-sm font-bold text-gray-800">{exp.description}</p>
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>{new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                    <span className="font-bold text-red-600">R$ {Number(exp.amount).toFixed(2)}</span>
-                  </div>
-                </div>
-                {exp.receipt_url.startsWith('data:image') ? (
-                  <img src={exp.receipt_url} className="w-full h-auto rounded-lg border border-gray-100" alt="Comprovante" />
-                ) : (
-                  <div className="bg-gray-50 p-12 text-center rounded-lg border border-dashed border-gray-300">
-                    <FileText className="mx-auto mb-2 text-gray-300" size={48} />
-                    <p className="text-sm text-gray-400 font-medium">Documento PDF / Arquivo</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Preview Modal */}
-      {previewUrl && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 md:p-8">
-          <div className="bg-white w-full max-w-4xl max-h-full rounded-2xl overflow-hidden flex flex-col relative shadow-2xl">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0">
-              <h3 className="font-bold text-gray-800">Visualização do Comprovante</h3>
-              <button 
-                onClick={() => setPreviewUrl(null)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-4 bg-gray-50 flex items-center justify-center min-h-[300px]">
-              {previewUrl.startsWith('data:image') ? (
-                <img src={previewUrl} className="max-w-full h-auto shadow-lg rounded-lg" alt="Preview" />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-                  <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg shadow-inner" title="PDF Preview" />
-                  <a 
-                    href={previewUrl} 
-                    download="comprovante" 
-                    className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 transition-colors"
-                  >
-                    Baixar Arquivo
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Add Expense Modal */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="p-5 md:p-6 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-800">Nova Despesa</h3>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <h3 className="font-bold text-slate-900 text-sm">Lançar Nova Despesa</h3>
               <button 
                 onClick={() => setIsExpenseModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="w-7 h-7 rounded-full bg-slate-200/60 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
               >
-                ✕
+                <X size={15} />
               </button>
             </div>
-            <form onSubmit={handleAddExpense} className="p-5 md:p-6 space-y-4">
+            <form onSubmit={handleAddExpense} className="p-5 space-y-4 text-xs">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição / Assunto</label>
+                <label className="block font-bold text-slate-500 uppercase mb-1">Descrição</label>
                 <input
                   type="text"
                   required
                   value={expenseForm.description}
                   onChange={e => setExpenseForm({...expenseForm, description: e.target.value})}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="Ex: Compra de material"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
+                  placeholder="Ex: Manutenção da bomba d'água"
                 />
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                  <label className="block font-bold text-slate-500 uppercase mb-1">Data Pagamento</label>
                   <input
                     type="date"
                     required
                     value={expenseForm.date}
                     onChange={e => setExpenseForm({...expenseForm, date: e.target.value})}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                  <label className="block font-bold text-slate-500 uppercase mb-1">Valor (R$)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -575,54 +502,79 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
                     required
                     value={expenseForm.amount}
                     onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <label className="block font-bold text-slate-500 uppercase mb-1">Categoria</label>
                 <select
                   value={expenseForm.category}
                   onChange={e => setExpenseForm({...expenseForm, category: e.target.value})}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
                 >
-                  {categories.map(c => (
-                    <option key={c.key} value={c.key}>{c.title}</option>
-                  ))}
+                  <option value="geral">Resumo Geral</option>
+                  <option value="fundoReserva">Fundo de Reserva</option>
+                  <option value="rateio">Rateio</option>
+                  <option value="prestador">Prestador de Serviço</option>
+                  <option value="agua">Conta de Água</option>
+                  <option value="energia">Conta de Energia</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Comprovante (Imagem/PDF)</label>
+                <label className="block font-bold text-slate-500 uppercase mb-1">Comprovante (Imagem / PDF)</label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={handleFileChange}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                 />
                 {expenseForm.receipt_url && (
-                  <p className="text-xs text-emerald-600 mt-2 font-medium">✓ Arquivo anexado</p>
+                  <p className="text-[11px] text-emerald-600 mt-1 font-semibold">✓ Comprovante anexado</p>
                 )}
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsExpenseModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-xl font-medium transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium transition-colors disabled:opacity-50"
+                  className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-xs disabled:opacity-50"
                 >
                   {isSubmitting ? 'Salvando...' : 'Salvar Despesa'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-sm">Visualizar Comprovante</h3>
+              <button onClick={() => setPreviewUrl(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 flex-1 overflow-auto flex items-center justify-center">
+              {previewUrl.startsWith('data:image') ? (
+                <img src={previewUrl} alt="Comprovante" className="max-w-full h-auto rounded-xl shadow-md" />
+              ) : (
+                <iframe src={previewUrl} className="w-full h-[60vh] rounded-xl border border-slate-200" title="PDF Preview" />
+              )}
+            </div>
           </div>
         </div>
       )}

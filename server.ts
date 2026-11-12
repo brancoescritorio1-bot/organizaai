@@ -2002,17 +2002,19 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     return str;
   };
 
-  const encodeChacaraUserPhone = (phone: string, meta: { street?: string; house_number?: string; cpf?: string }) => {
+  const encodeChacaraUserPhone = (phone: string, meta: { street?: string; house_number?: string; cpf?: string; energy_meter_statuses?: boolean[]; water_meter_statuses?: boolean[] }) => {
     const cleanPhone = (phone || "").replace(/^\[META:[^\]]+\]\n?/is, "");
     const cleanStreet = cleanAddressNumber(meta.street);
     const cleanHouse = cleanAddressNumber(meta.house_number);
-    if (!cleanStreet && !cleanHouse && !meta.cpf) {
+    if (!cleanStreet && !cleanHouse && !meta.cpf && !meta.energy_meter_statuses && !meta.water_meter_statuses) {
       return cleanPhone;
     }
     const jsonMeta = JSON.stringify({
       street: cleanStreet,
       house_number: cleanHouse,
-      cpf: meta.cpf || ""
+      cpf: meta.cpf || "",
+      energy_meter_statuses: meta.energy_meter_statuses,
+      water_meter_statuses: meta.water_meter_statuses
     });
     return `[META:${jsonMeta}]\n${cleanPhone}`;
   };
@@ -2023,6 +2025,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     let house_number = cleanAddressNumber(u.house_number || u.casa || "");
     let cpf = u.cpf || "";
     let phone = u.phone || "";
+    let energy_meter_statuses = u.energy_meter_statuses;
+    let water_meter_statuses = u.water_meter_statuses;
 
     const match = phone.match(/^\[META:([^\]]+)\]\n?(.*)$/s);
     if (match) {
@@ -2031,6 +2035,8 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
         if (!street && meta.street) street = cleanAddressNumber(meta.street);
         if (!house_number && meta.house_number) house_number = cleanAddressNumber(meta.house_number);
         if (!cpf && meta.cpf) cpf = meta.cpf;
+        if (!energy_meter_statuses && meta.energy_meter_statuses) energy_meter_statuses = meta.energy_meter_statuses;
+        if (!water_meter_statuses && meta.water_meter_statuses) water_meter_statuses = meta.water_meter_statuses;
         phone = match[2] || "";
       } catch (e) {
         console.error("Error decoding chacara user metadata:", e);
@@ -2042,7 +2048,9 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       phone,
       street,
       house_number,
-      cpf
+      cpf,
+      energy_meter_statuses,
+      water_meter_statuses
     };
   };
 
@@ -2083,7 +2091,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     const user = (req as any).user;
     const { 
       name, phone, has_energy, has_water, energy_meters_count, water_meters_count, energy_active, water_active,
-      street, house_number, cpf, rua, casa 
+      street, house_number, cpf, rua, casa, energy_meter_statuses, water_meter_statuses 
     } = req.body;
 
     const finalStreet = cleanAddressNumber(street || rua || "");
@@ -2092,7 +2100,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
 
     const payloadWithCols: any = { 
       name, 
-      phone, 
+      phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf, energy_meter_statuses, water_meter_statuses }), 
       street: finalStreet,
       house_number: finalHouseNumber,
       cpf: finalCpf,
@@ -2111,7 +2119,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     if (error && error.code === '42703') {
       const fallbackPayload = {
         name,
-        phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf }),
+        phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf, energy_meter_statuses, water_meter_statuses }),
         user_id: user.id,
         has_energy: has_energy !== undefined ? has_energy : true,
         has_water: has_water !== undefined ? has_water : true,
@@ -2133,7 +2141,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     const user = (req as any).user;
     const { 
       name, phone, has_energy, has_water, energy_meters_count, water_meters_count, energy_active, water_active,
-      street, house_number, cpf, rua, casa 
+      street, house_number, cpf, rua, casa, energy_meter_statuses, water_meter_statuses 
     } = req.body;
 
     const finalStreet = cleanAddressNumber(street || rua || "");
@@ -2142,7 +2150,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
 
     const updateWithCols: any = { 
       name, 
-      phone,
+      phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf, energy_meter_statuses, water_meter_statuses }),
       street: finalStreet,
       house_number: finalHouseNumber,
       cpf: finalCpf,
@@ -2160,7 +2168,7 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     if (error && error.code === '42703') {
       const fallbackUpdate = {
         name,
-        phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf }),
+        phone: encodeChacaraUserPhone(phone, { street: finalStreet, house_number: finalHouseNumber, cpf: finalCpf, energy_meter_statuses, water_meter_statuses }),
         has_energy,
         has_water,
         energy_meters_count: energy_meters_count || 1,

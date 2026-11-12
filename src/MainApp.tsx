@@ -246,6 +246,34 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
 
   const [settingsForm, setSettingsForm] = useState<Partial<Activities>>({});
 
+  const [gradeConfig3rd, setGradeConfig3rd] = useState(() => {
+    try {
+      const saved = localStorage.getItem('academic_grade_config_3rd');
+      return saved ? JSON.parse(saved) : {
+        act1_max: '3500',
+        act2_max: '3500',
+        exam_max: '5000',
+        min_passing: '6000'
+      };
+    } catch {
+      return {
+        act1_max: '3500',
+        act2_max: '3500',
+        exam_max: '5000',
+        min_passing: '6000'
+      };
+    }
+  });
+
+  const handleSaveGradeConfig3rd = () => {
+    try {
+      localStorage.setItem('academic_grade_config_3rd', JSON.stringify(gradeConfig3rd));
+      dialogAlert('Configuração de notas a partir do 3° período salva com sucesso!', 'Sucesso');
+    } catch (e) {
+      dialogAlert('Erro ao salvar configuração.');
+    }
+  };
+
   // Main Module State (includes 'home' as default)
   const [activeModule, setActiveModule] = useState<AppModule>('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -2807,11 +2835,61 @@ Escalas GMNL ${year}`;
                   )}
                 </section>
 
-                {/* Section 4: Server Config Guide */}
+                {/* Section 4: Grade Configuration for 3rd Period onwards */}
+                <section className="mt-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="text-indigo-600" size={20} />
+                    <h2 className="text-lg font-bold text-gray-800">4. Configuração de Notas (A partir do 3° Período)</h2>
+                  </div>
+                  <Card title="Critérios de Avaliação e Pontuação (3° Período+)">
+                    <div className="space-y-4">
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        Defina as pontuações máximas e os critérios de notas aplicados a todas as matérias de turmas a partir do 3° período em diante.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input 
+                          label="Pontuação Máxima Atividade 1" 
+                          type="number"
+                          value={gradeConfig3rd.act1_max}
+                          onChange={(e: any) => setGradeConfig3rd({ ...gradeConfig3rd, act1_max: e.target.value })}
+                        />
+                        <Input 
+                          label="Pontuação Máxima Atividade 2" 
+                          type="number"
+                          value={gradeConfig3rd.act2_max}
+                          onChange={(e: any) => setGradeConfig3rd({ ...gradeConfig3rd, act2_max: e.target.value })}
+                        />
+                        <Input 
+                          label="Pontuação Máxima Prova / Avaliação" 
+                          type="number"
+                          value={gradeConfig3rd.exam_max}
+                          onChange={(e: any) => setGradeConfig3rd({ ...gradeConfig3rd, exam_max: e.target.value })}
+                        />
+                        <Input 
+                          label="Média Mínima de Aprovação" 
+                          type="number"
+                          value={gradeConfig3rd.min_passing}
+                          onChange={(e: any) => setGradeConfig3rd({ ...gradeConfig3rd, min_passing: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex justify-end pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={handleSaveGradeConfig3rd}
+                          className="flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-indigo-100 cursor-pointer"
+                        >
+                          <Save size={15} /> Salvar Configuração de Notas
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                </section>
+
+                {/* Section 5: Server Config Guide */}
                 <section className="mt-8">
                   <div className="flex items-center gap-2 mb-4">
                     <Shield className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-gray-800">4. Configuração de Variáveis do Servidor</h2>
+                    <h2 className="text-lg font-bold text-gray-800">5. Configuração de Variáveis do Servidor</h2>
                   </div>
                   <Card>
                     <div className="space-y-4">

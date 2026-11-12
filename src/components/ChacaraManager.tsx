@@ -43,7 +43,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Banknote,
+  MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
@@ -277,12 +279,15 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     energy_meters_count: 1, 
     water_meters_count: 1,
     energy_active: true,
-    water_active: true
+    water_active: true,
+    energy_meter_statuses: [true] as boolean[],
+    water_meter_statuses: [true] as boolean[]
   });
   const [editingUser, setEditingUser] = useState<ChacaraUser | null>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [billUserSearch, setBillUserSearch] = useState('');
   const [userServiceFilter, setUserServiceFilter] = useState<'all' | 'energy' | 'water' | 'inactive'>('all');
   const [userSortField, setUserSortField] = useState<'name' | 'street' | 'house_number' | 'cpf' | 'phone'>('name');
   const [userSortOrder, setUserSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -588,6 +593,10 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   const totalPaid = filteredBills.reduce((acc, bill) => acc + (bill.status === 'paid' ? bill.total : (bill.amount_paid || 0)), 0);
   const totalPending = totalToPay - totalPaid;
 
+  const filteredMonthExpenses = expenses.filter(e => !filterMonth || e.month_reference === filterMonth);
+  const totalCompetenceExpenses = filteredMonthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const balanceAfterExpenses = totalPaid - totalCompetenceExpenses;
+
   const statsBills = bills.filter(bill => !filterMonth || bill.month_reference === filterMonth);
 
   useEffect(() => {
@@ -683,7 +692,9 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
       energy_meters_count: 1, 
       water_meters_count: 1,
       energy_active: true,
-      water_active: true
+      water_active: true,
+      energy_meter_statuses: [true],
+      water_meter_statuses: [true]
     });
   };
 
@@ -709,7 +720,9 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
           street: cleanAddressNumber(userForm.street),
           house_number: cleanAddressNumber(userForm.house_number),
           cpf: userForm.cpf.trim(),
-          phone: userForm.phone.trim()
+          phone: userForm.phone.trim(),
+          energy_meter_statuses: userForm.energy_meter_statuses,
+          water_meter_statuses: userForm.water_meter_statuses
         })
       });
 
@@ -725,7 +738,9 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
           energy_meters_count: 1, 
           water_meters_count: 1,
           energy_active: true,
-          water_active: true
+          water_active: true,
+          energy_meter_statuses: [true],
+          water_meter_statuses: [true]
         });
         setEditingUser(null);
         setShowUserForm(false);
@@ -769,52 +784,69 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
       const dueDate = new Date(now.getFullYear(), now.getMonth(), settings.default_due_day);
       const currentMonthRef = billForm.month_reference;
 
-      // Initialize energy readings
+      // Initialize energy readings - ONLY ACTIVE METERS
       const energyReadings = [];
       const energyCount = user.energy_meters_count || 1;
-      for (let i = 0; i < energyCount; i++) {
-        let prev = 0;
-        if (user.energy_readings && user.energy_readings[i]) {
-          prev = user.energy_readings[i].curr;
-        } else if (i === 0) {
-          prev = user.last_reading || 0;
-        } else if (i === 1) {
-          prev = user.last_reading_2 || 0;
+      const energyStatuses = user.energy_meter_statuses || [];
+      const isEnergyGlobalActive = user.has_energy !== false && user.energy_active !== false;
+
+      if (isEnergyGlobalActive) {
+        for (let i = 0; i < energyCount; i++) {
+          const isMeterActive = energyStatuses[i] !== false;
+          if (!isMeterActive) continue; // Skip deactivated meter
+
+          let prev = 0;
+          if (user.energy_readings && user.energy_readings[i]) {
+            prev = user.energy_readings[i].curr;
+          } else if (i === 0) {
+            prev = user.last_reading || 0;
+          } else if (i === 1) {
+            prev = user.last_reading_2 || 0;
+          }
+          energyReadings.push({ meter_index: i, prev, curr: 0 });
         }
-        energyReadings.push({ prev, curr: 0 });
       }
 
-      // Initialize water readings
+      // Initialize water readings - ONLY ACTIVE METERS
       const waterReadings = [];
       const waterCount = user.water_meters_count || 1;
-      for (let i = 0; i < waterCount; i++) {
-        let prev = 0;
-        if (user.water_readings && user.water_readings[i]) {
-          prev = user.water_readings[i].curr;
-        } else if (i === 0) {
-          prev = user.last_water_reading || 0;
-        } else if (i === 1) {
-          prev = user.last_water_reading_2 || 0;
+      const waterStatuses = user.water_meter_statuses || [];
+      const isWaterGlobalActive = user.has_water !== false && user.water_active !== false;
+
+      if (isWaterGlobalActive) {
+        for (let i = 0; i < waterCount; i++) {
+          const isMeterActive = waterStatuses[i] !== false;
+          if (!isMeterActive) continue; // Skip deactivated meter
+
+          let prev = 0;
+          if (user.water_readings && user.water_readings[i]) {
+            prev = user.water_readings[i].curr;
+          } else if (i === 0) {
+            prev = user.last_water_reading || 0;
+          } else if (i === 1) {
+            prev = user.last_water_reading_2 || 0;
+          }
+          waterReadings.push({ meter_index: i, prev, curr: 0 });
         }
-        waterReadings.push({ prev, curr: 0 });
       }
 
       setBillForm({
         ...billForm,
         user_id: userId,
-        prev_reading: user.last_reading || 0,
-        prev_reading_2: user.last_reading_2 || 0,
+        prev_reading: energyReadings[0]?.prev || 0,
+        prev_reading_2: energyReadings[1]?.prev || 0,
         curr_reading: 0,
         curr_reading_2: 0,
         kwh_value: settings.default_kwh,
-        water_prev_reading: user.last_water_reading || 0,
-        water_prev_reading_2: user.last_water_reading_2 || 0,
+        water_prev_reading: waterReadings[0]?.prev || 0,
+        water_prev_reading_2: waterReadings[1]?.prev || 0,
         water_curr_reading: 0,
         water_curr_reading_2: 0,
         water_value: settings.default_water_value,
         water_service_fee: settings.default_water_service_fee || 0,
         apportionment_value: settings.default_apportionment_value,
         include_apportionment: true,
+        include_reserve_fund: true,
         reading_date: readingDate.toISOString().split('T')[0],
         due_date: dueDate.toISOString().split('T')[0],
         month_reference: currentMonthRef,
@@ -939,22 +971,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
         fetchData();
         if (onDataUpdate) onDataUpdate();
         
-        const choice = await askOptions({
-          title: 'Conta Salva',
-          message: wasEditing ? 'Conta atualizada com sucesso!' : 'Conta lançada com sucesso!',
-          options: [
-            { label: 'Visualizar Extrato (PDF)', value: 'pdf' },
-            { label: 'Enviar WhatsApp', value: 'whatsapp' },
-            { label: 'Apenas salvar e continuar', value: 'continue' }
-          ]
-        });
-        
-        if (choice === 'pdf') {
-          setInvoiceDetailsModal({ isOpen: true, bill: savedBill });
-        } else if (choice === 'whatsapp') {
-          sendWhatsApp(savedBill);
-        }
-        
+        sendWhatsApp(savedBill);
         setHighlightedBillId(targetId);
       } else {
         const errorData = await res.json().catch(() => ({ message: res.statusText }));
@@ -2245,56 +2262,88 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             </div>
 
                             {userForm.has_energy && (
-                              <div className="mt-3 pt-3 border-t border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-600 font-medium">Status:</span>
-                                  <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
-                                    <button
-                                      type="button"
-                                      onClick={() => setUserForm({ ...userForm, energy_active: true })}
-                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                        userForm.energy_active
-                                          ? 'bg-white text-emerald-700 font-semibold shadow-2xs'
-                                          : 'text-gray-600 hover:text-gray-900'
-                                      }`}
-                                    >
-                                      Ligado
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setUserForm({ ...userForm, energy_active: false })}
-                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                        !userForm.energy_active
-                                          ? 'bg-white text-rose-600 font-semibold shadow-2xs'
-                                          : 'text-gray-600 hover:text-gray-900'
-                                      }`}
-                                    >
-                                      Desligado
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-600 font-medium">Padrões:</span>
+                              <div className="mt-3 pt-3 border-t border-gray-200/80 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-700 font-semibold">Quantidade de Padrões:</span>
                                   <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
                                     <button
                                       type="button"
                                       disabled={(userForm.energy_meters_count || 1) <= 1}
-                                      onClick={() => setUserForm({ ...userForm, energy_meters_count: Math.max(1, (userForm.energy_meters_count || 1) - 1) })}
+                                      onClick={() => {
+                                        const nextCount = Math.max(1, (userForm.energy_meters_count || 1) - 1);
+                                        setUserForm({
+                                          ...userForm,
+                                          energy_meters_count: nextCount,
+                                          energy_meter_statuses: (userForm.energy_meter_statuses || []).slice(0, nextCount)
+                                        });
+                                      }}
                                       className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
                                     >
                                       -
                                     </button>
-                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[50px] text-center bg-gray-50/50">
+                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[40px] text-center bg-gray-50/50">
                                       {userForm.energy_meters_count || 1}
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => setUserForm({ ...userForm, energy_meters_count: (userForm.energy_meters_count || 1) + 1 })}
+                                      onClick={() => {
+                                        const nextCount = (userForm.energy_meters_count || 1) + 1;
+                                        const currentStatuses = [...(userForm.energy_meter_statuses || [])];
+                                        while (currentStatuses.length < nextCount) currentStatuses.push(true);
+                                        setUserForm({
+                                          ...userForm,
+                                          energy_meters_count: nextCount,
+                                          energy_meter_statuses: currentStatuses
+                                        });
+                                      }}
                                       className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
                                     >
                                       +
                                     </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1.5 pt-1">
+                                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Status Individual dos Padrões:</span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {Array.from({ length: userForm.energy_meters_count || 1 }).map((_, idx) => {
+                                      const isLigado = (userForm.energy_meter_statuses || [])[idx] !== false;
+                                      return (
+                                        <div key={`meter-e-${idx}`} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-200">
+                                          <span className="text-xs font-semibold text-gray-800">Padrão {idx + 1}</span>
+                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 text-xs">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const st = [...(userForm.energy_meter_statuses || [])];
+                                                while (st.length <= idx) st.push(true);
+                                                st[idx] = true;
+                                                setUserForm({ ...userForm, energy_meter_statuses: st });
+                                              }}
+                                              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
+                                                isLigado ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                              }`}
+                                            >
+                                              Ligado
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const st = [...(userForm.energy_meter_statuses || [])];
+                                                while (st.length <= idx) st.push(true);
+                                                st[idx] = false;
+                                                setUserForm({ ...userForm, energy_meter_statuses: st });
+                                              }}
+                                              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
+                                                !isLigado ? 'bg-white text-rose-600 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                              }`}
+                                            >
+                                              Desligado
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               </div>
@@ -2325,56 +2374,88 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             </div>
 
                             {userForm.has_water && (
-                              <div className="mt-3 pt-3 border-t border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-600 font-medium">Status:</span>
-                                  <div className="inline-flex rounded-lg p-0.5 bg-gray-200/70 text-xs">
-                                    <button
-                                      type="button"
-                                      onClick={() => setUserForm({ ...userForm, water_active: true })}
-                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                        userForm.water_active
-                                          ? 'bg-white text-emerald-700 font-semibold shadow-2xs'
-                                          : 'text-gray-600 hover:text-gray-900'
-                                      }`}
-                                    >
-                                      Ligado
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setUserForm({ ...userForm, water_active: false })}
-                                      className={`px-3 py-1 rounded-md font-medium transition-all ${
-                                        !userForm.water_active
-                                          ? 'bg-white text-rose-600 font-semibold shadow-2xs'
-                                          : 'text-gray-600 hover:text-gray-900'
-                                      }`}
-                                    >
-                                      Desligado
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-600 font-medium">Hidrômetros:</span>
+                              <div className="mt-3 pt-3 border-t border-gray-200/80 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-700 font-semibold">Quantidade de Hidrômetros:</span>
                                   <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
                                     <button
                                       type="button"
                                       disabled={(userForm.water_meters_count || 1) <= 1}
-                                      onClick={() => setUserForm({ ...userForm, water_meters_count: Math.max(1, (userForm.water_meters_count || 1) - 1) })}
+                                      onClick={() => {
+                                        const nextCount = Math.max(1, (userForm.water_meters_count || 1) - 1);
+                                        setUserForm({
+                                          ...userForm,
+                                          water_meters_count: nextCount,
+                                          water_meter_statuses: (userForm.water_meter_statuses || []).slice(0, nextCount)
+                                        });
+                                      }}
                                       className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
                                     >
                                       -
                                     </button>
-                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[50px] text-center bg-gray-50/50">
+                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[40px] text-center bg-gray-50/50">
                                       {userForm.water_meters_count || 1}
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => setUserForm({ ...userForm, water_meters_count: (userForm.water_meters_count || 1) + 1 })}
+                                      onClick={() => {
+                                        const nextCount = (userForm.water_meters_count || 1) + 1;
+                                        const currentStatuses = [...(userForm.water_meter_statuses || [])];
+                                        while (currentStatuses.length < nextCount) currentStatuses.push(true);
+                                        setUserForm({
+                                          ...userForm,
+                                          water_meters_count: nextCount,
+                                          water_meter_statuses: currentStatuses
+                                        });
+                                      }}
                                       className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
                                     >
                                       +
                                     </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1.5 pt-1">
+                                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Status Individual dos Hidrômetros:</span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {Array.from({ length: userForm.water_meters_count || 1 }).map((_, idx) => {
+                                      const isLigado = (userForm.water_meter_statuses || [])[idx] !== false;
+                                      return (
+                                        <div key={`meter-w-${idx}`} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-200">
+                                          <span className="text-xs font-semibold text-gray-800">Hidrômetro {idx + 1}</span>
+                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 text-xs">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const st = [...(userForm.water_meter_statuses || [])];
+                                                while (st.length <= idx) st.push(true);
+                                                st[idx] = true;
+                                                setUserForm({ ...userForm, water_meter_statuses: st });
+                                              }}
+                                              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
+                                                isLigado ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                              }`}
+                                            >
+                                              Ligado
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const st = [...(userForm.water_meter_statuses || [])];
+                                                while (st.length <= idx) st.push(true);
+                                                st[idx] = false;
+                                                setUserForm({ ...userForm, water_meter_statuses: st });
+                                              }}
+                                              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
+                                                !isLigado ? 'bg-white text-rose-600 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                              }`}
+                                            >
+                                              Desligado
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               </div>
@@ -2723,10 +2804,20 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                       >
                                         <FileText size={16} />
                                       </button>
-                                      <button 
+                                       <button 
                                         onClick={() => { 
                                           setEditingUser(user); 
                                           setShowUserForm(true);
+                                          const eCount = user.energy_meters_count || 1;
+                                          const eStatuses = Array.isArray(user.energy_meter_statuses) && user.energy_meter_statuses.length === eCount
+                                            ? [...user.energy_meter_statuses]
+                                            : Array.from({ length: eCount }, () => user.energy_active !== false);
+
+                                          const wCount = user.water_meters_count || 1;
+                                          const wStatuses = Array.isArray(user.water_meter_statuses) && user.water_meter_statuses.length === wCount
+                                            ? [...user.water_meter_statuses]
+                                            : Array.from({ length: wCount }, () => user.water_active !== false);
+
                                           setUserForm({ 
                                             name: user.name, 
                                             street: cleanAddressNumber(user.street || user.rua),
@@ -2735,10 +2826,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                             phone: user.phone || '',
                                             has_energy: user.has_energy !== undefined ? user.has_energy : true,
                                             has_water: user.has_water !== undefined ? user.has_water : true,
-                                            energy_meters_count: user.energy_meters_count || 1,
-                                            water_meters_count: user.water_meters_count || 1,
+                                            energy_meters_count: eCount,
+                                            water_meters_count: wCount,
                                             energy_active: user.energy_active !== undefined ? user.energy_active : true,
-                                            water_active: user.water_active !== undefined ? user.water_active : true
+                                            water_active: user.water_active !== undefined ? user.water_active : true,
+                                            energy_meter_statuses: eStatuses,
+                                            water_meter_statuses: wStatuses
                                           }); 
                                           userFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         }}
@@ -2906,109 +2999,160 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
         {activeTab === 'chacara_expenses' && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Header & Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Lançamento de Despesas</h2>
-                <p className="text-gray-500">Gerencie as despesas e comprovantes</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <Banknote className="text-slate-800" size={24} />
+                  Despesas da Chácara
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Gerenciamento de pagamentos, manutenções e comprovantes</p>
               </div>
-                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-2xl border border-gray-200 shadow-sm focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                <Filter size={18} className="text-gray-400" />
-                <input 
-                  type="month" 
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-700 outline-none cursor-pointer"
-                />
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200/80 shadow-xs">
+                  <Filter size={15} className="text-slate-400" />
+                  <span className="text-xs font-semibold text-slate-500">Mês:</span>
+                  <input 
+                    type="month" 
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                    className="bg-transparent border-none text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                  />
+                  {filterMonth && (
+                    <button
+                      onClick={() => setFilterMonth('')}
+                      className="text-[10px] text-slate-400 hover:text-slate-700 px-1.5 py-0.5 bg-slate-100 rounded-md transition-colors"
+                      title="Ver todos os meses"
+                    >
+                      Todos
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <PlusCircle size={20} className="text-indigo-600" />
-                {editingExpense ? 'Editar Despesa' : 'Nova Despesa'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Form: Nova Despesa (Apple Compact Form) */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <PlusCircle size={17} className="text-indigo-600" />
+                  {editingExpense ? 'Editar Despesa' : 'Nova Despesa'}
+                </h3>
+                {editingExpense && (
+                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                    Modo Edição
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Competência */}
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Mês de Referência</label>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Competência <span className="text-[10px] font-normal text-slate-400 normal-case">(mês ref.)</span>
+                  </label>
                   <input 
                     type="month"
                     value={expenseForm.month_reference}
                     onChange={e => setExpenseForm({ ...expenseForm, month_reference: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800"
                   />
                 </div>
+
+                {/* 2. Data do Pagamento */}
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Data</label>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Data do Pagamento <span className="text-[10px] font-normal text-slate-400 normal-case">(efetivação)</span>
+                  </label>
                   <input 
                     type="date"
                     value={expenseForm.date}
                     onChange={e => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800"
                   />
                 </div>
+
+                {/* 3. Valor */}
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Valor (R$)</label>
-                  <input 
-                    type="number"
-                    step="0.01"
-                    value={expenseForm.amount || ''}
-                    onChange={e => setExpenseForm({ ...expenseForm, amount: Number(e.target.value) })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                  />
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Valor (R$)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
+                    <input 
+                      type="number"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={expenseForm.amount || ''}
+                      onChange={e => setExpenseForm({ ...expenseForm, amount: Number(e.target.value) })}
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-bold text-slate-900"
+                    />
+                  </div>
                 </div>
-                <div className="lg:col-span-2">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Descrição</label>
-                  <input 
-                    type="text"
-                    value={expenseForm.description}
-                    onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                    placeholder="Ex: Manutenção da bomba d'água"
-                  />
-                </div>
+
+                {/* 4. Categoria */}
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Categoria</label>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Categoria
+                  </label>
                   <select 
                     value={expenseForm.category}
                     onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800 cursor-pointer"
                   >
                     <option value="manutencao">Manutenção</option>
                     <option value="limpeza">Limpeza</option>
                     <option value="energia">Energia</option>
                     <option value="agua">Água</option>
+                    <option value="prestador">Prestador</option>
+                    <option value="advogado">Advogado & Contador</option>
                     <option value="outros">Outros</option>
                   </select>
                 </div>
-                <div className="lg:col-span-3">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Comprovante (Imagem ou PDF até 50MB)</label>
+
+                {/* 5. Descrição */}
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Descrição Detalhada
+                  </label>
+                  <input 
+                    type="text"
+                    value={expenseForm.description}
+                    onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-medium text-slate-800"
+                    placeholder="Ex: Manutenção da bomba d'água principal, roçagem dos lotes..."
+                  />
+                </div>
+
+                {/* 6. Comprovante */}
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Comprovante
+                  </label>
                   <input 
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleFileUpload}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
                   />
                   {expenseForm.receipt_url && (
-                    <div className="mt-2 text-sm text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 size={16} /> Arquivo anexado com sucesso
+                    <div className="mt-1 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Comprovante anexado
                     </div>
                   )}
                 </div>
               </div>
-              <div className="mt-6 flex gap-3">
-                <button 
-                  onClick={handleSaveExpense}
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all"
-                >
-                  <Save size={18} />
-                  {editingExpense ? 'Atualizar Despesa' : 'Salvar Despesa'}
-                </button>
+
+              {/* Action Buttons */}
+              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 {editingExpense && (
                   <button 
+                    type="button"
                     onClick={() => {
                       setEditingExpense(null);
                       setExpenseForm({
@@ -3020,32 +3164,42 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         receipt_url: ''
                       });
                     }}
-                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors"
                   >
-                    Cancelar
+                    Cancelar Edição
                   </button>
                 )}
+                <button 
+                  type="button"
+                  onClick={handleSaveExpense}
+                  className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-slate-800 shadow-xs transition-all cursor-pointer"
+                >
+                  <Save size={15} />
+                  {editingExpense ? 'Atualizar Despesa' : 'Salvar Despesa'}
+                </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-800">Despesas do Mês</h3>
+            {/* Expenses Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Despesas Registradas {filterMonth ? `(${filterMonth})` : '(Todas)'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Total: <strong className="text-slate-900 font-bold">R$ {filteredMonthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0).toFixed(2)}</strong> ({filteredMonthExpenses.length} registro{filteredMonthExpenses.length === 1 ? '' : 's'})
+                  </p>
+                </div>
+
                 <button
+                  type="button"
                   onClick={async () => {
-                    const orientation = await askOptions({
-                      title: 'Formato do PDF',
-                      message: 'Como você deseja gerar este arquivo PDF?',
-                      options: [
-                        { label: 'Vertical (Retrato)', value: 'p' },
-                        { label: 'Horizontal (Paisagem)', value: 'l' }
-                      ]
-                    });
-                    if (!orientation) return;
-                    const filteredExps = expenses.filter(e => e.month_reference === filterMonth);
+                    const filteredExps = expenses.filter(e => !filterMonth || e.month_reference === filterMonth);
                     const total = filteredExps.reduce((sum, e) => sum + Number(e.amount), 0);
                     
                     const bodyData = filteredExps.map(e => [
+                      e.month_reference || '-',
                       new Date(e.date).toLocaleDateString('pt-BR'),
                       e.description,
                       e.category,
@@ -3053,41 +3207,59 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     ]);
 
                     await PdfService.exportTableToPDF(
-                      `Relatório de Despesas - ${filterMonth}`,
-                      `Visão geral de despesas do mês`,
-                      ['Data', 'Descrição', 'Categoria', 'Valor (R$)'],
+                      `Relatório de Despesas - ${filterMonth || 'Geral'}`,
+                      `Visão geral de despesas da chácara`,
+                      ['Competência', 'Data Pgto', 'Descrição', 'Categoria', 'Valor (R$)'],
                       bodyData,
                       `Total: R$ ${total.toFixed(2)}`,
-                      orientation as 'p'|'l',
-                      `despesas_${filterMonth}`
+                      'p',
+                      `despesas_${filterMonth || 'geral'}`
                     );
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-100 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 border border-slate-200/80 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors shadow-xs"
                 >
-                  <Download size={16} />
+                  <Download size={14} className="text-slate-500" />
                   Exportar PDF
                 </button>
               </div>
+
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Data</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Descrição</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Categoria</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Valor</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ações</th>
+                    <tr className="bg-slate-50 border-b border-slate-200/60">
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Competência</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Data Pgto</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Descrição</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Categoria</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-right">Valor</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-center">Comprovante</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {expenses.filter(e => e.month_reference === filterMonth).map(expense => (
-                      <tr key={expense.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-all">
-                        <td className="px-6 py-4 text-gray-600">{new Date(expense.date).toLocaleDateString('pt-BR')}</td>
-                        <td className="px-6 py-4 font-semibold text-gray-800">{expense.description}</td>
-                        <td className="px-6 py-4 text-gray-600 capitalize">{expense.category}</td>
-                        <td className="px-6 py-4 font-bold text-red-600">R$ {Number(expense.amount).toFixed(2)}</td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          {expense.receipt_url && (
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredMonthExpenses.map(expense => (
+                      <tr key={expense.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md font-mono text-[11px]">
+                            {expense.month_reference || '-'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          {new Date(expense.date).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-900 max-w-xs truncate">
+                          {expense.description}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+                            {expense.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-rose-600 text-right whitespace-nowrap">
+                          R$ {Number(expense.amount).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          {expense.receipt_url ? (
                             <button 
                               onClick={() => {
                                 const win = window.open();
@@ -3099,31 +3271,38 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   }
                                 }
                               }}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
                               title="Ver Comprovante"
                             >
-                              <FileText size={16} />
+                              <FileText size={13} />
+                              Ver
                             </button>
+                          ) : (
+                            <span className="text-slate-300 text-[11px]">—</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap space-x-1">
                           <button 
                             onClick={() => handleEditExpense(expense)}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            title="Editar"
                           >
-                            <Edit2 size={16} />
+                            <Edit2 size={14} />
                           </button>
                           <button 
                             onClick={() => handleDeleteExpense(expense.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Excluir"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
                         </td>
                       </tr>
                     ))}
-                    {expenses.filter(e => e.month_reference === filterMonth).length === 0 && (
+                    {filteredMonthExpenses.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                          Nenhuma despesa registrada para este mês.
+                        <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
+                          Nenhuma despesa registrada para {filterMonth || 'o filtro selecionado'}.
                         </td>
                       </tr>
                     )}
@@ -3134,315 +3313,539 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
           </motion.div>
         )}
 
-        {activeTab === 'chacara_main' && (
-          <motion.div
-            key="bills"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}
-            className="space-y-6"
-          >
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <PlusCircle size={20} className="text-indigo-600" />
-                {editingBill ? 'Editar Conta' : 'Lançar Nova Conta'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {activeTab === 'chacara_main' && (() => {
+          const selectedBillUser = users.find(u => u.id === Number(billForm.user_id));
+          const filteredBillUsers = users.filter(u => {
+            if (!billUserSearch.trim()) return true;
+            const q = billUserSearch.toLowerCase();
+            return (
+              (u.name || '').toLowerCase().includes(q) ||
+              (u.house_number || u.casa || '').toLowerCase().includes(q) ||
+              (u.street || u.rua || '').toLowerCase().includes(q) ||
+              (u.cpf || '').includes(q)
+            );
+          });
+
+          const energyConsumptionTotal = billForm.energy_readings.reduce((acc, r) => acc + Math.max(0, (r.curr || 0) - (r.prev || 0)), 0);
+          const waterConsumptionTotal = billForm.water_readings.reduce((acc, r) => acc + Math.max(0, (r.curr || 0) - (r.prev || 0)), 0);
+          
+          const energySubtotal = showEnergy ? (energyConsumptionTotal * (billForm.kwh_value || 0)) : 0;
+          const waterSubtotal = showWater ? ((waterConsumptionTotal * (billForm.water_value || 0)) + (billForm.water_service_fee || 0)) : 0;
+          const reserveFundValue = billForm.include_reserve_fund ? (settings.reserve_fund_value || 0) : 0;
+          const apportionmentVal = billForm.include_apportionment ? (settings.default_apportionment_value || billForm.apportionment_value || 0) : 0;
+          const estimatedBillTotal = energySubtotal + waterSubtotal + reserveFundValue + apportionmentVal;
+
+          return (
+            <motion.div
+              key="bills"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              {/* Top Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Usuário</label>
-                  <select 
-                    value={billForm.user_id}
-                    onChange={e => handleUserSelectForBill(e.target.value)}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium appearance-none cursor-pointer"
-                  >
-                    <option value="">Selecione um usuário...</option>
-                    {users.map(u => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <PlusCircle className="text-slate-800" size={24} />
+                    {editingBill ? 'Editar Conta do Morador' : 'Lançar Nova Conta'}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Preencha as leituras e confira os valores em tempo real antes do envio direto
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Mês de Referência</label>
-                  <input 
-                    type="month"
-                    value={billForm.month_reference}
-                    onChange={e => setBillForm({ ...billForm, month_reference: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Data da Leitura</label>
-                  <input 
-                    type="date"
-                    value={billForm.reading_date}
-                    onChange={e => setBillForm({ ...billForm, reading_date: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                  />
-                </div>
-                {showEnergy && (
-                  <>
-                    <div className="col-span-full border-t border-gray-100 pt-4 mt-2">
-                      <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <Zap size={16} className="text-yellow-500" />
-                        Consumo de Energia
-                      </h4>
-                    </div>
-                    {billForm.energy_readings.map((reading, index) => (
-                      <React.Fragment key={`energy-${index}`}>
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leitura Anterior (Padrão {index + 1})</label>
-                          <input 
-                            type="number"
-                            step="any"
-                            value={reading.prev}
-                            onChange={e => {
-                              const val = e.target.value === '' ? 0 : Number(e.target.value);
-                              setBillForm(prev => {
-                                const newReadings = prev.energy_readings.map((r, i) => 
-                                  i === index ? { ...r, prev: val } : r
-                                );
-                                return { ...prev, energy_readings: newReadings };
-                              });
-                            }}
-                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leitura Atual (Padrão {index + 1})</label>
-                          <input 
-                            type="number"
-                            step="any"
-                            value={reading.curr}
-                            onChange={e => {
-                              const val = e.target.value === '' ? 0 : Number(e.target.value);
-                              setBillForm(prev => {
-                                const newReadings = prev.energy_readings.map((r, i) => 
-                                  i === index ? { ...r, curr: val } : r
-                                );
-                                return { ...prev, energy_readings: newReadings };
-                              });
-                            }}
-                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                          />
-                        </div>
-                      </React.Fragment>
-                    ))}
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Valor do kWh (R$)</label>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        value={billForm.kwh_value}
-                        onChange={e => setBillForm({ ...billForm, kwh_value: Number(e.target.value) })}
-                        className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Reserve Fund Section - Separated */}
-                <div className="col-span-full border-t border-gray-100 pt-4 mt-2">
-                  <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                    <DollarSign size={16} className="text-green-500" />
-                    Fundo de Reserva
-                  </h4>
-                </div>
-                <div className="col-span-full">
-                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <div className="relative">
-                      <input 
-                        type="checkbox"
-                        checked={billForm.include_reserve_fund}
-                        onChange={e => setBillForm({ ...billForm, include_reserve_fund: e.target.checked })}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-6 rounded-full transition-all ${billForm.include_reserve_fund ? 'bg-indigo-600' : 'bg-gray-300'}`}></div>
-                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all ${billForm.include_reserve_fund ? 'translate-x-4' : ''}`}></div>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-600 group-hover:text-indigo-600 transition-all">
-                      Incluir Fundo de Reserva (R$ {settings.reserve_fund_value.toFixed(2)})?
-                    </span>
-                  </label>
-                </div>
-
-                {/* Water Section */}
-                {showWater && (
-                  <>
-                    <div className="col-span-full border-t border-gray-100 pt-4 mt-2">
-                      <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <Zap size={16} className="text-blue-500" />
-                        Consumo de Água
-                      </h4>
-                    </div>
-                    {billForm.water_readings.map((reading, index) => (
-                      <React.Fragment key={`water-${index}`}>
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leitura Anterior Água (Hidrômetro {index + 1})</label>
-                          <input 
-                            type="number"
-                            step="any"
-                            value={reading.prev}
-                            onChange={e => {
-                              const val = e.target.value === '' ? 0 : Number(e.target.value);
-                              setBillForm(prev => {
-                                const newReadings = prev.water_readings.map((r, i) => 
-                                  i === index ? { ...r, prev: val } : r
-                                );
-                                return { ...prev, water_readings: newReadings };
-                              });
-                            }}
-                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leitura Atual Água (Hidrômetro {index + 1})</label>
-                          <input 
-                            type="number"
-                            step="any"
-                            value={reading.curr}
-                            onChange={e => {
-                              const val = e.target.value === '' ? 0 : Number(e.target.value);
-                              setBillForm(prev => {
-                                const newReadings = prev.water_readings.map((r, i) => 
-                                  i === index ? { ...r, curr: val } : r
-                                );
-                                return { ...prev, water_readings: newReadings };
-                              });
-                            }}
-                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                          />
-                        </div>
-                      </React.Fragment>
-                    ))}
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Valor da Água (R$/m³)</label>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        value={billForm.water_value}
-                        onChange={e => setBillForm({ ...billForm, water_value: Number(e.target.value) })}
-                        className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Taxa de Serviço (Água)</label>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        value={billForm.water_service_fee}
-                        onChange={e => setBillForm({ ...billForm, water_service_fee: Number(e.target.value) })}
-                        className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Apportionment Section */}
-                <div className="col-span-full border-t border-gray-100 pt-4 mt-2">
-                  <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                    <DollarSign size={16} className="text-amber-500" />
-                    Pag. Adv. e Cont. e Outros
-                  </h4>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor do Pag. Adv. e Cont. (R$)</label>
-                  <input 
-                    type="number"
-                    step="0.01"
-                    value={billForm.apportionment_value}
-                    onChange={e => setBillForm({ ...billForm, apportionment_value: Number(e.target.value) })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                  />
-                </div>
-                <div className="flex items-end pb-2">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <div className="relative">
-                      <input 
-                        type="checkbox"
-                        checked={billForm.include_apportionment}
-                        onChange={e => setBillForm({ ...billForm, include_apportionment: e.target.checked })}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-6 rounded-full transition-all ${billForm.include_apportionment ? 'bg-indigo-600' : 'bg-gray-300'}`}></div>
-                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all ${billForm.include_apportionment ? 'translate-x-4' : ''}`}></div>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-600 group-hover:text-indigo-600 transition-all">Incluir Pag. Adv. e Cont.?</span>
-                  </label>
-                </div>
-
-                <div className="col-span-full mt-4">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2 ml-1">Observações da Fatura</label>
-                  <textarea 
-                    value={billForm.observations}
-                    onChange={e => setBillForm({ ...billForm, observations: e.target.value })}
-                    className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium min-h-[100px]"
-                    placeholder="Adicione observações que aparecerão na mensagem de WhatsApp..."
-                  />
-                </div>
-              </div>
-
-              <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="text-center md:text-left">
-                    <span className="block text-xs font-bold text-indigo-400 uppercase">Consumo Energia</span>
-                    <span className="text-2xl font-black text-indigo-900">
-                      {(billForm.energy_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0)).toFixed(2)} kWh
-                    </span>
-                  </div>
-                  <div className="h-10 w-px bg-indigo-200 hidden md:block"></div>
-                  <div className="text-center md:text-left">
-                    <span className="block text-xs font-bold text-indigo-400 uppercase">Consumo Água</span>
-                    <span className="text-2xl font-black text-indigo-900">
-                      {(billForm.water_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0)).toFixed(2)} m³
-                    </span>
-                  </div>
-                  <div className="h-10 w-px bg-indigo-200 hidden md:block"></div>
-                  <div className="text-center md:text-left">
-                    <span className="block text-xs font-bold text-indigo-400 uppercase">Total Estimado</span>
-                    <span className="text-2xl font-black text-indigo-900">
-                      R$ {(
-                        (showEnergy ? (billForm.energy_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0) * billForm.kwh_value) : 0) + 
-                        (showWater ? ((billForm.water_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0) * billForm.water_value) + (billForm.water_service_fee || 0)) : 0) +
-                        (billForm.include_apportionment ? billForm.apportionment_value : 0) +
-                        (billForm.include_reserve_fund ? settings.reserve_fund_value : 0)
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                  <button 
-                    onClick={() => handleClearBillForm()}
-                    className="p-4 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all shadow-sm flex items-center justify-center"
-                    title="Limpar Formulário"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                  <button 
-                    onClick={() => handleSaveBill()}
-                    className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
-                  >
-                    {editingBill ? <Save size={20} /> : <Plus size={20} />}
-                    {editingBill ? 'Atualizar Conta' : 'Lançar Conta'}
-                  </button>
-                </div>
-              </div>
-              {editingBill && (
-                <div className="mt-4 flex justify-center">
+                {editingBill && (
                   <button 
                     onClick={() => {
                       handleClearBillForm();
                       if (setActiveTab) setActiveTab('chacara_history');
                     }}
-                    className="text-gray-500 font-semibold hover:text-gray-700"
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-800 px-3 py-1.5 bg-rose-50 rounded-xl border border-rose-200/60 transition-colors self-start"
                   >
                     Cancelar Edição
                   </button>
+                )}
+              </div>
+
+              {/* 1. SELEÇÃO DO MORADOR (PROMINENTE COM BUSCA) */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <User size={16} className="text-slate-700" />
+                    1. Identificação do Morador
+                  </h3>
+                  {selectedBillUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBillForm(prev => ({ ...prev, user_id: '' }));
+                        setBillUserSearch('');
+                      }}
+                      className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Trocar Morador
+                    </button>
+                  )}
+                </div>
+
+                {!selectedBillUser ? (
+                  <div className="space-y-3">
+                    {/* Search Input */}
+                    <div className="relative">
+                      <Search size={16} className="text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input 
+                        type="text"
+                        placeholder="Digite o nome, rua, número da casa ou CPF do morador..."
+                        value={billUserSearch}
+                        onChange={(e) => setBillUserSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all"
+                      />
+                      {billUserSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setBillUserSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Quick Selection Dropdown / Grid */}
+                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-200/80 rounded-xl bg-slate-50/40">
+                      {filteredBillUsers.slice(0, 15).map(u => (
+                        <div
+                          key={u.id}
+                          onClick={() => {
+                            handleUserSelectForBill(u.id.toString());
+                            setBillUserSearch('');
+                          }}
+                          className="p-3 hover:bg-white flex items-center justify-between cursor-pointer transition-colors group"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              {u.name}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {[u.street || u.rua, (u.house_number || u.casa) ? `Casa ${u.house_number || u.casa}` : '', u.phone].filter(Boolean).join(' • ')}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {u.has_energy !== false && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 rounded">
+                                ⚡ Energia
+                              </span>
+                            )}
+                            {u.has_water !== false && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/60 rounded">
+                                💧 Água
+                              </span>
+                            )}
+                            <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-700" />
+                          </div>
+                        </div>
+                      ))}
+                      {filteredBillUsers.length === 0 && (
+                        <div className="p-4 text-center text-xs text-slate-400">
+                          Nenhum morador encontrado para "{billUserSearch}".
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Morador Selecionado Card */
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center shrink-0 text-sm">
+                        {selectedBillUser.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-slate-900">{selectedBillUser.name}</h4>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-200/70 text-slate-700 rounded">
+                            ID #{selectedBillUser.id}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {[selectedBillUser.street || selectedBillUser.rua, (selectedBillUser.house_number || selectedBillUser.casa) ? `Casa ${selectedBillUser.house_number || selectedBillUser.casa}` : '', selectedBillUser.phone].filter(Boolean).join(' • ')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {selectedBillUser.has_energy !== false && (
+                        <span className="text-xs font-semibold px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200/70 rounded-lg flex items-center gap-1">
+                          ⚡ {selectedBillUser.energy_meters_count || 1} Padrão(ões)
+                        </span>
+                      )}
+                      {selectedBillUser.has_water !== false && (
+                        <span className="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-800 border border-blue-200/70 rounded-lg flex items-center gap-1">
+                          💧 {selectedBillUser.water_meters_count || 1} Hidrômetro(s)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. DADOS DA COMPETÊNCIA & LEITURA (1ª LINHA) */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
+                  <Calendar size={16} className="text-slate-700" />
+                  2. Mês de Referência & Data de Leitura
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                      Mês de Referência (Competência)
+                    </label>
+                    <input 
+                      type="month"
+                      value={billForm.month_reference}
+                      onChange={e => setBillForm({ ...billForm, month_reference: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-bold text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                      Data da Leitura
+                    </label>
+                    <input 
+                      type="date"
+                      value={billForm.reading_date}
+                      onChange={e => setBillForm({ ...billForm, reading_date: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. PAINEL DE CONSUMO DE ENERGIA */}
+              {showEnergy && (
+                <div className="bg-white rounded-2xl border border-amber-200/80 p-5 sm:p-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-amber-100">
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Zap size={16} className="text-amber-500" />
+                      3. Consumo de Energia Elétrica
+                    </h3>
+                    <div className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60">
+                      Subtotal: R$ {energySubtotal.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {billForm.energy_readings.map((reading, index) => {
+                      const consumption = Math.max(0, (reading.curr || 0) - (reading.prev || 0));
+                      return (
+                        <div key={`energy-${index}`} className="p-4 bg-amber-50/30 rounded-xl border border-amber-100/80">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-bold text-slate-800">
+                              Padrão {index + 1}
+                            </span>
+                            <span className="text-xs font-bold text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200 shadow-2xs">
+                              Consumo: {consumption.toFixed(2)} kWh
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Leitura Anterior (kWh)
+                              </label>
+                              <input 
+                                type="number"
+                                step="any"
+                                value={reading.prev}
+                                onChange={e => {
+                                  const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                  setBillForm(prev => {
+                                    const newReadings = prev.energy_readings.map((r, i) => 
+                                      i === index ? { ...r, prev: val } : r
+                                    );
+                                    return { ...prev, energy_readings: newReadings };
+                                  });
+                                }}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Leitura Atual (kWh)
+                              </label>
+                              <input 
+                                type="number"
+                                step="any"
+                                placeholder="Informe o valor medido"
+                                value={reading.curr || ''}
+                                onChange={e => {
+                                  const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                  setBillForm(prev => {
+                                    const newReadings = prev.energy_readings.map((r, i) => 
+                                      i === index ? { ...r, curr: val } : r
+                                    );
+                                    return { ...prev, energy_readings: newReadings };
+                                  });
+                                }}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                          Valor do kWh (R$)
+                        </label>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          value={billForm.kwh_value}
+                          onChange={e => setBillForm({ ...billForm, kwh_value: Number(e.target.value) })}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                        <span className="text-slate-500 font-medium">Consumo Total Energia:</span>
+                        <strong className="text-slate-900 font-bold">{energyConsumptionTotal.toFixed(2)} kWh</strong>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
 
-          </motion.div>
-        )}
+              {/* 4. PAINEL DE CONSUMO DE ÁGUA */}
+              {showWater && (
+                <div className="bg-white rounded-2xl border border-blue-200/80 p-5 sm:p-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-blue-100">
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Zap size={16} className="text-blue-500" />
+                      4. Consumo de Água
+                    </h3>
+                    <div className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/60">
+                      Subtotal: R$ {waterSubtotal.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {billForm.water_readings.map((reading, index) => {
+                      const consumption = Math.max(0, (reading.curr || 0) - (reading.prev || 0));
+                      return (
+                        <div key={`water-${index}`} className="p-4 bg-blue-50/30 rounded-xl border border-blue-100/80">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-bold text-slate-800">
+                              Hidrômetro {index + 1}
+                            </span>
+                            <span className="text-xs font-bold text-blue-800 bg-white px-2 py-0.5 rounded-md border border-blue-200 shadow-2xs">
+                              Consumo: {consumption.toFixed(2)} m³
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Leitura Anterior (m³)
+                              </label>
+                              <input 
+                                type="number"
+                                step="any"
+                                value={reading.prev}
+                                onChange={e => {
+                                  const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                  setBillForm(prev => {
+                                    const newReadings = prev.water_readings.map((r, i) => 
+                                      i === index ? { ...r, prev: val } : r
+                                    );
+                                    return { ...prev, water_readings: newReadings };
+                                  });
+                                }}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Leitura Atual (m³)
+                              </label>
+                              <input 
+                                type="number"
+                                step="any"
+                                placeholder="Informe o valor medido"
+                                value={reading.curr || ''}
+                                onChange={e => {
+                                  const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                  setBillForm(prev => {
+                                    const newReadings = prev.water_readings.map((r, i) => 
+                                      i === index ? { ...r, curr: val } : r
+                                    );
+                                    return { ...prev, water_readings: newReadings };
+                                  });
+                                }}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                          Valor da Água (R$/m³)
+                        </label>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          value={billForm.water_value}
+                          onChange={e => setBillForm({ ...billForm, water_value: Number(e.target.value) })}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                          Taxa de Serviço (R$)
+                        </label>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          value={billForm.water_service_fee}
+                          onChange={e => setBillForm({ ...billForm, water_service_fee: Number(e.target.value) })}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                        <span className="text-slate-500 font-medium">Consumo Água:</span>
+                        <strong className="text-slate-900 font-bold">{waterConsumptionTotal.toFixed(2)} m³</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. COBRANÇAS ADICIONAIS / RATEIOS (APENAS SWITCHES COMPACTOS) */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100">
+                  <DollarSign size={16} className="text-slate-700" />
+                  5. Rateios e Cobranças Adicionais
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Switch Fundo de Reserva */}
+                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Fundo de Reserva</span>
+                      <span className="text-[11px] text-slate-500">
+                        Valor fixado: <strong className="text-slate-700">R$ {(settings.reserve_fund_value || 0).toFixed(2)}</strong>
+                      </span>
+                    </div>
+
+                    <div className="relative inline-flex items-center">
+                      <input 
+                        type="checkbox"
+                        checked={billForm.include_reserve_fund}
+                        onChange={e => setBillForm({ ...billForm, include_reserve_fund: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </div>
+                  </label>
+
+                  {/* Switch Pag. Advogado e Contador */}
+                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Pag. Advogado e Contador</span>
+                      <span className="text-[11px] text-slate-500">
+                        Valor fixado: <strong className="text-slate-700">R$ {(settings.default_apportionment_value || billForm.apportionment_value || 0).toFixed(2)}</strong>
+                      </span>
+                    </div>
+
+                    <div className="relative inline-flex items-center">
+                      <input 
+                        type="checkbox"
+                        checked={billForm.include_apportionment}
+                        onChange={e => setBillForm({ 
+                          ...billForm, 
+                          include_apportionment: e.target.checked,
+                          apportionment_value: settings.default_apportionment_value || billForm.apportionment_value || 0 
+                        })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </div>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Observações da Fatura (anexo à mensagem WhatsApp)
+                  </label>
+                  <textarea 
+                    value={billForm.observations}
+                    onChange={e => setBillForm({ ...billForm, observations: e.target.value })}
+                    rows={2}
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-medium text-slate-800"
+                    placeholder="Adicione qualquer observação ou detalhe relevante..."
+                  />
+                </div>
+              </div>
+
+              {/* 6. BARRA DE RESUMO & LANÇAMENTO (APPLE STYLE BAR) */}
+              <div className="p-5 sm:p-6 bg-slate-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="grid grid-cols-3 gap-4 sm:gap-8 w-full md:w-auto text-center md:text-left">
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Energia</span>
+                    <span className="text-base sm:text-xl font-black text-amber-400">
+                      {energyConsumptionTotal.toFixed(2)} kWh
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Água</span>
+                    <span className="text-base sm:text-xl font-black text-sky-400">
+                      {waterConsumptionTotal.toFixed(2)} m³
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Estimado</span>
+                    <span className="text-base sm:text-xl font-black text-emerald-400">
+                      R$ {estimatedBillTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button 
+                    type="button"
+                    onClick={() => handleClearBillForm()}
+                    className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+                    title="Limpar Formulário"
+                  >
+                    <Trash2 size={17} />
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => handleSaveBill()}
+                    className="flex-1 md:flex-initial px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                  >
+                    <MessageSquare size={16} />
+                    {editingBill ? 'Atualizar Conta & WhatsApp' : 'Lançar Conta & Abrir WhatsApp'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {activeTab === 'chacara_history' && (
           <motion.div
@@ -3452,19 +3855,176 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}
             className="space-y-6"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                <span className="text-gray-500 text-[10px] md:text-sm font-semibold mb-1 uppercase tracking-wider">Total a Pagar</span>
-                <span className="text-2xl md:text-3xl font-black text-gray-800">R$ {totalToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            {/* 1. CINCO INDICADORES FINANCEIROS NO TOPO (Apple Clean Cards) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              {/* 1. Total Previsto a Receber */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                <span className="text-slate-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+                  Total Previsto
+                </span>
+                <div className="mt-2">
+                  <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                    R$ {totalToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <p className="text-[10px] text-slate-400 mt-0.5">A faturar no período</p>
+                </div>
               </div>
-              <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                <span className="text-gray-500 text-[10px] md:text-sm font-semibold mb-1 uppercase tracking-wider">Total Pago</span>
-                <span className="text-2xl md:text-3xl font-black text-emerald-600">R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+              {/* 2. Total Recebido */}
+              <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between">
+                <span className="text-emerald-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Total Recebido
+                </span>
+                <div className="mt-2">
+                  <span className="text-lg sm:text-xl font-black text-emerald-600 tracking-tight">
+                    R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <p className="text-[10px] text-emerald-600/80 mt-0.5">Entradas confirmadas</p>
+                </div>
               </div>
-              <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                <span className="text-gray-500 text-[10px] md:text-sm font-semibold mb-1 uppercase tracking-wider">Total Pendente</span>
-                <span className="text-2xl md:text-3xl font-black text-rose-600">R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+              {/* 3. Total de Despesas Pagas */}
+              <div className="bg-white p-4 rounded-2xl border border-rose-200/80 shadow-xs flex flex-col justify-between">
+                <span className="text-rose-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  Despesas Pagas
+                </span>
+                <div className="mt-2">
+                  <span className="text-lg sm:text-xl font-black text-rose-600 tracking-tight">
+                    R$ {totalCompetenceExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <p className="text-[10px] text-rose-600/80 mt-0.5">{filteredMonthExpenses.length} pagamento(s)</p>
+                </div>
               </div>
+
+              {/* 4. Saldo Após Despesas (Recebido - Despesas Pagas) */}
+              <div className={cn(
+                "bg-white p-4 rounded-2xl border shadow-xs flex flex-col justify-between",
+                balanceAfterExpenses >= 0 ? "border-slate-300" : "border-rose-300"
+              )}>
+                <span className="text-slate-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+                  Saldo após Despesas
+                </span>
+                <div className="mt-2">
+                  <span className={cn(
+                    "text-lg sm:text-xl font-black tracking-tight",
+                    balanceAfterExpenses >= 0 ? "text-slate-900" : "text-rose-600"
+                  )}>
+                    R$ {balanceAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Recebido – Despesas pagas</p>
+                </div>
+              </div>
+
+              {/* 5. Total Pendente */}
+              <div className="col-span-2 sm:col-span-1 bg-white p-4 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col justify-between">
+                <span className="text-amber-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  Total Pendente
+                </span>
+                <div className="mt-2">
+                  <span className="text-lg sm:text-xl font-black text-amber-600 tracking-tight">
+                    R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <p className="text-[10px] text-amber-600/80 mt-0.5">Aguardando quitação</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. SEÇÃO EXCLUSIVA: DESPESAS DA COMPETÊNCIA */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                    <Banknote size={15} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Despesas da Competência {filterMonth ? `(${filterMonth})` : '(Todas)'}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Total lançado para esta competência: <strong className="text-slate-900 font-bold">R$ {totalCompetenceExpenses.toFixed(2)}</strong> ({filteredMonthExpenses.length} despesa{filteredMonthExpenses.length === 1 ? '' : 's'})
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('chacara_expenses')}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Gerenciar Despesas →
+                  </button>
+                </div>
+              </div>
+
+              {filteredMonthExpenses.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200/60">
+                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Data Pgto</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Descrição</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Categoria</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-right">Valor</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-center">Comprovante</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredMonthExpenses.slice(0, 8).map(exp => (
+                        <tr key={exp.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
+                            {new Date(exp.date).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-4 py-2.5 font-medium text-slate-900 truncate max-w-xs">
+                            {exp.description}
+                          </td>
+                          <td className="px-4 py-2.5 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+                              {exp.category}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 font-bold text-rose-600 text-right whitespace-nowrap">
+                            R$ {Number(exp.amount).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2.5 text-center whitespace-nowrap">
+                            {exp.receipt_url ? (
+                              <button
+                                onClick={() => {
+                                  const win = window.open();
+                                  if (win) {
+                                    if (exp.receipt_url.startsWith('data:application/pdf')) {
+                                      win.document.write(`<iframe src="${exp.receipt_url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                    } else {
+                                      win.document.write(`<img src="${exp.receipt_url}" style="max-width: 100%; height: auto;" />`);
+                                    }
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-md"
+                              >
+                                <FileText size={12} /> Ver
+                              </button>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredMonthExpenses.length > 8 && (
+                    <div className="p-2.5 text-center bg-slate-50/50 border-t border-slate-100 text-xs text-slate-500">
+                      Mostrando 8 de {filteredMonthExpenses.length} despesas. Clique em <strong>Gerenciar Despesas</strong> para ver todas.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 text-center text-xs text-slate-400">
+                  Nenhuma despesa registrada para a competência {filterMonth || 'selecionada'}.
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
