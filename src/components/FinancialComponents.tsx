@@ -96,11 +96,11 @@ export const FinancialMetricCard: React.FC<FinancialMetricCardProps> = ({
       </div>
 
       <div>
-        <h3 className={cn('text-xl sm:text-2xl font-semibold tracking-tight truncate tabular-nums', styles.text)}>
+        <h3 className={cn('text-xl sm:text-2xl font-bold tracking-tight truncate tabular-nums', styles.text)}>
           {formattedValue}
         </h3>
         {subtitle && (
-          <p className="text-[11px] text-[#86868b] font-normal mt-0.5 truncate">
+          <p className="text-[11px] text-[#86868b] font-normal mt-1 truncate">
             {subtitle}
           </p>
         )}
@@ -129,7 +129,7 @@ export const FinancialHeader: React.FC<FinancialHeaderProps> = ({
           <Icon size={17} />
         </div>
         <div>
-          <h2 className="text-sm sm:text-base font-semibold text-[#1d1d1f] leading-tight tracking-tight">
+          <h2 className="text-base sm:text-lg font-bold text-[#1d1d1f] leading-tight tracking-tight">
             {title}
           </h2>
         </div>

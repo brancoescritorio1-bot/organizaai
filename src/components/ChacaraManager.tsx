@@ -57,7 +57,14 @@ import { WhatsAppIcon, getGreeting } from '../MainApp';
 import { cn } from '../lib/utils';
 import { PdfService } from '../lib/PdfService';
 import { useDialog } from './DialogContext';
-import { StrictFinanceDashboard, Lancamento } from './StrictFinanceDashboard';
+import { StrictFinanceDashboard } from './StrictFinanceDashboard';
+import {
+  computeBillCategoryValues,
+  computeBillSaveTotals,
+  generateChacaraLancamentos,
+  toCents,
+  fromCents,
+} from '../lib/chacaraFinance';
 
 interface ChacaraManagerProps {
   fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
@@ -425,29 +432,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
 
   const invoiceModalRef = useRef<HTMLDivElement>(null);
 
-  const calculateBillCategories = (bill: ChacaraBill) => {
-    const energyConsumption = bill.energy_readings && bill.energy_readings.length > 0
-      ? bill.energy_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0)
-      : (bill.curr_reading || 0) - (bill.prev_reading || 0) + ((bill.curr_reading_2 || 0) - (bill.prev_reading_2 || 0));
-    const energyTotal = energyConsumption * bill.kwh_value;
-    
-    const waterConsumption = bill.water_readings && bill.water_readings.length > 0
-      ? bill.water_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0)
-      : (bill.water_curr_reading || 0) - (bill.water_prev_reading || 0) + ((bill.water_curr_reading_2 || 0) - (bill.water_prev_reading_2 || 0));
-    const waterValueTotal = waterConsumption * (bill.water_value || 0);
-    
-    const apportionment = bill.include_apportionment ? (bill.apportionment_value || 0) : 0;
-    const reserveFund = bill.include_reserve_fund ? (bill.reserve_fund || 0) : 0;
-    const serviceFee = bill.water_service_fee || 0;
-
-    return {
-      energy_total: energyTotal,
-      water_total: waterValueTotal,
-      apportionment: apportionment,
-      reserve_fund: reserveFund,
-      water_service_fee: serviceFee
-    };
-  };
+  const calculateBillCategories = (bill: ChacaraBill) => computeBillCategoryValues(bill);
 
   const [settingsForm, setSettingsForm] = useState<ChacaraSettings>(settings);
 
@@ -589,13 +574,19 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     return true;
   });
 
-  const totalToPay = filteredBills.reduce((acc, bill) => acc + bill.total, 0);
-  const totalPaid = filteredBills.reduce((acc, bill) => acc + (bill.status === 'paid' ? bill.total : (bill.amount_paid || 0)), 0);
-  const totalPending = totalToPay - totalPaid;
+  const totalToPayCents = filteredBills.reduce((acc, bill) => acc + toCents(bill.total), 0);
+  const totalPaidCents = filteredBills.reduce(
+    (acc, bill) => acc + (bill.status === 'paid' ? toCents(bill.total) : Math.min(toCents(bill.total), toCents(bill.amount_paid || 0))),
+    0
+  );
+  const totalToPay = fromCents(totalToPayCents);
+  const totalPaid = fromCents(totalPaidCents);
+  const totalPending = fromCents(Math.max(0, totalToPayCents - totalPaidCents));
 
   const filteredMonthExpenses = expenses.filter(e => !filterMonth || e.month_reference === filterMonth);
-  const totalCompetenceExpenses = filteredMonthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const balanceAfterExpenses = totalPaid - totalCompetenceExpenses;
+  const totalCompetenceExpensesCents = filteredMonthExpenses.reduce((sum, e) => sum + toCents(e.amount || 0), 0);
+  const totalCompetenceExpenses = fromCents(totalCompetenceExpensesCents);
+  const balanceAfterExpenses = fromCents(totalPaidCents - totalCompetenceExpensesCents);
 
   const statsBills = bills.filter(bill => !filterMonth || bill.month_reference === filterMonth);
 
@@ -927,13 +918,23 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
       }
     }
 
-    const energyTotal = hasEnergy ? (consumption * billForm.kwh_value) : 0;
-    const waterTotal = hasWater ? (waterConsumption * billForm.water_value) : 0;
-    const apportionment = billForm.include_apportionment ? billForm.apportionment_value : 0;
-    const reserveFund = billForm.include_reserve_fund ? settings.reserve_fund_value : 0;
-    const waterServiceFee = hasWater ? (billForm.water_service_fee || 0) : 0;
-    
-    const total = Number((energyTotal + waterTotal + apportionment + reserveFund + waterServiceFee).toFixed(2));
+    const saveTotals = computeBillSaveTotals({
+      energyKwh: consumption,
+      kwhValue: billForm.kwh_value,
+      hasEnergy,
+      waterM3: waterConsumption,
+      waterValue: billForm.water_value,
+      hasWater,
+      waterServiceFee: billForm.water_service_fee || 0,
+      apportionmentValue: billForm.apportionment_value,
+      includeApportionment: billForm.include_apportionment,
+      reserveFundValue: settings.reserve_fund_value,
+      includeReserveFund: billForm.include_reserve_fund,
+    });
+    const apportionment = saveTotals.apportionment;
+    const reserveFund = saveTotals.reserveFund;
+    const waterServiceFee = saveTotals.waterServiceFee;
+    const total = saveTotals.total;
 
     const payload = {
       ...billForm,
@@ -1523,106 +1524,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
     return message;
   };
 
-  const generateLancamentos = (): Lancamento[] => {
-    const lancamentos: Lancamento[] = [];
-
-    bills.forEach(bill => {
-      const isPaid = bill.status === 'paid';
-      const isPartial = bill.status === 'partial';
-
-      const fundoReserva = bill.include_reserve_fund ? (bill.reserve_fund || 0) : 0;
-      const rateio = bill.include_apportionment ? (bill.apportionment_value || 0) : 0;
-      const prestador = bill.water_service_fee || 0;
-
-      const energyConsumption = bill.energy_readings && bill.energy_readings.length > 0
-        ? bill.energy_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0)
-        : (bill.curr_reading || 0) - (bill.prev_reading || 0) + ((bill.curr_reading_2 || 0) - (bill.prev_reading_2 || 0));
-      const energia = energyConsumption * (bill.kwh_value || 0);
-
-      const waterConsumption = bill.water_readings && bill.water_readings.length > 0
-        ? bill.water_readings.reduce((acc, r) => acc + (r.curr - r.prev), 0)
-        : (bill.water_curr_reading || 0) - (bill.water_prev_reading || 0) + ((bill.water_curr_reading_2 || 0) - (bill.water_prev_reading_2 || 0));
-      const agua = waterConsumption * (bill.water_value || 0);
-
-      const calculatedTotal = fundoReserva + rateio + prestador + agua + energia;
-
-      const cats = [
-        { cat: 'fundo_reserva', val: fundoReserva },
-        { cat: 'rateio', val: rateio },
-        { cat: 'prestador', val: prestador },
-        { cat: 'agua', val: agua },
-        { cat: 'energia', val: energia },
-      ];
-
-      const amountPaid = bill.amount_paid || 0;
-      const hasPaidCategories = bill.paid_categories && Object.keys(bill.paid_categories).length > 0;
-
-      cats.forEach(c => {
-        let valorPagoCat = 0;
-        let statusCat: 'pago' | 'pendente' | 'parcial' = 'pendente';
-
-        if (c.val <= 0) {
-          valorPagoCat = 0;
-          statusCat = 'pago';
-        } else if (isPaid) {
-          valorPagoCat = c.val;
-          statusCat = 'pago';
-        } else if (isPartial && hasPaidCategories) {
-          const keyMap: Record<string, string> = {
-            'fundo_reserva': 'reserve_fund',
-            'rateio': 'apportionment',
-            'prestador': 'water_service_fee',
-            'agua': 'water_total',
-            'energia': 'energy_total'
-          };
-          const isCatPaid = bill.paid_categories![keyMap[c.cat]];
-          valorPagoCat = isCatPaid ? c.val : 0;
-          statusCat = isCatPaid ? 'pago' : 'pendente';
-        } else if (isPartial && !hasPaidCategories) {
-          const ratio = calculatedTotal > 0 ? amountPaid / calculatedTotal : 0;
-          valorPagoCat = c.val * ratio;
-          statusCat = 'parcial';
-        } else {
-          valorPagoCat = 0;
-          statusCat = 'pendente';
-        }
-
-        const user = users.find(u => u.id === bill.chacara_user_id);
-        const userName = user ? user.name : 'Desconhecido';
-
-        lancamentos.push({
-          id: `${bill.id}-${c.cat}`,
-          data: bill.due_date,
-          mes_referencia: bill.month_reference,
-          categoria: c.cat as any,
-          tipo: 'receita',
-          valor: c.val,
-          status: statusCat,
-          valor_pago: valorPagoCat,
-          descricao: userName,
-          is_divergent: bill.is_divergent || false
-        });
-      });
-    });
-
-    expenses.forEach(exp => {
-      lancamentos.push({
-        id: exp.id,
-        data: exp.date,
-        mes_referencia: exp.month_reference,
-        categoria: 'despesa_geral',
-        tipo: 'despesa',
-        valor: Number(exp.amount),
-        status: 'pago',
-        valor_pago: Number(exp.amount),
-        descricao: exp.description
-      });
-    });
-
-    return lancamentos;
-  };
-
-  const lancamentos = generateLancamentos();
+  const lancamentos = generateChacaraLancamentos(bills, users, expenses);
 
   return (
     <div className="space-y-6">
@@ -1639,6 +1541,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               filterMonth={filterMonth}
               setFilterMonth={setFilterMonth}
               onRefresh={fetchData}
+              bills={bills}
+              users={users}
+              expenses={expenses}
             />
           </motion.div>
         )}
@@ -1651,12 +1556,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
           >
             <Card title="Relatório de Pendências Acumuladas" icon={AlertCircle}>
               <div className="space-y-6">
-                <div className="bg-gray-50/50 p-6 rounded-3xl border border-gray-100 mb-8 space-y-6">
-                  <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+                <div className="bg-gray-50/50 p-5 sm:p-6 rounded-2xl border border-gray-100 mb-6 space-y-5">
+                  <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                       {/* Search */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Buscar Morador</label>
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 block">Buscar Morador</label>
                         <div className="relative group">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                           <input 
@@ -1664,27 +1569,27 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             placeholder="Nome ou telefone..."
                             value={pendingSearch}
                             onChange={(e) => setPendingSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                           />
                         </div>
                       </div>
 
                       {/* Sort */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ordenar Lista</label>
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 block">Ordenar Lista</label>
                         <select
                           value={pendingSort}
                           onChange={(e) => setPendingSort(e.target.value as 'name' | 'balance')}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                         >
                           <option value="name">Por Nome (A-Z)</option>
                           <option value="balance">Por Saldo (Maior)</option>
                         </select>
                       </div>
 
-                      <div className="flex flex-col items-start lg:items-end gap-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Resumo Financeiro</label>
-                        <div className="bg-amber-100 text-amber-800 px-6 py-2.5 rounded-2xl text-xs font-black border border-amber-200 shadow-sm whitespace-nowrap">
+                      <div className="flex flex-col items-start lg:items-end gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 block">Resumo Financeiro</label>
+                        <div className="bg-amber-100 text-amber-800 px-5 py-2.5 rounded-xl text-xs font-bold border border-amber-200 shadow-sm whitespace-nowrap tabular-nums">
                           Total em Aberto: R$ {users.reduce((acc, user) => {
                             const userBills = bills.filter(b => {
                               if (b.chacara_user_id !== user.id || b.status === 'paid') return false;
@@ -1836,7 +1741,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     })}
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 text-right font-black text-red-600">
+                                <td className="px-6 py-4 text-right font-bold text-red-600 tabular-nums whitespace-nowrap">
                                   R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                                 <td className="px-6 py-4 text-right">
@@ -2082,32 +1987,32 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               className="space-y-6"
             >
               {/* Top Stats / KPI Cards - Minimalist & Modern */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
                   <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Total de Moradores</span>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{totalUsersCount}</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums">{totalUsersCount}</div>
                   <span className="text-xs text-gray-500 mt-1 block">titulares cadastrados</span>
                 </div>
 
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
                   <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Energia Elétrica</span>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums">
                     {activeEnergyUsersCount} <span className="text-sm font-normal text-gray-400">ativos</span>
                   </div>
-                  <span className="text-xs text-gray-500 mt-1 block">{totalEnergyMetersCount} padrão(ões) totais</span>
+                  <span className="text-xs text-gray-500 mt-1 block tabular-nums">{totalEnergyMetersCount} padrão(ões) totais</span>
                 </div>
 
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
                   <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Água Encanada</span>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums">
                     {activeWaterUsersCount} <span className="text-sm font-normal text-gray-400">ativos</span>
                   </div>
-                  <span className="text-xs text-gray-500 mt-1 block">{totalWaterMetersCount} hidrômetro(s) totais</span>
+                  <span className="text-xs text-gray-500 mt-1 block tabular-nums">{totalWaterMetersCount} hidrômetro(s) totais</span>
                 </div>
 
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-xs">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
                   <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Pontos Desligados</span>
-                  <div className={`text-2xl sm:text-3xl font-bold tracking-tight ${inactiveServicesCount > 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                  <div className={`text-2xl sm:text-3xl font-bold tracking-tight tabular-nums ${inactiveServicesCount > 0 ? 'text-rose-600' : 'text-gray-900'}`}>
                     {inactiveServicesCount}
                   </div>
                   <span className="text-xs text-gray-500 mt-1 block">
@@ -3255,7 +3160,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             {expense.category}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-bold text-rose-600 text-right whitespace-nowrap">
+                        <td className="px-4 py-3 font-bold text-rose-600 text-right whitespace-nowrap tabular-nums">
                           R$ {Number(expense.amount).toFixed(2)}
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
@@ -3803,21 +3708,21 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 <div className="grid grid-cols-3 gap-4 sm:gap-8 w-full md:w-auto text-center md:text-left">
                   <div>
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Energia</span>
-                    <span className="text-base sm:text-xl font-black text-amber-400">
+                    <span className="text-base sm:text-xl font-bold text-amber-400 tabular-nums">
                       {energyConsumptionTotal.toFixed(2)} kWh
                     </span>
                   </div>
 
                   <div>
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Água</span>
-                    <span className="text-base sm:text-xl font-black text-sky-400">
+                    <span className="text-base sm:text-xl font-bold text-sky-400 tabular-nums">
                       {waterConsumptionTotal.toFixed(2)} m³
                     </span>
                   </div>
 
                   <div>
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Estimado</span>
-                    <span className="text-base sm:text-xl font-black text-emerald-400">
+                    <span className="text-base sm:text-xl font-bold text-emerald-400 tabular-nums">
                       R$ {estimatedBillTotal.toFixed(2)}
                     </span>
                   </div>
@@ -3858,49 +3763,49 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             {/* 1. CINCO INDICADORES FINANCEIROS NO TOPO (Apple Clean Cards) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {/* 1. Total Previsto a Receber */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
                 <span className="text-slate-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                   Total Previsto
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  <span className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight tabular-nums">
                     R$ {totalToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[10px] text-slate-400 mt-0.5">A faturar no período</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">A faturar no período</p>
                 </div>
               </div>
 
               {/* 2. Total Recebido */}
-              <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between">
                 <span className="text-emerald-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   Total Recebido
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-black text-emerald-600 tracking-tight">
+                  <span className="text-lg sm:text-xl font-bold text-emerald-600 tracking-tight tabular-nums">
                     R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[10px] text-emerald-600/80 mt-0.5">Entradas confirmadas</p>
+                  <p className="text-[11px] text-emerald-600/80 mt-0.5">Entradas confirmadas</p>
                 </div>
               </div>
 
               {/* 3. Total de Despesas Pagas */}
-              <div className="bg-white p-4 rounded-2xl border border-rose-200/80 shadow-xs flex flex-col justify-between">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-rose-200/80 shadow-xs flex flex-col justify-between">
                 <span className="text-rose-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
                   Despesas Pagas
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-black text-rose-600 tracking-tight">
+                  <span className="text-lg sm:text-xl font-bold text-rose-600 tracking-tight tabular-nums">
                     R$ {totalCompetenceExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[10px] text-rose-600/80 mt-0.5">{filteredMonthExpenses.length} pagamento(s)</p>
+                  <p className="text-[11px] text-rose-600/80 mt-0.5 tabular-nums">{filteredMonthExpenses.length} pagamento(s)</p>
                 </div>
               </div>
 
               {/* 4. Saldo Após Despesas (Recebido - Despesas Pagas) */}
               <div className={cn(
-                "bg-white p-4 rounded-2xl border shadow-xs flex flex-col justify-between",
+                "bg-white p-4 sm:p-5 rounded-2xl border shadow-xs flex flex-col justify-between",
                 balanceAfterExpenses >= 0 ? "border-slate-300" : "border-rose-300"
               )}>
                 <span className="text-slate-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
@@ -3908,26 +3813,26 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 </span>
                 <div className="mt-2">
                   <span className={cn(
-                    "text-lg sm:text-xl font-black tracking-tight",
+                    "text-lg sm:text-xl font-bold tracking-tight tabular-nums",
                     balanceAfterExpenses >= 0 ? "text-slate-900" : "text-rose-600"
                   )}>
                     R$ {balanceAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Recebido – Despesas pagas</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Recebido – Despesas pagas</p>
                 </div>
               </div>
 
               {/* 5. Total Pendente */}
-              <div className="col-span-2 sm:col-span-1 bg-white p-4 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col justify-between">
+              <div className="col-span-2 sm:col-span-1 bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col justify-between">
                 <span className="text-amber-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
                   Total Pendente
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-black text-amber-600 tracking-tight">
+                  <span className="text-lg sm:text-xl font-bold text-amber-600 tracking-tight tabular-nums">
                     R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[10px] text-amber-600/80 mt-0.5">Aguardando quitação</p>
+                  <p className="text-[11px] text-amber-600/80 mt-0.5">Aguardando quitação</p>
                 </div>
               </div>
             </div>
@@ -4155,22 +4060,22 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 {user?.cpf && <span className="font-mono text-gray-400">• CPF: {user.cpf}</span>}
                               </div>
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {energyTotal.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {waterValueTotal.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {apportionment.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {reserveFund.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {serviceFee.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center font-bold text-indigo-600 ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center font-bold text-indigo-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {bill.total.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 text-center">

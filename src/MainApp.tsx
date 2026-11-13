@@ -143,7 +143,7 @@ const Card = ({ children, title, icon: Icon, className = "" }: { children: React
       <div className="px-5 md:px-6 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-white/70">
         <div className="flex items-center gap-2.5">
           {Icon && <Icon size={17} className="text-[#1d1d1f]" />}
-          <h3 className="font-semibold text-[#1d1d1f] text-sm tracking-tight">{title}</h3>
+          <h3 className="font-bold text-[#1d1d1f] text-sm sm:text-base tracking-tight">{title}</h3>
         </div>
       </div>
     )}
@@ -1553,7 +1553,7 @@ Escalas GMNL ${year}`;
 
       {/* Top Header (Apple Glass Top Bar) */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-30 print:hidden">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile hamburger button */}
             <button 
@@ -1609,7 +1609,7 @@ Escalas GMNL ${year}`;
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32 md:pb-28">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32 md:pb-28">
         <AnimatePresence mode="wait">
           {activeModule === 'home' && (
             <motion.div 
@@ -2184,11 +2184,14 @@ Escalas GMNL ${year}`;
 
           {activeTab === 'dashboard' && (
             <motion.div key="dashboard" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Resumo Geral</h2>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold tracking-tight text-gray-800">Resumo Geral</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Acompanhamento de frequência, atividades e desempenho por período</p>
+                </div>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                   <select 
-                    className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full sm:w-auto px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
                     value={selectedPeriodFilter}
                     onChange={(e) => {
                       setSelectedPeriodFilter(e.target.value);
@@ -2200,7 +2203,7 @@ Escalas GMNL ${year}`;
                   </select>
 
                   <select 
-                    className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full sm:w-auto px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
                     value={selectedSubjectDashboardFilter}
                     onChange={(e) => setSelectedSubjectDashboardFilter(e.target.value)}
                   >
@@ -2211,7 +2214,7 @@ Escalas GMNL ${year}`;
                     }
                   </select>
 
-                  <button onClick={exportExcel} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-100 transition-colors">
+                  <button onClick={exportExcel} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors whitespace-nowrap">
                     <Download size={16} /> Excel
                   </button>
                 </div>
@@ -2257,19 +2260,19 @@ Escalas GMNL ${year}`;
                         ].map((d, i) => {
                           const countdown = getCountdown(d.date, d.status);
                           return (
-                            <div key={i} className="bg-white p-3 md:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-2">{d.label}</p>
-                              <div className="flex flex-col gap-1 md:gap-2 items-center">
-                                <span className={cn("px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-bold", countdown.color)}>
+                            <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{d.label}</p>
+                              <div className="flex flex-col gap-1 md:gap-2 items-center tabular-nums">
+                                <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap", countdown.color)}>
                                   {countdown.text}
                                 </span>
                                 {d.grade !== null && d.grade !== undefined && (
-                                  <span className="px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-bold text-emerald-600 bg-emerald-50">
+                                  <span className="px-2.5 py-1 rounded-full text-xs font-bold text-emerald-600 bg-emerald-50 whitespace-nowrap">
                                     Nota: {d.grade}
                                   </span>
                                 )}
                               </div>
-                              <div className="mt-2 md:mt-3 space-y-0.5 md:space-y-1">
+                              <div className="mt-2.5 space-y-0.5 tabular-nums">
                                 {d.start && (
                                   <p className="text-[11px] md:text-xs text-gray-500">
                                     <span className="font-semibold">Início:</span> {formatDateString(d.start)}
@@ -2392,40 +2395,40 @@ Escalas GMNL ${year}`;
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                          <div className="text-center p-2 bg-gray-50/50 rounded-xl">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Presença</p>
-                            <p className={cn("text-lg md:text-xl font-bold", presencePct < 75 ? "text-red-500" : "text-gray-800")}>{presencePct}%</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 tabular-nums">
+                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Presença</p>
+                            <p className={cn("text-lg md:text-xl font-bold tracking-tight", presencePct < 75 ? "text-red-500" : "text-gray-800")}>{presencePct}%</p>
                           </div>
-                          <div className="text-center p-2 bg-gray-50/50 rounded-xl">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Nota Final</p>
-                            <p className={cn("text-lg md:text-xl font-bold", finalScore < (maxPossible * 0.6) ? "text-red-500" : "text-gray-800")}>
-                              {finalScore.toLocaleString()} <span className="text-xs text-gray-400">/ {maxPossible.toLocaleString()}</span>
+                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nota Final</p>
+                            <p className={cn("text-lg md:text-xl font-bold tracking-tight", finalScore < (maxPossible * 0.6) ? "text-red-500" : "text-gray-800")}>
+                              {finalScore.toLocaleString()} <span className="text-xs font-semibold text-gray-400">/ {maxPossible.toLocaleString()}</span>
                             </p>
                           </div>
-                          <div className="text-center p-2 bg-gray-50/50 rounded-xl">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Web</p>
-                            <p className="text-lg md:text-xl font-bold text-gray-800">{webPct}%</p>
+                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Web</p>
+                            <p className="text-lg md:text-xl font-bold tracking-tight text-gray-800">{webPct}%</p>
                           </div>
-                          <div className="text-center p-2 bg-gray-50/50 rounded-xl">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Atividades</p>
-                            <p className="text-lg md:text-xl font-bold text-gray-800">{avPct}%</p>
+                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Atividades</p>
+                            <p className="text-lg md:text-xl font-bold tracking-tight text-gray-800">{avPct}%</p>
                           </div>
                         </div>
                         
                         {/* Deadlines Display */}
-                        <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-3 gap-2 text-center">
+                        <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-3 gap-2 text-center tabular-nums">
                           <div>
-                            <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">Ativ. 1</p>
-                            <p className="text-xs font-semibold text-gray-600">{formatDateString(item.act1_deadline) || '-'}</p>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ativ. 1</p>
+                            <p className="text-xs font-semibold text-gray-600 mt-0.5">{formatDateString(item.act1_deadline) || '-'}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">Ativ. 2</p>
-                            <p className="text-xs font-semibold text-gray-600">{formatDateString(item.act2_deadline) || '-'}</p>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ativ. 2</p>
+                            <p className="text-xs font-semibold text-gray-600 mt-0.5">{formatDateString(item.act2_deadline) || '-'}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">Prova</p>
-                            <p className="text-xs font-semibold text-gray-600">{formatDateString(item.exam_date) || '-'}</p>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Prova</p>
+                            <p className="text-xs font-semibold text-gray-600 mt-0.5">{formatDateString(item.exam_date) || '-'}</p>
                           </div>
                         </div>
                       </div>
@@ -3005,7 +3008,7 @@ Escalas GMNL ${year}`;
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {usersList.map((u: any) => (
-                          <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                          <tr key={u.id} className="hover:bg-gray-50 transition-colors tabular-nums">
                             <td className="px-4 py-3 font-medium text-gray-900">{u.email}</td>
                             <td className="px-4 py-3 text-gray-500">{new Date(u.created_at).toLocaleDateString()}</td>
                             <td className="px-4 py-3 text-gray-500">
@@ -3202,26 +3205,26 @@ Escalas GMNL ${year}`;
 
                 return (
                   <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
                       <div className="flex items-center gap-2">
                         <PieChart size={18} className="text-indigo-600" />
-                        <h3 className="text-base font-bold text-gray-800">Distribuição das Despesas por Categoria</h3>
+                        <h3 className="text-sm sm:text-base font-bold text-gray-800 tracking-tight">Distribuição das Despesas por Categoria</h3>
                       </div>
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider tabular-nums">
                         Total: R$ {totalExp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
 
-                    <div className="h-60 flex flex-col md:flex-row items-center justify-center gap-4">
-                      <div className="w-full md:w-1/2 h-full">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
+                      <div className="lg:col-span-5 h-60 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <RechartsPieChart>
                             <Pie
                               data={chartData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={55}
-                              outerRadius={75}
+                              innerRadius={56}
+                              outerRadius={80}
                               paddingAngle={4}
                               dataKey="value"
                             >
@@ -3237,16 +3240,16 @@ Escalas GMNL ${year}`;
                         </ResponsiveContainer>
                       </div>
 
-                      <div className="w-full md:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto max-h-48 pr-1">
+                      <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-56 pr-1">
                         {chartData.map((entry, index) => {
                           const pct = totalExp > 0 ? ((entry.value / totalExp) * 100).toFixed(0) : '0';
                           return (
-                            <div key={index} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                            <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
                               <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                                 <span className="text-gray-700 font-medium truncate">{entry.name}</span>
                               </div>
-                              <div className="text-right shrink-0 ml-2">
+                              <div className="text-right shrink-0 ml-2 tabular-nums">
                                 <span className="font-bold text-gray-900 block">R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                 <span className="text-[10px] text-gray-400 font-semibold">{pct}%</span>
                               </div>
@@ -3279,7 +3282,7 @@ Escalas GMNL ${year}`;
                               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{acc.type}</span>
                             </div>
                           </div>
-                          <span className={cn("font-bold text-sm shrink-0 ml-2", acc.balance < 0 ? "text-red-600" : "text-emerald-600")}>
+                          <span className={cn("font-bold text-sm shrink-0 ml-2 tabular-nums", acc.balance < 0 ? "text-red-600" : "text-emerald-600")}>
                             R$ {Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -3304,7 +3307,7 @@ Escalas GMNL ${year}`;
                             </div>
                             <span className="font-bold text-gray-800 text-sm truncate">{name}</span>
                           </div>
-                          <span className="font-bold text-indigo-600 text-sm shrink-0 ml-2">
+                          <span className="font-bold text-indigo-600 text-sm shrink-0 ml-2 tabular-nums">
                             R$ {Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -3345,7 +3348,7 @@ Escalas GMNL ${year}`;
                                 </div>
                                 <span className="font-bold text-gray-700">{name}</span>
                               </div>
-                              <span className="font-bold text-indigo-600">
+                              <span className="font-bold text-indigo-600 tabular-nums">
                                 R$ {Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
@@ -3537,20 +3540,20 @@ Escalas GMNL ${year}`;
 
                 return (
                   <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6" id="expenses-pie-chart-container">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-5">
                       <PieChart size={18} className="text-indigo-600" />
-                      <h3 className="text-base font-bold text-gray-800">Despesas por Categoria (Filtradas)</h3>
+                      <h3 className="text-sm sm:text-base font-bold text-gray-800 tracking-tight">Despesas por Categoria (Filtradas)</h3>
                     </div>
-                    <div className="h-60 flex flex-col md:flex-row items-center justify-center gap-4">
-                      <div className="w-full md:w-1/2 h-full">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
+                      <div className="lg:col-span-5 h-60 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <RechartsPieChart>
                             <Pie
                               data={chartData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={55}
-                              outerRadius={75}
+                              innerRadius={56}
+                              outerRadius={80}
                               paddingAngle={4}
                               dataKey="value"
                             >
@@ -3565,14 +3568,14 @@ Escalas GMNL ${year}`;
                           </RechartsPieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="w-full md:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto max-h-48 pr-1">
+                      <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-56 pr-1">
                         {chartData.map((entry, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                          <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                               <span className="text-gray-700 font-medium truncate">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-gray-900 shrink-0 ml-2">
+                            <span className="font-bold text-gray-900 shrink-0 ml-2 tabular-nums">
                               R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -3621,10 +3624,10 @@ Escalas GMNL ${year}`;
                   <div className="space-y-4">
                     {/* Header List Summary */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider tabular-nums">
                         {filteredTransactions.length} {filteredTransactions.length === 1 ? 'Lançamento Encontrado' : 'Lançamentos Encontrados'}
                       </span>
-                      <div className="flex items-center gap-3 text-xs font-bold">
+                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold tabular-nums">
                         <span className="text-emerald-600">+ R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         <span className="text-red-600">- R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         <span className={cn(totalIncome - totalExpense >= 0 ? "text-indigo-600" : "text-amber-600")}>
@@ -3691,7 +3694,7 @@ Escalas GMNL ${year}`;
                                 </div>
                               </div>
                               <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
-                                <p className={cn("font-black text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                                <p className={cn("font-bold tracking-tight tabular-nums text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
                                   {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                                 <div className="flex items-center justify-end gap-2 sm:mt-1">
@@ -3739,7 +3742,7 @@ Escalas GMNL ${year}`;
                                       {s.name.charAt(0).toUpperCase()}
                                     </div>
                                     <span className={cn("text-[10px] font-bold", s.status === 'pago' ? "line-through text-emerald-700" : "text-gray-700")}>{s.name}:</span>
-                                    <span className={cn("text-[10px] font-black", s.status === 'pago' ? "text-emerald-700" : "text-indigo-600")}>
+                                    <span className={cn("text-[10px] font-bold tabular-nums", s.status === 'pago' ? "text-emerald-700" : "text-indigo-600")}>
                                       R$ {Number(s.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>
                                     {s.status === 'pago' && <Check size={10} className="text-emerald-600" />}
@@ -3884,9 +3887,9 @@ Escalas GMNL ${year}`;
                         <div className="space-y-6">
                           <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex flex-col gap-4">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                              <div className="flex flex-col gap-1">
+                              <div className="flex flex-col gap-1 tabular-nums">
                                 <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Período da Fatura</p>
-                                <p className="text-base md:text-lg font-bold text-indigo-900">
+                                <p className="text-base md:text-lg font-bold tracking-tight text-indigo-900">
                                   {invoiceStart?.toLocaleDateString()} até {invoiceEnd?.toLocaleDateString()}
                                 </p>
                                 <p className="text-xs text-indigo-500 font-medium">
@@ -4140,7 +4143,7 @@ Escalas GMNL ${year}`;
                                         </div>
                                         <div className="flex-1 min-w-0">
                                           <p className="font-medium text-gray-900 truncate">{t.description}</p>
-                                          <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap mt-1 sm:mt-0">
+                                          <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap mt-1 sm:mt-0 tabular-nums">
                                             <span>Vencimento: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString() : 'N/A'}</span>
                                             {t.is_installment && (
                                               <span className="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">
@@ -4161,7 +4164,7 @@ Escalas GMNL ${year}`;
 
                                           return (
                                             <>
-                                              <span className={cn("font-bold text-sm sm:text-base whitespace-nowrap", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                                              <span className={cn("font-bold text-sm sm:text-base whitespace-nowrap tabular-nums", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
                                                 {t.type === 'despesa' ? '-' : '+'} R$ {Number(displayAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                               </span>
                                               <button
@@ -4306,7 +4309,7 @@ Escalas GMNL ${year}`;
                   {Number(finTransactionForm.discount) > 0 && (
                     <div className="md:col-span-2 -mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
                       <span className="font-semibold text-emerald-800">Valor Líquido com Desconto:</span>
-                      <span className="font-black text-emerald-700 text-sm">
+                      <span className="font-bold text-emerald-700 text-sm tabular-nums">
                         R$ {Math.max(0, (Number(finTransactionForm.amount) || 0) - (Number(finTransactionForm.discount) || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -4504,7 +4507,7 @@ Escalas GMNL ${year}`;
                     {finTransactionForm.splits.length > 0 && (
                       <div className="pt-2 border-t border-indigo-100 flex justify-between items-center">
                         <span className="text-xs font-bold text-gray-500 uppercase">Total Dividido:</span>
-                        <span className={cn("font-bold", 
+                        <span className={cn("font-bold tabular-nums", 
                           finTransactionForm.splits.reduce((sum, s) => sum + s.amount, 0) === Number(finTransactionForm.amount) 
                             ? "text-emerald-600" 
                             : "text-amber-600"
@@ -4624,7 +4627,7 @@ Escalas GMNL ${year}`;
                           </div>
                         </div>
                           <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
-                            <span className={cn("font-bold text-sm md:text-base", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                            <span className={cn("font-bold text-sm md:text-base tabular-nums", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
                               {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                             <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -5254,7 +5257,7 @@ Escalas GMNL ${year}`;
                         </div>
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">A Receber (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
                         R$ {clientInstallments.reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
@@ -5265,7 +5268,7 @@ Escalas GMNL ${year}`;
                         </div>
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Recebido (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight text-emerald-700">
+                      <h3 className="text-xl font-bold tracking-tight text-emerald-700 tabular-nums">
                         R$ {clientInstallments.filter(i => i.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
@@ -5276,7 +5279,7 @@ Escalas GMNL ${year}`;
                         </div>
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pendente (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight text-amber-700">
+                      <h3 className="text-xl font-bold tracking-tight text-amber-700 tabular-nums">
                         R$ {clientInstallments.filter(i => i.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
@@ -5494,21 +5497,21 @@ Escalas GMNL ${year}`;
                             clientInstallments.map(inst => (
                               <div key={inst.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
                                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                                  <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-[10px] md:text-xs", inst.status === 'pago' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
+                                  <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-[10px] md:text-xs tabular-nums", inst.status === 'pago' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
                                     {String(inst.installment_number).padStart(2, '0')}/{String(inst.client_sales?.installment_count || 1).padStart(2, '0')}
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <h4 className="font-bold text-gray-800 text-sm md:text-base truncate">{inst.client_sales?.clients?.name}</h4>
                                     <p className="text-[10px] md:text-xs text-gray-500 truncate">{inst.client_sales?.description}</p>
-                                    <p className="text-[10px] md:text-xs font-semibold text-indigo-600">Venc: {formatDateString(inst.due_date)}</p>
+                                    <p className="text-[10px] md:text-xs font-semibold text-indigo-600 tabular-nums">Venc: {formatDateString(inst.due_date)}</p>
                                   </div>
                                   <div className="text-right sm:hidden flex-shrink-0">
-                                    <span className="block font-bold text-gray-900 text-sm">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    <span className="block font-bold text-gray-900 text-sm tabular-nums">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                   </div>
                                 </div>
                                 <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 flex-shrink-0">
                                   <div className="hidden sm:block text-right">
-                                    <span className="block font-bold text-gray-900">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    <span className="block font-bold text-gray-900 tabular-nums">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <button 

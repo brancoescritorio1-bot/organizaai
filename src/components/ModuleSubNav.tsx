@@ -96,7 +96,7 @@ export const ModuleBottomNav: React.FC<ModuleBottomNavProps> = ({
         sidebarCollapsed ? "left-0 md:left-20" : "left-0 md:left-64"
       )}
     >
-      <div className="max-w-6xl mx-auto flex items-center justify-between w-full overflow-x-auto scrollbar-none px-2">
+      <div className="max-w-7xl mx-auto flex items-center justify-between w-full overflow-x-auto scrollbar-none px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -108,7 +108,7 @@ export const ModuleBottomNav: React.FC<ModuleBottomNavProps> = ({
               aria-selected={isActive}
               onClick={() => onSelectTab(tab.id)}
               className={cn(
-                "relative flex flex-col items-center justify-center py-2 px-1 transition-all duration-150 flex-1 min-w-[64px] sm:min-w-[80px] cursor-pointer select-none group",
+                "relative flex flex-col items-center justify-center py-2.5 px-1.5 transition-all duration-150 flex-1 min-w-[68px] sm:min-w-[84px] cursor-pointer select-none group",
                 isActive ? "text-[#0071e3]" : "text-[#86868b] hover:text-[#1d1d1f]"
               )}
             >
@@ -124,7 +124,7 @@ export const ModuleBottomNav: React.FC<ModuleBottomNavProps> = ({
                   )} 
                 />
                 <span className={cn(
-                  "text-[10px] sm:text-[11px] font-medium tracking-tight truncate w-full text-center leading-none",
+                  "text-[10px] sm:text-[11px] font-medium tracking-tight truncate w-full text-center leading-none whitespace-nowrap",
                   isActive ? "text-[#0071e3] font-semibold" : "text-[#86868b]"
                 )}>
                   {tab.label}

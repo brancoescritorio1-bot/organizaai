@@ -84,26 +84,26 @@ export function ResponsibleManager({ fetchWithAuth, onUpdate }: ResponsibleManag
 
   return (
     <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-      <h3 className="text-base md:text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <User size={20} className="text-indigo-600" />
+      <h3 className="text-sm sm:text-base font-bold tracking-tight text-gray-800 mb-4 flex items-center gap-2">
+        <User size={19} className="text-indigo-600" />
         Gerenciar Responsáveis
       </h3>
       
-      <div className="flex flex-col sm:flex-row gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-6">
         <input
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nome do responsável"
-          className="flex-1 px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+          className="flex-1 px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
         />
         <button
           onClick={handleAdd}
           disabled={loading || !newName.trim()}
-          className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
         >
-          <Plus size={18} />
+          <Plus size={17} />
           {loading ? 'Adicionando...' : 'Adicionar'}
         </button>
       </div>

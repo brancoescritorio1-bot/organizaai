@@ -132,15 +132,15 @@ export const HomePage: React.FC<HomePageProps> = ({
   }, [pendingTasks, filterView, todayStr]);
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* 1. Header: Apple-style Minimalist Welcome */}
-      <div className="bg-white rounded-2xl border border-black/[0.06] p-6 sm:p-8 shadow-xs">
-        <div className="space-y-1.5 max-w-2xl">
+      <div className="bg-white rounded-2xl border border-black/[0.06] p-6 sm:p-7 shadow-xs">
+        <div className="space-y-1.5 max-w-3xl">
           <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider block">
             {formattedDate}
           </span>
 
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1d1d1f]">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1d1d1f]">
             {greeting}
           </h1>
 
@@ -150,7 +150,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* Minimalist Personal Summary Bar */}
-        <div className="mt-6 pt-5 border-t border-black/[0.05] flex flex-wrap items-center gap-4 text-xs">
+        <div className="mt-5 pt-4 border-t border-black/[0.05] flex flex-wrap items-center gap-4 text-xs tabular-nums">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#1d1d1f]" />
             <span className="font-semibold text-[#1d1d1f]">{pendingTasks.length}</span>
@@ -199,12 +199,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Apple Segmented Control */}
-          <div className="flex items-center gap-1 p-1 bg-[#f5f5f7] rounded-xl border border-black/[0.04] text-xs">
+          <div className="flex items-center gap-1 p-1 bg-[#f5f5f7] rounded-xl border border-black/[0.04] text-xs tabular-nums">
             <button
               type="button"
               onClick={() => setFilterView('all')}
               className={cn(
-                "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer",
+                "px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap",
                 filterView === 'all'
                   ? "bg-white text-[#1d1d1f] shadow-xs font-semibold"
                   : "text-[#515154] hover:text-[#1d1d1f] font-medium"
@@ -216,7 +216,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="button"
               onClick={() => setFilterView('urgent')}
               className={cn(
-                "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer",
+                "px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap",
                 filterView === 'urgent'
                   ? "bg-white text-[#1d1d1f] shadow-xs font-semibold"
                   : "text-[#515154] hover:text-[#1d1d1f] font-medium"
@@ -228,7 +228,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="button"
               onClick={() => setFilterView('today')}
               className={cn(
-                "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer",
+                "px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer whitespace-nowrap",
                 filterView === 'today'
                   ? "bg-white text-[#1d1d1f] shadow-xs font-semibold"
                   : "text-[#515154] hover:text-[#1d1d1f] font-medium"
@@ -389,7 +389,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           <div 
             onClick={() => onNavigate('financial', 'fin_dashboard')}
             className="group cursor-pointer bg-white rounded-2xl p-4 border border-black/[0.06] shadow-xs hover:border-black/[0.12] hover:shadow-sm transition-all flex items-center justify-between"
@@ -400,7 +400,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="truncate">
                 <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Financeiro</h3>
-                <p className="text-[10px] text-[#86868b] truncate">Fluxo, extrato & faturas</p>
+                <p className="text-[11px] text-[#86868b] truncate">Fluxo, extrato & faturas</p>
               </div>
             </div>
             <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -416,7 +416,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="truncate">
                 <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Chácara</h3>
-                <p className="text-[10px] text-[#86868b] truncate">Hidrômetros & rateios</p>
+                <p className="text-[11px] text-[#86868b] truncate">Hidrômetros & rateios</p>
               </div>
             </div>
             <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -432,7 +432,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="truncate">
                 <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Acadêmico</h3>
-                <p className="text-[10px] text-[#86868b] truncate">Notas, presença & web</p>
+                <p className="text-[11px] text-[#86868b] truncate">Notas, presença & web</p>
               </div>
             </div>
             <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -448,7 +448,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="truncate">
                 <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Trabalho & Clientes</h3>
-                <p className="text-[10px] text-[#86868b] truncate">Vendas, escalas & WhatsApp</p>
+                <p className="text-[11px] text-[#86868b] truncate">Vendas, escalas & WhatsApp</p>
               </div>
             </div>
             <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -464,7 +464,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="truncate">
                 <h3 className="text-xs font-semibold text-[#1d1d1f] truncate">Produtividade Pessoal</h3>
-                <p className="text-[10px] text-[#86868b] truncate">Tarefas & Eisenhower</p>
+                <p className="text-[11px] text-[#86868b] truncate">Tarefas & Eisenhower</p>
               </div>
             </div>
             <ChevronRight size={14} className="text-[#86868b] group-hover:text-[#1d1d1f] shrink-0 transition-transform group-hover:translate-x-0.5" />

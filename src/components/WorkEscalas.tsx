@@ -658,7 +658,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
                       {/* Badges */}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-100/50 text-indigo-700">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-100/50 text-indigo-700 tabular-nums whitespace-nowrap">
                           <Mail size={10} />
                           {scaleEmails.length} {scaleEmails.length === 1 ? 'e-mail' : 'e-mails'}
                         </span>
@@ -675,7 +675,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                               copyToClipboard(text, `quick_${e.id}`);
                             }}
                             className={cn(
-                              "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md transition flex items-center gap-1 bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200/50 hover:text-indigo-700",
+                              "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md transition flex items-center gap-1 bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200/50 hover:text-indigo-700 whitespace-nowrap",
                               copiedStatus[`quick_${e.id}`] && "bg-emerald-50 border-emerald-200 text-emerald-700"
                             )}
                           >
@@ -796,7 +796,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                     <span className="text-[10px] font-semibold bg-white/15 text-white px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/10">
                       Escala Ativa
                     </span>
-                    <span className="text-xs text-white/60">
+                    <span className="text-xs text-white/60 tabular-nums">
                       ID #{selectedEscala.id}
                     </span>
                   </div>
@@ -842,7 +842,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                       <Eye size={15} className="text-[#1d1d1f]" />
                       <span className="text-xs font-semibold text-[#1d1d1f]">Como vai ficar a mensagem</span>
                     </div>
-                    <span className="text-[10px] text-[#515154] font-medium bg-[#f5f5f7] border border-black/[0.06] px-2.5 py-1 rounded-md flex items-center gap-1">
+                    <span className="text-[10px] text-[#515154] font-medium bg-[#f5f5f7] border border-black/[0.06] px-2.5 py-1 rounded-md flex items-center gap-1 tabular-nums whitespace-nowrap">
                       <Clock size={11} /> Mês: {getPortugueseMonthName(finFilter.month)} {finFilter.year}
                     </span>
                   </div>
@@ -879,7 +879,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                           <button
                             onClick={() => copyToClipboard(emails.map(e => e.email).join('; '), 'all_emails')}
                             className={cn(
-                              "px-2.5 py-1 text-[11px] font-bold rounded-lg border transition flex items-center gap-1 shrink-0 active:scale-95 shadow-sm",
+                              "px-2.5 py-1 text-[11px] font-bold rounded-lg border transition flex items-center gap-1 shrink-0 active:scale-95 shadow-sm whitespace-nowrap",
                               copiedStatus['all_emails']
                                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                                 : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -895,7 +895,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                       <div className="flex items-start md:items-center justify-between gap-4">
                         <div className="flex items-center min-w-0 flex-1">
                           <span className="font-bold text-slate-400 w-12 shrink-0 text-right pr-2">Assunto:</span>
-                          <span className="text-slate-800 font-extrabold truncate">
+                          <span className="text-slate-800 font-bold truncate">
                             {generateMessage(true) || <span className="text-slate-300 italic font-normal">Sem assunto configurado</span>}
                           </span>
                         </div>
@@ -903,7 +903,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                           <button
                             onClick={() => copyToClipboard(generateMessage(true), 'subject')}
                             className={cn(
-                              "px-2.5 py-1 text-[11px] font-bold rounded-lg border transition flex items-center gap-1 shrink-0 active:scale-95 shadow-sm",
+                              "px-2.5 py-1 text-[11px] font-bold rounded-lg border transition flex items-center gap-1 shrink-0 active:scale-95 shadow-sm whitespace-nowrap",
                               copiedStatus['subject']
                                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                                 : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"

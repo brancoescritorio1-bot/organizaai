@@ -212,6 +212,7 @@ export interface ChacaraBill {
   payment_date?: string;
   amount_paid?: number;
   paid_categories?: Record<string, boolean>;
+  is_divergent?: boolean;
   observations?: string;
   created_at?: string;
 }
@@ -242,6 +243,7 @@ export interface ChacaraAccountability {
 export interface ChacaraExpense {
   id: string;
   accountability_id: string;
+  month_reference?: string;
   description: string;
   category: string;
   amount: number;

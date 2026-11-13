@@ -926,10 +926,10 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
                     <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-50">
                       <div>
-                        <div className="text-base font-black text-gray-900 leading-none">
+                        <div className="text-base font-bold text-gray-900 leading-none tabular-nums">
                           R$ {Number(payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </div>
-                        <div className="text-[8px] text-gray-400 font-black uppercase mt-1">
+                        <div className="text-[10px] text-gray-400 font-semibold uppercase mt-1 tabular-nums">
                           Venc: {formatDate(payment.due_date)}
                         </div>
                       </div>
@@ -1004,15 +1004,15 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                {historyByMonth.filter(m => m.total > 0).map((m, idx) => (
-                 <div key={idx} className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col gap-2">
+                 <div key={idx} className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 flex flex-col gap-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{m.name}</span>
-                      <span className="text-xs font-black text-indigo-600">R$ {m.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{m.name}</span>
+                      <span className="text-xs font-bold text-indigo-600 tabular-nums">R$ {m.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="h-1.5 w-full bg-white rounded-full overflow-hidden flex">
                        <div className="h-full bg-emerald-500" style={{ width: `${(m.paid / m.total) * 100}%` }} />
                     </div>
-                    <div className="flex justify-between text-[8px] font-bold uppercase text-gray-400">
+                    <div className="flex justify-between text-[10px] font-semibold uppercase text-gray-400 tabular-nums">
                       <span>Pago: R$ {m.paid.toLocaleString('pt-BR')}</span>
                       <span>Total: {((m.paid/m.total)*100).toFixed(0)}%</span>
                     </div>
@@ -1021,14 +1021,14 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Conta</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Mês</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Valor</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Conta</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mês</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">Valor</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -1036,14 +1036,14 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                   <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-gray-800">{p.bill?.name}</span>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase">{p.bill?.property}</span>
+                        <span className="text-xs font-bold text-gray-800">{p.bill?.name}</span>
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase">{p.bill?.property}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-[11px] font-bold text-gray-500">
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-500">
                       {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][Number(p.due_date.split('-')[1]) - 1]}
                     </td>
-                    <td className="px-6 py-4 text-right text-[11px] font-black text-gray-900">
+                    <td className="px-6 py-4 text-right text-xs font-bold text-gray-900 tabular-nums whitespace-nowrap">
                       R$ {Number(p.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4">
@@ -1110,13 +1110,13 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 mt-auto">
-                  <div className="bg-gray-50/50 p-2 rounded-xl">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Vencimento</p>
-                    <p className="text-xs font-bold text-indigo-600">Dia {bill.due_day}</p>
+                  <div className="bg-gray-50/50 p-2.5 rounded-xl">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Vencimento</p>
+                    <p className="text-xs font-bold text-indigo-600 tabular-nums">Dia {bill.due_day}</p>
                   </div>
-                  <div className="bg-gray-50/50 p-2 rounded-xl">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Valor Padrão</p>
-                    <p className="text-xs font-bold text-indigo-600">R$ {Number(bill.default_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  <div className="bg-gray-50/50 p-2.5 rounded-xl">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Valor Padrão</p>
+                    <p className="text-xs font-bold text-indigo-600 tabular-nums">R$ {Number(bill.default_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
               </div>

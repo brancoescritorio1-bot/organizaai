@@ -4,6 +4,7 @@ import { Wallet, TrendingUp, Droplets, Zap, Building2, Briefcase, Users, Downloa
 import { ChacaraBill } from '../types';
 import { PdfService } from '../lib/PdfService';
 import { useDialog } from './DialogContext';
+import { computeBillBreakdown, toCents, fromCents } from '../lib/chacaraFinance';
 
 interface ChacaraFinanceDashboardProps {
   bills: ChacaraBill[];
@@ -38,13 +39,12 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const data = useMemo(() => {
-    const expected = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
-    const received = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
-    const prevReceived = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
-    const currentExpenses = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
-    const prevExpenses = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
+    const expectedCents = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
+    const receivedCents = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
+    const prevReceivedCents = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
+    const currentExpensesCents = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
+    const prevExpensesCents = { fundoReserva: 0, rateio: 0, prestador: 0, agua: 0, energia: 0, geral: 0 };
 
-    // Counts per category
     const counts = {
       fundoReserva: { total: 0, paid: 0, pending: 0 },
       rateio: { total: 0, paid: 0, pending: 0 },
@@ -55,103 +55,69 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
     };
 
     bills.filter(b => b.month_reference === filterMonth).forEach(bill => {
-      const isPaid = bill.status === 'paid';
-      const fundoReserva = bill.include_reserve_fund ? (bill.reserve_fund || 0) : 0;
-      const rateio = bill.include_apportionment ? (bill.apportionment_value || 0) : 0;
-      const prestador = bill.water_service_fee || 0;
+      const bd = computeBillBreakdown(bill);
 
-      const energyReadings = bill.energy_readings || [];
-      const waterReadings = bill.water_readings || [];
-      const energyConsumption = energyReadings.length > 0
-        ? energyReadings.reduce((acc: number, r: any) => acc + (r.curr - r.prev), 0)
-        : (bill.curr_reading || 0) - (bill.prev_reading || 0) + ((bill.curr_reading_2 || 0) - (bill.prev_reading_2 || 0));
-      const energia = energyConsumption * (bill.kwh_value || 0);
-
-      const waterConsumption = waterReadings.length > 0
-        ? waterReadings.reduce((acc: number, r: any) => acc + (r.curr - r.prev), 0)
-        : (bill.water_curr_reading || 0) - (bill.water_prev_reading || 0) + ((bill.water_curr_reading_2 || 0) - (bill.water_prev_reading_2 || 0));
-      const agua = waterConsumption * (bill.water_value || 0);
-
-      const calculatedTotal = fundoReserva + rateio + prestador + agua + energia;
-      const finalTotal = bill.total || calculatedTotal;
-      const amountPaid = isPaid ? finalTotal : (bill.amount_paid || 0);
-      const ratio = finalTotal > 0 ? amountPaid / finalTotal : 0;
-      const hasPaidCats = bill.paid_categories && Object.keys(bill.paid_categories).length > 0;
-
-      const checkCatPaid = (catKey: string, val: number) => {
-        if (val <= 0) return false;
-        if (isPaid) return true;
-        if (hasPaidCats) return !!bill.paid_categories![catKey];
-        return ratio >= 1;
+      const addCat = (
+        catKey: 'fundo_reserva' | 'rateio' | 'prestador' | 'agua' | 'energia',
+        targetKey: 'fundoReserva' | 'rateio' | 'prestador' | 'agua' | 'energia'
+      ) => {
+        const c = bd.categories[catKey];
+        if (c.previstoCents > 0) {
+          counts[targetKey].total++;
+          if (c.aReceberCents === 0) counts[targetKey].paid++;
+          else counts[targetKey].pending++;
+          expectedCents[targetKey] += c.previstoCents;
+          receivedCents[targetKey] += c.recebidoCents;
+        }
       };
 
-      // Fundo Reserva
-      if (fundoReserva > 0) {
-        counts.fundoReserva.total++;
-        if (checkCatPaid('reserve_fund', fundoReserva)) counts.fundoReserva.paid++;
-        else counts.fundoReserva.pending++;
-        expected.fundoReserva += fundoReserva;
-        received.fundoReserva += (isPaid || (hasPaidCats && bill.paid_categories?.reserve_fund)) ? fundoReserva : fundoReserva * ratio;
-      }
-      // Rateio
-      if (rateio > 0) {
-        counts.rateio.total++;
-        if (checkCatPaid('apportionment', rateio)) counts.rateio.paid++;
-        else counts.rateio.pending++;
-        expected.rateio += rateio;
-        received.rateio += (isPaid || (hasPaidCats && bill.paid_categories?.apportionment)) ? rateio : rateio * ratio;
-      }
-      // Prestador
-      if (prestador > 0) {
-        counts.prestador.total++;
-        if (checkCatPaid('water_service_fee', prestador)) counts.prestador.paid++;
-        else counts.prestador.pending++;
-        expected.prestador += prestador;
-        received.prestador += (isPaid || (hasPaidCats && bill.paid_categories?.water_service_fee)) ? prestador : prestador * ratio;
-      }
-      // Agua
-      if (agua > 0) {
-        counts.agua.total++;
-        if (checkCatPaid('water_total', agua)) counts.agua.paid++;
-        else counts.agua.pending++;
-        expected.agua += agua;
-        received.agua += (isPaid || (hasPaidCats && bill.paid_categories?.water_total)) ? agua : agua * ratio;
-      }
-      // Energia
-      if (energia > 0) {
-        counts.energia.total++;
-        if (checkCatPaid('energy_total', energia)) counts.energia.paid++;
-        else counts.energia.pending++;
-        expected.energia += energia;
-        received.energia += (isPaid || (hasPaidCats && bill.paid_categories?.energy_total)) ? energia : energia * ratio;
-      }
+      addCat('fundo_reserva', 'fundoReserva');
+      addCat('rateio', 'rateio');
+      addCat('prestador', 'prestador');
+      addCat('agua', 'agua');
+      addCat('energia', 'energia');
 
       counts.geral.total++;
-      if (isPaid) counts.geral.paid++;
+      if (bd.isPaid) counts.geral.paid++;
       else counts.geral.pending++;
-      expected.geral += finalTotal;
-      received.geral += amountPaid;
+      expectedCents.geral += bd.billTotalCents;
+      receivedCents.geral += bd.paidCents;
     });
 
     bills.filter(b => b.month_reference < filterMonth).forEach(bill => {
-      const isPaid = bill.status === 'paid';
-      const amountPaid = isPaid ? bill.total : (bill.amount_paid || 0);
-      prevReceived.geral += amountPaid;
+      const bd = computeBillBreakdown(bill);
+      prevReceivedCents.geral += bd.paidCents;
     });
 
     expenses.forEach(exp => {
       const cat = exp.category || 'geral';
-      const amount = Number(exp.amount) || 0;
+      const amountCents = toCents(exp.amount);
       if (exp.month_reference === filterMonth) {
-        if (cat in currentExpenses) (currentExpenses as any)[cat] += amount;
-        currentExpenses.geral += amount;
+        if (cat in currentExpensesCents) (currentExpensesCents as any)[cat] += amountCents;
+        currentExpensesCents.geral += amountCents;
       } else if (exp.month_reference < filterMonth) {
-        if (cat in prevExpenses) (prevExpenses as any)[cat] += amount;
-        prevExpenses.geral += amount;
+        if (cat in prevExpensesCents) (prevExpensesCents as any)[cat] += amountCents;
+        prevExpensesCents.geral += amountCents;
       }
     });
 
-    return { expected, received, prevReceived, currentExpenses, prevExpenses, counts };
+    const convert = (obj: typeof expectedCents) => ({
+      fundoReserva: fromCents(obj.fundoReserva),
+      rateio: fromCents(obj.rateio),
+      prestador: fromCents(obj.prestador),
+      agua: fromCents(obj.agua),
+      energia: fromCents(obj.energia),
+      geral: fromCents(obj.geral),
+    });
+
+    return {
+      expected: convert(expectedCents),
+      received: convert(receivedCents),
+      prevReceived: convert(prevReceivedCents),
+      currentExpenses: convert(currentExpensesCents),
+      prevExpenses: convert(prevExpensesCents),
+      counts
+    };
   }, [bills, expenses, filterMonth]);
 
   const handleExport = async () => {
