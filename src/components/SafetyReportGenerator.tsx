@@ -112,10 +112,10 @@ export const getDueDateInfo = (dateStr: string, status?: string): DueDateCountdo
       statusText: 'Concluído',
       badgeLabel: 'CONCLUÍDO',
       tagText: `Concluído`,
-      colorClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      bgClass: 'bg-emerald-50',
-      borderClass: 'border-emerald-200',
-      textClass: 'text-emerald-700'
+      colorClass: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-500/15',
+      borderClass: 'border-emerald-200 dark:border-emerald-500/30',
+      textClass: 'text-emerald-700 dark:text-emerald-300'
     };
   }
 
@@ -137,10 +137,10 @@ export const getDueDateInfo = (dateStr: string, status?: string): DueDateCountdo
       statusText: `Vencido há ${overdueDays} ${dayWord}`,
       badgeLabel: `VENCIDO HÁ ${overdueDays} ${dayWord.toUpperCase()}`,
       tagText: `Vencido há ${overdueDays} ${dayWord} (${formattedDate})`,
-      colorClass: 'bg-red-100 text-red-700 border-red-300',
-      bgClass: 'bg-red-50/70',
-      borderClass: 'border-red-300',
-      textClass: 'text-red-700'
+      colorClass: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/30',
+      bgClass: 'bg-red-50/70 dark:bg-red-500/15',
+      borderClass: 'border-red-300 dark:border-red-500/30',
+      textClass: 'text-red-700 dark:text-red-300'
     };
   } else if (diffDays === 0) {
     return {
@@ -150,10 +150,10 @@ export const getDueDateInfo = (dateStr: string, status?: string): DueDateCountdo
       statusText: 'Vence Hoje',
       badgeLabel: 'VENCE HOJE',
       tagText: `Vence hoje (${formattedDate})`,
-      colorClass: 'bg-red-50 text-red-700 border-red-300',
-      bgClass: 'bg-red-50',
-      borderClass: 'border-red-300',
-      textClass: 'text-red-700'
+      colorClass: 'bg-red-50 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/30',
+      bgClass: 'bg-red-50 dark:bg-red-500/15',
+      borderClass: 'border-red-300 dark:border-red-500/30',
+      textClass: 'text-red-700 dark:text-red-300'
     };
   } else if (diffDays === 1) {
     return {
@@ -163,10 +163,10 @@ export const getDueDateInfo = (dateStr: string, status?: string): DueDateCountdo
       statusText: 'Vence Amanhã (1 dia)',
       badgeLabel: 'FALTA 1 DIA',
       tagText: `Vence amanhã (Falta 1 dia • ${formattedDate})`,
-      colorClass: 'bg-amber-100 text-amber-900 border-amber-300',
-      bgClass: 'bg-amber-50',
-      borderClass: 'border-amber-300',
-      textClass: 'text-amber-800'
+      colorClass: 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/30',
+      bgClass: 'bg-amber-50 dark:bg-amber-500/15',
+      borderClass: 'border-amber-300 dark:border-amber-500/30',
+      textClass: 'text-amber-800 dark:text-amber-300'
     };
   } else if (diffDays <= 5) {
     return {
@@ -176,10 +176,10 @@ export const getDueDateInfo = (dateStr: string, status?: string): DueDateCountdo
       statusText: `Faltam ${diffDays} dias`,
       badgeLabel: `FALTAM ${diffDays} DIAS`,
       tagText: `Faltam ${diffDays} dias para vencer (${formattedDate})`,
-      colorClass: 'bg-amber-50 text-amber-800 border-amber-200',
-      bgClass: 'bg-amber-50/50',
-      borderClass: 'border-amber-200',
-      textClass: 'text-amber-700'
+      colorClass: 'bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/30',
+      bgClass: 'bg-amber-50/50 dark:bg-amber-500/15',
+      borderClass: 'border-amber-200 dark:border-amber-500/30',
+      textClass: 'text-amber-700 dark:text-amber-300'
     };
   } else {
     return {
@@ -189,10 +189,10 @@ export const getDueDateInfo = (dateStr: string, status?: string): DueDateCountdo
       statusText: `Faltam ${diffDays} dias`,
       badgeLabel: `FALTAM ${diffDays} DIAS`,
       tagText: `Faltam ${diffDays} dias (${formattedDate})`,
-      colorClass: 'bg-blue-50 text-blue-700 border-blue-200',
-      bgClass: 'bg-blue-50/40',
-      borderClass: 'border-blue-200',
-      textClass: 'text-blue-700'
+      colorClass: 'bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30',
+      bgClass: 'bg-blue-50/40 dark:bg-blue-500/15',
+      borderClass: 'border-blue-200 dark:border-blue-500/30',
+      textClass: 'text-blue-700 dark:text-blue-300'
     };
   }
 };
@@ -977,11 +977,11 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
   const getClassificationColor = (classification: string) => {
     switch (classification) {
-      case 'LEVE': return 'text-sky-500 bg-sky-50 border-sky-200';
-      case 'MÉDIA': return 'text-amber-500 bg-amber-50 border-amber-200';
-      case 'GRAVE': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'GRAVÍSSIMA': return 'text-red-600 bg-red-50 border-red-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'LEVE': return 'text-sky-500 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/15 border-sky-200 dark:border-sky-500/30';
+      case 'MÉDIA': return 'text-amber-500 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 border-amber-200 dark:border-amber-500/30';
+      case 'GRAVE': return 'text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-500/15 border-orange-200 dark:border-orange-500/30';
+      case 'GRAVÍSSIMA': return 'text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-500/30';
+      default: return 'text-gray-600 dark:text-zinc-300 bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-white/[0.08]';
     }
   };
 
@@ -1527,44 +1527,44 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
     return (
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Clicks</p>
-            <p className="text-2xl font-black text-gray-800 mt-1">{stats.total}</p>
+          <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08]">
+            <p className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Total Clicks</p>
+            <p className="text-2xl font-black text-gray-800 dark:text-zinc-100 mt-1">{stats.total}</p>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-red-100 bg-gradient-to-br from-white to-red-50/50">
-            <p className="text-[11px] font-bold text-red-600 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl shadow-sm border border-red-100 dark:border-red-500/25 bg-gradient-to-br from-white to-red-50/50 dark:from-[#1c1c1e] dark:to-red-500/10">
+            <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-1">
               <AlertOctagon size={12} /> Vencidos
             </p>
-            <p className="text-2xl font-black text-red-600 mt-1">{stats.overdue}</p>
+            <p className="text-2xl font-black text-red-600 dark:text-red-400 mt-1">{stats.overdue}</p>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 bg-gradient-to-br from-white to-amber-50/50">
-            <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl shadow-sm border border-amber-100 dark:border-amber-500/25 bg-gradient-to-br from-white to-amber-50/50 dark:from-[#1c1c1e] dark:to-amber-500/10">
+            <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
               <Timer size={12} /> Vencem em Breve
             </p>
-            <p className="text-2xl font-black text-amber-700 mt-1">{stats.soon}</p>
+            <p className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-1">{stats.soon}</p>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100">
-            <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-500/25">
+            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
               <Clock size={12} /> No Prazo
             </p>
-            <p className="text-2xl font-black text-blue-600 mt-1">{stats.pending}</p>
+            <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{stats.pending}</p>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
-            <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl shadow-sm border border-emerald-100 dark:border-emerald-500/25">
+            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
               <CheckCircle2 size={12} /> Concluídos
             </p>
-            <p className="text-2xl font-black text-emerald-600 mt-1">{stats.completed}</p>
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{stats.completed}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 md:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] overflow-hidden">
+          <div className="p-5 md:p-6 border-b border-gray-100 dark:border-white/[0.08] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <Shield className="text-emerald-600" />
+              <h2 className="text-xl font-bold text-gray-800 dark:text-zinc-100 flex items-center gap-2">
+                <Shield className="text-emerald-600 dark:text-emerald-400" />
                 Histórico de Segurança & Prazos dos Clicks
               </h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">Acompanhe contadores de dias para vencimento, prazos de adequação e relatórios.</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-zinc-400 mt-1">Acompanhe contadores de dias para vencimento, prazos de adequação e relatórios.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               <button
@@ -1572,8 +1572,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-2xs",
                   filteredReports.length > 0 && filteredReports.every(r => selectedReportIds.includes(r.id!))
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-emerald-600/20"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-emerald-600/20 dark:shadow-none"
+                    : "bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.1] text-gray-700 dark:text-zinc-200 border-gray-200 dark:border-white/[0.08]"
                 )}
                 title="Selecionar ou desmarcar todos os relatórios filtrados"
               >
@@ -1585,7 +1585,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 <span>{filteredReports.length > 0 && filteredReports.every(r => selectedReportIds.includes(r.id!)) ? "Desmarcar Todos" : "Selecionar Todos"}</span>
               </button>
 
-              <div className="flex flex-wrap bg-gray-100 p-1 rounded-xl gap-0.5">
+              <div className="flex flex-wrap bg-gray-100 dark:bg-white/[0.06] p-1 rounded-xl gap-0.5">
                 {([
                   { key: 'all', label: 'Todos' },
                   { key: 'overdue', label: `Vencidos (${stats.overdue})` },
@@ -1603,8 +1603,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                           ? "bg-red-600 text-white shadow-sm"
                           : key === 'soon'
                             ? "bg-amber-600 text-white shadow-sm"
-                            : "bg-white text-emerald-600 shadow-sm" 
-                        : "text-gray-500 hover:text-gray-700"
+                            : "bg-white dark:bg-white/[0.12] text-emerald-600 dark:text-emerald-300 shadow-sm" 
+                        : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
                     )}
                   >
                     {label}
@@ -1613,10 +1613,10 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               </div>
               <button
                 onClick={openLogosModal}
-                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90 rounded-xl transition-all font-bold text-xs shadow-2xs group"
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 border border-emerald-200/90 dark:border-emerald-500/30 rounded-xl transition-all font-bold text-xs shadow-2xs group"
                 title="Configurar e salvar as logos padrão no banco de dados para todos os relatórios e PDFs"
               >
-                <Database size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                <Database size={15} className="text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                 <span>Logos no Banco</span>
                 {(savedLogos.logo_1 || savedLogos.logo_2) && (
                   <span className="flex h-2 w-2 relative">
@@ -1627,7 +1627,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               </button>
               <button
                 onClick={() => setShowConfigModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors font-bold text-xs"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.1] text-gray-700 dark:text-zinc-200 rounded-xl transition-colors font-bold text-xs"
                 title="Configurar formatação da mensagem padrão"
               >
                 <Settings size={15} />
@@ -1647,7 +1647,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                   });
                   setView('editor');
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold text-xs sm:text-sm whitespace-nowrap shadow-sm shadow-emerald-600/20"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold text-xs sm:text-sm whitespace-nowrap shadow-sm shadow-emerald-600/20 dark:shadow-none"
               >
                 <Plus size={16} />
                 Novo Relatório
@@ -1657,7 +1657,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
           {/* Barra de Ações em Massa / Agrupamento para PDF */}
           {selectedReportIds.length > 0 && (
-            <div className="bg-slate-900 text-white px-5 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+            <div className="bg-slate-900 dark:bg-zinc-950 text-white px-5 py-3.5 border-b border-slate-800 dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs">
                   {selectedReportIds.length}
@@ -1702,12 +1702,12 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-                <p className="text-gray-500 text-sm">Carregando relatórios...</p>
+                <p className="text-gray-500 dark:text-zinc-400 text-sm">Carregando relatórios...</p>
               </div>
             ) : filteredReports.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <History size={48} className="text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-sm">Nenhum relatório encontrado para este filtro.</p>
+              <div className="text-center py-12 bg-gray-50 dark:bg-white/[0.03] rounded-2xl border border-dashed border-gray-200 dark:border-white/[0.08]">
+                <History size={48} className="text-gray-300 dark:text-zinc-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-zinc-400 text-sm">Nenhum relatório encontrado para este filtro.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3.5">
@@ -1721,16 +1721,16 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     <div 
                       key={r.id} 
                       className={cn(
-                        "bg-white border rounded-2xl p-4 sm:p-5 hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
+                        "bg-white dark:bg-[#1c1c1e] border rounded-2xl p-4 sm:p-5 hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
                         isSelected
-                          ? "border-emerald-500 bg-emerald-50/25 ring-2 ring-emerald-500/20"
+                          ? "border-emerald-500 bg-emerald-50/25 dark:bg-emerald-500/10 ring-2 ring-emerald-500/20"
                           : isOver 
-                            ? "border-red-300 bg-red-50/20" 
+                            ? "border-red-300 dark:border-red-500/35 bg-red-50/20 dark:bg-red-500/[0.07]" 
                             : isSoon 
-                              ? "border-amber-200 bg-amber-50/15" 
+                              ? "border-amber-200 dark:border-amber-500/35 bg-amber-50/15 dark:bg-amber-500/[0.06]" 
                               : r.status === 'completed'
-                                ? "border-emerald-100 bg-emerald-50/10"
-                                : "border-gray-100"
+                                ? "border-emerald-100 dark:border-emerald-500/25 bg-emerald-50/10 dark:bg-emerald-500/[0.05]"
+                                : "border-gray-100 dark:border-white/[0.08]"
                       )}
                     >
                       <div className="flex items-start gap-3.5 flex-1 min-w-0">
@@ -1742,7 +1742,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                             "mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center transition-all border shrink-0 cursor-pointer",
                             isSelected
                               ? "bg-emerald-600 border-emerald-600 text-white shadow-2xs"
-                              : "bg-gray-50 hover:bg-gray-100 border-gray-300 text-transparent"
+                              : "bg-gray-50 dark:bg-white/[0.04] hover:bg-gray-100 dark:hover:bg-white/[0.08] border-gray-300 dark:border-white/[0.15] text-transparent"
                           )}
                           title={isSelected ? "Desmarcar este Click" : "Selecionar este Click para agrupar em PDF"}
                         >
@@ -1752,67 +1752,67 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                         <div className="flex-1 min-w-0">
                           {/* Header com Número do Click e Contadores de Vencimento */}
                           <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <span className="text-xs font-black px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full">
+                            <span className="text-xs font-black px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-500/30 rounded-full">
                               #{r.report_number}
                             </span>
 
                           {/* Contador de Dias Principal */}
                           {r.status === 'completed' ? (
-                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 rounded-full flex items-center gap-1">
                               <Check size={11} /> CONCLUÍDO {r.completed_at && `em ${new Date(r.completed_at).toLocaleDateString('pt-BR')}`}
                             </span>
                           ) : countdown?.mostCritical ? (
                             countdown.mostCritical.isOverdue ? (
-                              <span className="text-xs font-black px-3 py-0.5 bg-red-100 text-red-700 border border-red-300 rounded-full flex items-center gap-1.5 animate-pulse shadow-sm">
-                                <AlertOctagon size={13} className="text-red-600" />
+                              <span className="text-xs font-black px-3 py-0.5 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-500/35 rounded-full flex items-center gap-1.5 animate-pulse shadow-sm dark:shadow-none">
+                                <AlertOctagon size={13} className="text-red-600 dark:text-red-400" />
                                 {countdown.mostCritical.badgeLabel}
                               </span>
                             ) : countdown.mostCritical.isToday ? (
-                              <span className="text-xs font-black px-3 py-0.5 bg-red-50 text-red-700 border border-red-400 rounded-full flex items-center gap-1.5 shadow-sm">
-                                <Clock size={13} className="text-red-600" />
+                              <span className="text-xs font-black px-3 py-0.5 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border border-red-400 dark:border-red-500/40 rounded-full flex items-center gap-1.5 shadow-sm dark:shadow-none">
+                                <Clock size={13} className="text-red-600 dark:text-red-400" />
                                 VENCE HOJE
                               </span>
                             ) : countdown.mostCritical.isTomorrow ? (
-                              <span className="text-xs font-black px-3 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full flex items-center gap-1.5 shadow-sm">
-                                <Hourglass size={13} className="text-amber-700" />
+                              <span className="text-xs font-black px-3 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-500/35 rounded-full flex items-center gap-1.5 shadow-sm dark:shadow-none">
+                                <Hourglass size={13} className="text-amber-700 dark:text-amber-400" />
                                 VENCE AMANHÃ (FALTA 1 DIA)
                               </span>
                             ) : countdown.mostCritical.isSoon ? (
-                              <span className="text-xs font-black px-3 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-full flex items-center gap-1.5 shadow-sm">
-                                <Timer size={13} className="text-amber-700" />
+                              <span className="text-xs font-black px-3 py-0.5 bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/35 rounded-full flex items-center gap-1.5 shadow-sm dark:shadow-none">
+                                <Timer size={13} className="text-amber-700 dark:text-amber-400" />
                                 FALTAM {countdown.mostCritical.diffDays} DIAS
                               </span>
                             ) : (
-                              <span className="text-xs font-black px-3 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full flex items-center gap-1.5 shadow-sm">
-                                <Calendar size={13} className="text-blue-600" />
+                              <span className="text-xs font-black px-3 py-0.5 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 rounded-full flex items-center gap-1.5 shadow-sm dark:shadow-none">
+                                <Calendar size={13} className="text-blue-600 dark:text-blue-400" />
                                 FALTAM {countdown.mostCritical.diffDays} DIAS
                               </span>
                             )
                           ) : (
-                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-full flex items-center gap-1">
+                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300 rounded-full flex items-center gap-1">
                               <Clock size={11} /> SEM DATA DEFINIDA
                             </span>
                           )}
                         </div>
 
-                        <h3 className="font-extrabold text-gray-800 text-base leading-snug">{r.location}</h3>
+                        <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-base leading-snug">{r.location}</h3>
                         
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
-                          <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                            <Calendar size={13} className="text-gray-400" /> Cadastrado em: {new Date(r.created_at!).toLocaleDateString('pt-BR')}
+                          <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium flex items-center gap-1">
+                            <Calendar size={13} className="text-gray-400 dark:text-zinc-500" /> Cadastrado em: {new Date(r.created_at!).toLocaleDateString('pt-BR')}
                           </p>
                           {r.nonConformities && r.nonConformities.length > 0 && (
-                            <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                              <Shield size={13} className="text-gray-400" /> {r.nonConformities.length} {r.nonConformities.length === 1 ? 'inconformidade' : 'inconformidades'}
+                            <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium flex items-center gap-1">
+                              <Shield size={13} className="text-gray-400 dark:text-zinc-500" /> {r.nonConformities.length} {r.nonConformities.length === 1 ? 'inconformidade' : 'inconformidades'}
                             </p>
                           )}
                         </div>
 
                         {/* Detalhamento dos Prazos de cada NC */}
                         {countdown?.all && countdown.all.length > 0 && r.status !== 'completed' && (
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-gray-100">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500 flex items-center gap-1 mr-1">
-                              <Timer size={12} className="text-emerald-600" /> {countdown.all.length === 1 ? 'Prazo:' : 'Prazos das NCs:'}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-gray-100 dark:border-white/[0.06]">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-zinc-400 flex items-center gap-1 mr-1">
+                              <Timer size={12} className="text-emerald-600 dark:text-emerald-400" /> {countdown.all.length === 1 ? 'Prazo:' : 'Prazos das NCs:'}
                             </span>
                             {countdown.all.map((item, idx) => (
                               <span 
@@ -1820,23 +1820,23 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                                 className={cn(
                                   "text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1 transition-all",
                                   item.isOverdue 
-                                    ? "bg-red-100/80 text-red-700 border-red-300 shadow-2xs font-extrabold" 
+                                    ? "bg-red-100/80 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/35 shadow-2xs font-extrabold" 
                                     : item.isToday 
-                                      ? "bg-red-50 text-red-700 border-red-300 font-extrabold"
+                                      ? "bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/35 font-extrabold"
                                       : item.isTomorrow || item.isSoon
-                                        ? "bg-amber-50 text-amber-900 border-amber-300 font-bold"
-                                        : "bg-blue-50/60 text-blue-800 border-blue-200"
+                                        ? "bg-amber-50 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/35 font-bold"
+                                        : "bg-blue-50/60 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-500/30"
                                 )}
                                 title={`Inconformidade ${idx + 1} - Vencimento: ${item.formattedDate}`}
                               >
                                 {item.isOverdue ? (
-                                  <AlertOctagon size={11} className="text-red-600" />
+                                  <AlertOctagon size={11} className="text-red-600 dark:text-red-400" />
                                 ) : item.isToday ? (
-                                  <Clock size={11} className="text-red-600" />
+                                  <Clock size={11} className="text-red-600 dark:text-red-400" />
                                 ) : item.isSoon || item.isTomorrow ? (
-                                  <Hourglass size={11} className="text-amber-700" />
+                                  <Hourglass size={11} className="text-amber-700 dark:text-amber-400" />
                                 ) : (
-                                  <Calendar size={11} className="text-blue-600" />
+                                  <Calendar size={11} className="text-blue-600 dark:text-blue-400" />
                                 )}
                                 {countdown.all.length > 1 && <span className="opacity-80 font-bold">NC {idx + 1}:</span>}
                                 <span>{item.statusText}</span>
@@ -1848,7 +1848,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 dark:border-white/[0.06] pt-3 sm:pt-0">
                         {/* Botão Copiar Lembrete disponível diretamente na listagem */}
                         <button
                           onClick={() => copyReminder(r)}
@@ -1856,18 +1856,18 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                             "flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all text-xs font-bold border",
                             copiedType === `reminder-${r.id}`
                               ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                              : "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
+                              : "text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 dark:hover:bg-amber-500/25 border-amber-200 dark:border-amber-500/30"
                           )}
                           title="Copiar mensagem de lembrete de vencimento para WhatsApp/E-mail"
                         >
-                          {copiedType === `reminder-${r.id}` ? <CheckCircle2 size={15} className="text-white" /> : <Bell size={15} className="text-amber-600" />}
+                          {copiedType === `reminder-${r.id}` ? <CheckCircle2 size={15} className="text-white" /> : <Bell size={15} className="text-amber-600 dark:text-amber-400" />}
                           <span>{copiedType === `reminder-${r.id}` ? 'Lembrete Copiado!' : 'Copiar Lembrete'}</span>
                         </button>
 
                         {r.status === 'pending' && (
                           <button
                             onClick={() => markAsCompleted(r)}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors text-xs font-bold border border-emerald-200"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 rounded-xl transition-colors text-xs font-bold border border-emerald-200 dark:border-emerald-500/30"
                             title="Marcar como concluído"
                           >
                             <CheckCircle2 size={15} />
@@ -1876,7 +1876,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                         )}
                         <button
                           onClick={() => loadReportDetails(r)}
-                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors text-xs font-bold border border-indigo-200"
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 rounded-xl transition-colors text-xs font-bold border border-indigo-200 dark:border-indigo-500/30"
                           title="Abrir / Editar e Gerar Mensagem"
                         >
                           <Edit2 size={15} />
@@ -1884,7 +1884,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                         </button>
                         <button
                           onClick={() => deleteReport(r.id!)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-xl transition-colors border border-red-100 dark:border-red-500/25"
                           title="Excluir"
                         >
                           <Trash2 size={16} />
@@ -1901,27 +1901,27 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
         {/* Modal de Configuração de Formatação da Mensagem */}
         {showConfigModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-transparent dark:border-white/[0.08] space-y-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.08] pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                     <Settings size={20} />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-gray-800 text-lg">Configurar Mensagem Padrão</h3>
-                    <p className="text-xs text-gray-500">Defina o que fica em negrito, cores/emojis e alertas</p>
+                    <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-lg">Configurar Mensagem Padrão</h3>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400">Defina o que fica em negrito, cores/emojis e alertas</p>
                   </div>
                 </div>
-                <button onClick={() => setShowConfigModal(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100">
+                <button onClick={() => setShowConfigModal(false)} className="text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/[0.08]">
                   <X size={20} />
                 </button>
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-2xl space-y-3 border border-gray-100">
-                  <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Formatação de Negrito (*Texto*)</p>
+                <div className="p-4 bg-gray-50 dark:bg-white/[0.04] rounded-2xl space-y-3 border border-gray-100 dark:border-white/[0.08]">
+                  <p className="text-xs font-extrabold text-gray-700 dark:text-zinc-200 uppercase tracking-wider">Formatação de Negrito (*Texto*)</p>
                   
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-300">
                     <span>Negrito nos Rótulos (*Número:*, *Local:*, etc.)</span>
                     <input 
                       type="checkbox" 
@@ -1931,7 +1931,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-300">
                     <span>Negrito nos Valores (*5481*, *GRAVÍSSIMA*, etc.)</span>
                     <input 
                       type="checkbox" 
@@ -1941,7 +1941,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-300">
                     <span>Negrito nos Cabeçalhos (*Prezados!*, *Inconformidade 1*)</span>
                     <input 
                       type="checkbox" 
@@ -1952,10 +1952,10 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                   </label>
                 </div>
 
-                <div className="p-4 bg-gray-50 rounded-2xl space-y-3 border border-gray-100">
-                  <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Cores, Emojis & Prazos</p>
+                <div className="p-4 bg-gray-50 dark:bg-white/[0.04] rounded-2xl space-y-3 border border-gray-100 dark:border-white/[0.08]">
+                  <p className="text-xs font-extrabold text-gray-700 dark:text-zinc-200 uppercase tracking-wider">Cores, Emojis & Prazos</p>
                   
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-300">
                     <span className="flex items-center gap-1.5">
                       <span>Cores nas Classificações (🔴 🟠 🟡 🔵)</span>
                     </span>
@@ -1967,7 +1967,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-300">
                     <span>Destacar Prazos Vencidos com ⚠️ *[VENCIDO]*</span>
                     <input 
                       type="checkbox" 
@@ -1977,7 +1977,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-300">
                     <span>Incluir campo "Sugestão de Adequação"</span>
                     <input 
                       type="checkbox" 
@@ -1989,12 +1989,12 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 </div>
 
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">Texto de Introdução</label>
+                  <label className="block text-xs font-extrabold text-gray-700 dark:text-zinc-200 uppercase tracking-wider mb-1.5">Texto de Introdução</label>
                   <input 
                     type="text" 
                     value={msgConfig.introText} 
                     onChange={(e) => setMsgConfig(prev => ({ ...prev, introText: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-medium text-gray-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
                     placeholder="Ex: Informo sobre o click segurança com inconformidades de:"
                   />
                 </div>
@@ -2003,7 +2003,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => setMsgConfig(DEFAULT_MSG_CONFIG)}
-                  className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="px-4 py-2 text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors"
                 >
                   Restaurar Padrão
                 </button>
@@ -2023,25 +2023,25 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-        <div className="p-5 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-white/[0.08] overflow-hidden mb-6">
+        <div className="p-5 md:p-6 border-b border-gray-100 dark:border-white/[0.08] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => setView('list')} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-500">
+            <button onClick={() => setView('list')} className="p-2 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-xl transition-colors text-gray-500 dark:text-zinc-400">
               <X size={20} />
             </button>
             <div>
-              <h2 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
-                <FileText className="text-emerald-600" />
+              <h2 className="text-xl font-extrabold text-gray-800 dark:text-zinc-100 flex items-center gap-2">
+                <FileText className="text-emerald-600 dark:text-emerald-400" />
                 {currentReport.id ? `Editar Relatório #${currentReport.report_number}` : 'Novo Relatório de Segurança'}
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">Preencha o local, as inconformidades e copie a mensagem formatada.</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Preencha o local, as inconformidades e copie a mensagem formatada.</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               onClick={copyForEmail}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-colors font-bold text-xs shadow-sm shadow-indigo-600/20"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-colors font-bold text-xs shadow-sm shadow-indigo-600/20 dark:shadow-none"
               title="Copiar mensagem formatada para colar no E-mail ou WhatsApp com negritos e cores"
             >
               {copiedType === 'email' ? <CheckCircle2 size={15} className="text-emerald-200" /> : <Mail size={15} />}
@@ -2049,7 +2049,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             </button>
             <button
               onClick={() => copyReminder()}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors font-bold text-xs shadow-sm shadow-amber-500/20"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors font-bold text-xs shadow-sm shadow-amber-500/20 dark:shadow-none"
               title="Copiar mensagem de lembrete de vencimento"
             >
               {copiedType === 'reminder' ? <CheckCircle2 size={15} className="text-amber-100" /> : <Bell size={15} />}
@@ -2057,7 +2057,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             </button>
             <button
               onClick={generatePDF}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl transition-colors font-bold text-xs border border-amber-200"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/25 rounded-xl transition-colors font-bold text-xs border border-amber-200 dark:border-amber-500/30"
               title="Exportar PDF Oficial"
             >
               <Download size={15} />
@@ -2066,7 +2066,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             <button
               onClick={saveReport}
               disabled={loading}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold text-xs disabled:opacity-50 shadow-sm shadow-emerald-600/20"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold text-xs disabled:opacity-50 shadow-sm shadow-emerald-600/20 dark:shadow-none"
             >
               {loading ? 'Salvando...' : 'Salvar'}
             </button>
@@ -2075,30 +2075,30 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
         <div className="p-6 space-y-6">
           {/* Logos Upload */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-            <div className="bg-white p-3.5 rounded-xl border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-white/[0.03] rounded-2xl border border-gray-100 dark:border-white/[0.06]">
+            <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-200 dark:border-white/[0.08]">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider">
+                <label className="block text-[11px] font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">
                   Logo 1 • Click Segurança
                 </label>
                 <div className="flex items-center gap-1.5">
                   {currentReport.logo_1 === savedLogos.logo_1 && savedLogos.logo_1 ? (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 rounded-md flex items-center gap-1 shadow-2xs">
                       <Database size={10} /> Salva no Banco
                     </span>
                   ) : currentReport.logo_1 === DEFAULT_LOGOS.logo1 ? (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-md">
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300 border border-gray-200 dark:border-white/[0.08] rounded-md">
                       Padrão Oficial
                     </span>
                   ) : (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 rounded-md">
                       Personalizada
                     </span>
                   )}
                   {currentReport.logo_1 !== DEFAULT_LOGOS.logo1 && (
                     <button
                       onClick={() => setCurrentReport(prev => ({ ...prev, logo_1: DEFAULT_LOGOS.logo1 }))}
-                      className="text-[10px] font-bold text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors ml-1"
+                      className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 hover:text-emerald-700 dark:hover:text-emerald-400 flex items-center gap-1 transition-colors ml-1"
                       title="Restaurar logo padrão do Click Segurança"
                     >
                       <RotateCcw size={11} /> Padrão
@@ -2107,44 +2107,44 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-16 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <div className="w-16 h-12 rounded-lg border border-gray-200 dark:border-white/[0.1] overflow-hidden bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-2xs">
                   <img 
                     src={currentReport.logo_1 || DEFAULT_LOGOS.logo1} 
                     alt="Logo Click Segurança" 
                     className="w-full h-full object-contain" 
                   />
                 </div>
-                <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 hover:bg-emerald-50/50 border border-gray-200 hover:border-emerald-300 rounded-lg cursor-pointer transition-all text-gray-700 font-bold text-xs">
-                  <ImageIcon size={14} className="text-emerald-600" />
+                <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 dark:bg-white/[0.06] hover:bg-emerald-50/50 dark:hover:bg-emerald-500/15 border border-gray-200 dark:border-white/[0.08] hover:border-emerald-300 dark:hover:border-emerald-500/30 rounded-lg cursor-pointer transition-all text-gray-700 dark:text-zinc-200 font-bold text-xs">
+                  <ImageIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
                   <span>Substituir Logo</span>
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(1, e.target.files[0])} />
                 </label>
               </div>
             </div>
 
-            <div className="bg-white p-3.5 rounded-xl border border-gray-200">
+            <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-200 dark:border-white/[0.08]">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider">
+                <label className="block text-[11px] font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">
                   Logo 2 • Copasa
                 </label>
                 <div className="flex items-center gap-1.5">
                   {currentReport.logo_2 === savedLogos.logo_2 && savedLogos.logo_2 ? (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 rounded-md flex items-center gap-1 shadow-2xs">
                       <Database size={10} /> Salva no Banco
                     </span>
                   ) : currentReport.logo_2 === DEFAULT_LOGOS.logo2 ? (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-md">
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300 border border-gray-200 dark:border-white/[0.08] rounded-md">
                       Padrão Oficial
                     </span>
                   ) : (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 rounded-md">
                       Personalizada
                     </span>
                   )}
                   {currentReport.logo_2 !== DEFAULT_LOGOS.logo2 && (
                     <button
                       onClick={() => setCurrentReport(prev => ({ ...prev, logo_2: DEFAULT_LOGOS.logo2 }))}
-                      className="text-[10px] font-bold text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors ml-1"
+                      className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 hover:text-emerald-700 dark:hover:text-emerald-400 flex items-center gap-1 transition-colors ml-1"
                       title="Restaurar logo padrão da Copasa"
                     >
                       <RotateCcw size={11} /> Padrão
@@ -2153,15 +2153,15 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-16 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <div className="w-16 h-12 rounded-lg border border-gray-200 dark:border-white/[0.1] overflow-hidden bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-2xs">
                   <img 
                     src={currentReport.logo_2 || DEFAULT_LOGOS.logo2} 
                     alt="Logo Copasa" 
                     className="w-full h-full object-contain" 
                   />
                 </div>
-                <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 hover:bg-emerald-50/50 border border-gray-200 hover:border-emerald-300 rounded-lg cursor-pointer transition-all text-gray-700 font-bold text-xs">
-                  <ImageIcon size={14} className="text-emerald-600" />
+                <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 dark:bg-white/[0.06] hover:bg-emerald-50/50 dark:hover:bg-emerald-500/15 border border-gray-200 dark:border-white/[0.08] hover:border-emerald-300 dark:hover:border-emerald-500/30 rounded-lg cursor-pointer transition-all text-gray-700 dark:text-zinc-200 font-bold text-xs">
+                  <ImageIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
                   <span>Substituir Logo</span>
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(2, e.target.files[0])} />
                 </label>
@@ -2169,9 +2169,9 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             </div>
 
             {/* Ação de Persistência no Banco de Dados */}
-            <div className="md:col-span-2 pt-3 border-t border-gray-200/80 flex flex-wrap items-center justify-between gap-3 bg-white/70 p-3 rounded-xl">
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <Database size={16} className="text-emerald-600 flex-shrink-0" />
+            <div className="md:col-span-2 pt-3 border-t border-gray-200/80 dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-3 bg-white/70 dark:bg-white/[0.04] p-3 rounded-xl">
+              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-zinc-300">
+                <Database size={16} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                 <span>
                   {savedLogos.logo_1 || savedLogos.logo_2 
                     ? 'Logos padrão ativas do banco de dados. Elas são aplicadas automaticamente em todos os PDFs.'
@@ -2180,7 +2180,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               </div>
               <div className="flex items-center gap-2">
                 {editorLogoSuccess && (
-                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 animate-in fade-in">
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 animate-in fade-in">
                     <CheckCircle2 size={14} /> Salvo no Banco com Sucesso!
                   </span>
                 )}
@@ -2196,7 +2196,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                       setTimeout(() => setEditorLogoSuccess(false), 4000);
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 dark:shadow-none transition-all disabled:opacity-50 cursor-pointer"
                   title="Gravar estas logos no banco de dados para sempre serem as logos padrão em novos relatórios e PDFs"
                 >
                   <Save size={13} />
@@ -2209,7 +2209,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
           {/* Dados Principais do Relatório */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
                 Número da Inconformidade *
               </label>
               <input
@@ -2217,11 +2217,11 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 value={currentReport.report_number}
                 onChange={(e) => setCurrentReport({ ...currentReport, report_number: e.target.value })}
                 placeholder="Ex: 5481"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-sm"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
                 Local da Inconformidade *
               </label>
               <input
@@ -2229,21 +2229,21 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 value={currentReport.location}
                 onChange={(e) => setCurrentReport({ ...currentReport, location: e.target.value })}
                 placeholder="Ex: ETA Tarumirim - Rua da Copasa, 155"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-sm"
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
               />
             </div>
           </div>
 
           {/* Lista de Não Conformidades */}
-          <div className="border-t border-gray-100 pt-6">
+          <div className="border-t border-gray-100 dark:border-white/[0.08] pt-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-gray-800">Inconformidades Identificadas</h3>
-                <p className="text-xs text-gray-500">Adicione as descrições, normas infringidas e datas de vencimento.</p>
+                <h3 className="text-lg font-extrabold text-gray-800 dark:text-zinc-100">Inconformidades Identificadas</h3>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Adicione as descrições, normas infringidas e datas de vencimento.</p>
               </div>
               <button
                 onClick={addNonConformity}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors text-xs font-bold border border-emerald-200"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition-colors text-xs font-bold border border-emerald-200 dark:border-emerald-500/30"
               >
                 <Plus size={16} />
                 Adicionar NC
@@ -2251,10 +2251,10 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             </div>
 
             {currentReport.nonConformities.length === 0 ? (
-              <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <AlertTriangle size={36} className="text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-600 font-bold text-sm">Nenhuma inconformidade cadastrada ainda.</p>
-                <p className="text-xs text-gray-400 mt-0.5">Clique no botão acima para adicionar a primeira NC.</p>
+              <div className="text-center py-10 bg-gray-50 dark:bg-white/[0.03] rounded-2xl border border-dashed border-gray-200 dark:border-white/[0.1]">
+                <AlertTriangle size={36} className="text-gray-300 dark:text-zinc-600 mx-auto mb-2" />
+                <p className="text-gray-600 dark:text-zinc-300 font-bold text-sm">Nenhuma inconformidade cadastrada ainda.</p>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">Clique no botão acima para adicionar a primeira NC.</p>
               </div>
             ) : (
               <div className="space-y-5">
@@ -2264,25 +2264,25 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     <div 
                       key={index} 
                       className={cn(
-                        "p-5 rounded-2xl border relative transition-all bg-white",
-                        isOver ? "border-red-300 bg-red-50/10 shadow-sm" : "border-gray-200 bg-gray-50/40"
+                        "p-5 rounded-2xl border relative transition-all bg-white dark:bg-[#1c1c1e]",
+                        isOver ? "border-red-300 dark:border-red-500/40 bg-red-50/10 dark:bg-red-500/[0.06] shadow-sm dark:shadow-none" : "border-gray-200 dark:border-white/[0.08] bg-gray-50/40 dark:bg-white/[0.03]"
                       )}
                     >
-                      <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                      <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-white/[0.06] pb-3">
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
                             {index + 1}
                           </span>
-                          <h4 className="font-extrabold text-gray-800 text-sm">Inconformidade {index + 1}</h4>
+                          <h4 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm">Inconformidade {index + 1}</h4>
                           {isOver && (
-                            <span className="text-[10px] font-black px-2 py-0.5 bg-red-100 text-red-700 rounded-full border border-red-200 flex items-center gap-1 animate-pulse">
+                            <span className="text-[10px] font-black px-2 py-0.5 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 rounded-full border border-red-200 dark:border-red-500/30 flex items-center gap-1 animate-pulse">
                               <AlertOctagon size={11} /> VENCIDO
                             </span>
                           )}
                         </div>
                         <button
                           onClick={() => removeNonConformity(index)}
-                          className="text-gray-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                          className="text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 p-1.5 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-colors"
                           title="Remover esta NC"
                         >
                           <Trash2 size={16} />
@@ -2291,51 +2291,51 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                       
                       <div className="grid grid-cols-1 gap-4">
                         <div>
-                          <label className="block text-[11px] font-extrabold text-gray-600 uppercase tracking-wider mb-1">
+                          <label className="block text-[11px] font-extrabold text-gray-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                             Descrição da Não Conformidade
                           </label>
                           <textarea
                             value={nc.description}
                             onChange={(e) => updateNonConformity(index, 'description', e.target.value)}
                             placeholder="Descreva detalhadamente o desvio encontrado..."
-                            className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium min-h-[75px]"
+                            className="w-full px-3.5 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[75px]"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-extrabold text-gray-600 uppercase tracking-wider mb-1">
+                          <label className="block text-[11px] font-extrabold text-gray-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                             Sugestão de Adequação / Medida Corretiva
                           </label>
                           <textarea
                             value={nc.suggestion}
                             onChange={(e) => updateNonConformity(index, 'suggestion', e.target.value)}
                             placeholder="Ação recomendada para correção da inconformidade..."
-                            className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium min-h-[60px]"
+                            className="w-full px-3.5 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[60px]"
                           />
                         </div>
                         
                         <div>
-                          <label className="block text-[11px] font-extrabold text-gray-600 uppercase tracking-wider mb-1">
+                          <label className="block text-[11px] font-extrabold text-gray-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                             Itens Normativos (NRs / Requisitos)
                           </label>
                           <textarea
                             value={nc.normativeItems}
                             onChange={(e) => updateNonConformity(index, 'normativeItems', e.target.value)}
                             placeholder="Ex: NR-10 item 10.2.8.2; NR-12 item 12.4"
-                            className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium min-h-[60px]"
+                            className="w-full px-3.5 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[60px]"
                           />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-[11px] font-extrabold text-gray-600 uppercase tracking-wider mb-1">
+                            <label className="block text-[11px] font-extrabold text-gray-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                               Classificação de Risco
                             </label>
                             <select
                               value={nc.classification}
                               onChange={(e) => updateNonConformity(index, 'classification', e.target.value as any)}
                               className={cn(
-                                "w-full px-3.5 py-2 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-black text-xs",
+                                "w-full px-3.5 py-2 bg-white dark:bg-zinc-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-black text-xs",
                                 getClassificationColor(nc.classification)
                               )}
                             >
@@ -2347,7 +2347,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                           </div>
                           <div>
                             <div className="flex items-center justify-between mb-1">
-                              <label className="block text-[11px] font-extrabold text-gray-600 uppercase tracking-wider">
+                              <label className="block text-[11px] font-extrabold text-gray-600 dark:text-zinc-400 uppercase tracking-wider">
                                 Data de Vencimento do Prazo
                               </label>
                             </div>
@@ -2356,8 +2356,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                               value={nc.dueDate}
                               onChange={(e) => updateNonConformity(index, 'dueDate', e.target.value)}
                               className={cn(
-                                "w-full px-3.5 py-2 bg-white border rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-xs",
-                                isOver ? "border-red-400 text-red-700 bg-red-50/20" : "border-gray-200"
+                                "w-full px-3.5 py-2 bg-white dark:bg-zinc-900 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-xs text-gray-900 dark:text-zinc-100",
+                                isOver ? "border-red-400 dark:border-red-500/50 text-red-700 dark:text-red-300 bg-red-50/20 dark:bg-red-500/10" : "border-gray-200 dark:border-white/[0.08]"
                               )}
                             />
                             {nc.dueDate && (() => {
@@ -2367,14 +2367,14 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                                 <div className={cn(
                                   "mt-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs",
                                   info.isOverdue 
-                                    ? "bg-red-50 text-red-700 border-red-200 font-extrabold" 
+                                    ? "bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/30 font-extrabold" 
                                     : info.isToday 
-                                      ? "bg-red-50 text-red-700 border-red-300 font-extrabold"
+                                      ? "bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/30 font-extrabold"
                                       : info.isTomorrow || info.isSoon
-                                        ? "bg-amber-50 text-amber-900 border-amber-300"
-                                        : "bg-blue-50 text-blue-700 border-blue-200"
+                                        ? "bg-amber-50 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/30"
+                                        : "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30"
                                 )}>
-                                  <Timer size={13} className={info.isOverdue ? "text-red-500" : info.isToday ? "text-red-600" : info.isSoon || info.isTomorrow ? "text-amber-600" : "text-blue-500"} />
+                                  <Timer size={13} className={info.isOverdue ? "text-red-500 dark:text-red-400" : info.isToday ? "text-red-600 dark:text-red-400" : info.isSoon || info.isTomorrow ? "text-amber-600 dark:text-amber-400" : "text-blue-500 dark:text-blue-400"} />
                                   <span>{info.tagText}</span>
                                 </div>
                               );
@@ -2383,12 +2383,12 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-extrabold text-gray-600 uppercase tracking-wider mb-1.5">
+                          <label className="block text-[11px] font-extrabold text-gray-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                             Evidências Fotográficas
                           </label>
                           <div className="flex flex-wrap gap-3">
                             {nc.images && nc.images.map((img, imgIdx) => (
-                              <div key={imgIdx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 group bg-white">
+                              <div key={imgIdx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.1] group bg-white dark:bg-zinc-900">
                                 <img src={img} alt="Preview" className="w-full h-full object-cover" />
                                 <button
                                   onClick={() => removeImage(index, imgIdx)}
@@ -2398,7 +2398,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                                 </button>
                               </div>
                             ))}
-                            <label className="flex flex-col items-center justify-center w-20 h-20 bg-white border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-all text-gray-400 hover:text-emerald-600">
+                            <label className="flex flex-col items-center justify-center w-20 h-20 bg-white dark:bg-zinc-900 border-2 border-dashed border-gray-200 dark:border-white/[0.12] rounded-xl cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/40 hover:bg-emerald-50/30 dark:hover:bg-emerald-500/10 transition-all text-gray-400 dark:text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400">
                               <Plus size={18} />
                               <span className="text-[10px] font-black mt-0.5">Foto</span>
                               <input
@@ -2427,29 +2427,29 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       {/* Modal de Pré-visualização da Mensagem (E-mail & WhatsApp) */}
       {showPreviewModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-white dark:bg-[#1c1c1e] border border-transparent dark:border-white/[0.08] rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.08] pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl">
                   <Eye size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-gray-800 text-base">Pré-visualização da Mensagem</h3>
-                  <p className="text-xs text-gray-500">Veja exatamente como o conteúdo será enviado por E-mail ou WhatsApp</p>
+                  <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-base">Pré-visualização da Mensagem</h3>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">Veja exatamente como o conteúdo será enviado por E-mail ou WhatsApp</p>
                 </div>
               </div>
-              <button onClick={() => setShowPreviewModal(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100">
+              <button onClick={() => setShowPreviewModal(false)} className="text-gray-400 dark:text-zinc-400 hover:text-gray-600 dark:hover:text-zinc-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/[0.08]">
                 <X size={20} />
               </button>
             </div>
 
             {/* Selector between Email and WhatsApp */}
-            <div className="flex bg-gray-100 p-1 rounded-2xl">
+            <div className="flex bg-gray-100 dark:bg-white/[0.06] p-1 rounded-2xl">
               <button
                 onClick={() => setPreviewTab('email')}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-extrabold rounded-xl transition-all",
-                  previewTab === 'email' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                  previewTab === 'email' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none" : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                 )}
               >
                 <Mail size={15} />
@@ -2459,7 +2459,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 onClick={() => setPreviewTab('whatsapp')}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-extrabold rounded-xl transition-all",
-                  previewTab === 'whatsapp' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                  previewTab === 'whatsapp' ? "bg-white dark:bg-white/[0.12] text-emerald-600 dark:text-emerald-300 shadow-sm dark:shadow-none" : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                 )}
               >
                 <WhatsAppIcon size={15} />
@@ -2468,8 +2468,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             </div>
 
             {previewTab === 'email' ? (
-              <div className="flex-1 overflow-y-auto bg-slate-100/80 p-4 rounded-2xl border border-slate-200">
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/60 max-w-full">
+              <div className="flex-1 overflow-y-auto bg-slate-100/80 dark:bg-zinc-900 p-4 rounded-2xl border border-slate-200 dark:border-white/[0.08]">
+                <div className="bg-white text-gray-800 p-5 rounded-2xl shadow-sm border border-slate-200/60 max-w-full">
                   <div className="border-b border-gray-100 pb-3 mb-4 flex items-center justify-between text-xs text-gray-500">
                     <span className="font-bold text-gray-700">Assunto: <span className="font-semibold text-indigo-700">{generateEmailSubject()}</span></span>
                     <span className="text-[11px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-bold">HTML Renderizado</span>
@@ -2478,20 +2478,20 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 </div>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto bg-[#e5ddd5] p-4 rounded-2xl border border-gray-200">
-                <div className="bg-white p-4 rounded-2xl shadow-sm max-w-[95%] space-y-2 text-xs text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
+              <div className="flex-1 overflow-y-auto bg-[#e5ddd5] dark:bg-zinc-900 p-4 rounded-2xl border border-gray-200 dark:border-white/[0.08]">
+                <div className="bg-white dark:bg-[#1c1c1e] border border-transparent dark:border-white/[0.08] p-4 rounded-2xl shadow-sm dark:shadow-none max-w-[95%] space-y-2 text-xs text-gray-800 dark:text-zinc-100 whitespace-pre-wrap font-sans leading-relaxed">
                   {generateMessage()}
                 </div>
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-white/[0.08]">
               <button
                 onClick={() => {
                   setShowPreviewModal(false);
                   setShowConfigModal(true);
                 }}
-                className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-zinc-100 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
               >
                 <Settings size={15} />
                 Personalizar Cores e Negritos
@@ -2500,7 +2500,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               <div className="flex items-center gap-2">
                 <button
                   onClick={openEmailClient}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-white/[0.08] hover:bg-slate-200 dark:hover:bg-white/[0.12] text-slate-700 dark:text-zinc-200 font-bold text-xs rounded-xl transition-colors"
                   title="Abrir aplicativo de e-mail padrão"
                 >
                   <ExternalLink size={14} />
@@ -2515,7 +2515,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 </button>
                 <button
                   onClick={copyForEmail}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-colors shadow-sm shadow-indigo-600/20"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-colors shadow-sm shadow-indigo-600/20 dark:shadow-none"
                 >
                   <Mail size={14} />
                   {copiedType === 'email' ? 'Copiado p/ E-mail!' : 'Copiar p/ E-mail'}
@@ -2529,29 +2529,29 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       {/* Modal de Configuração de Formatação, Cores e Negritos */}
       {showConfigModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-white dark:bg-[#1c1c1e] border border-transparent dark:border-white/[0.08] rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.08] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                   <Settings size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-gray-800 text-base">Configurar Mensagem e E-mail</h3>
-                  <p className="text-xs text-gray-500">Personalize negritos, cores para cada gravidade e textos padrão</p>
+                  <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-base">Configurar Mensagem e E-mail</h3>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">Personalize negritos, cores para cada gravidade e textos padrão</p>
                 </div>
               </div>
-              <button onClick={() => setShowConfigModal(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100">
+              <button onClick={() => setShowConfigModal(false)} className="text-gray-400 dark:text-zinc-400 hover:text-gray-600 dark:hover:text-zinc-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/[0.08]">
                 <X size={20} />
               </button>
             </div>
 
             {/* Config Tabs */}
-            <div className="flex bg-gray-100 p-1 rounded-2xl">
+            <div className="flex bg-gray-100 dark:bg-white/[0.06] p-1 rounded-2xl">
               <button
                 onClick={() => setConfigTab('bold')}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-extrabold rounded-xl transition-all",
-                  configTab === 'bold' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                  configTab === 'bold' ? "bg-white dark:bg-white/[0.12] text-emerald-600 dark:text-emerald-300 shadow-sm dark:shadow-none" : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                 )}
               >
                 🔤 Negritos
@@ -2560,7 +2560,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 onClick={() => setConfigTab('colors')}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-extrabold rounded-xl transition-all",
-                  configTab === 'colors' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                  configTab === 'colors' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none" : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                 )}
               >
                 🎨 Cores do E-mail
@@ -2569,7 +2569,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 onClick={() => setConfigTab('text')}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-extrabold rounded-xl transition-all",
-                  configTab === 'text' ? "bg-white text-amber-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                  configTab === 'text' ? "bg-white dark:bg-white/[0.12] text-amber-600 dark:text-amber-300 shadow-sm dark:shadow-none" : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                 )}
               >
                 ✉️ Textos & Assunto
@@ -2578,13 +2578,13 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
             <div className="flex-1 overflow-y-auto space-y-4 pr-1">
               {configTab === 'bold' && (
-                <div className="p-4 bg-gray-50 rounded-2xl space-y-3.5 border border-gray-100">
-                  <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Onde aplicar negrito?</p>
+                <div className="p-4 bg-gray-50 dark:bg-white/[0.03] rounded-2xl space-y-3.5 border border-gray-100 dark:border-white/[0.06]">
+                  <p className="text-xs font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">Onde aplicar negrito?</p>
                   
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 bg-white p-3 rounded-xl border border-gray-100 hover:border-emerald-200 transition">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-200 bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] hover:border-emerald-200 dark:hover:border-emerald-500/30 transition">
                     <div>
-                      <p className="font-bold text-gray-800">Negrito nos Rótulos</p>
-                      <p className="text-[11px] text-gray-400 font-normal">Ex: <b>Número da Inconformidade:</b>, <b>Local:</b>, <b>Descrição:</b></p>
+                      <p className="font-bold text-gray-800 dark:text-zinc-100">Negrito nos Rótulos</p>
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-normal">Ex: <b>Número da Inconformidade:</b>, <b>Local:</b>, <b>Descrição:</b></p>
                     </div>
                     <input 
                       type="checkbox" 
@@ -2594,10 +2594,10 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 bg-white p-3 rounded-xl border border-gray-100 hover:border-emerald-200 transition">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-200 bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] hover:border-emerald-200 dark:hover:border-emerald-500/30 transition">
                     <div>
-                      <p className="font-bold text-gray-800">Negrito nos Valores e Gravidades</p>
-                      <p className="text-[11px] text-gray-400 font-normal">Ex: <b>5481</b>, <b>GRAVÍSSIMA</b>, <b>20/05/2024</b></p>
+                      <p className="font-bold text-gray-800 dark:text-zinc-100">Negrito nos Valores e Gravidades</p>
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-normal">Ex: <b>5481</b>, <b>GRAVÍSSIMA</b>, <b>20/05/2024</b></p>
                     </div>
                     <input 
                       type="checkbox" 
@@ -2607,10 +2607,10 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 bg-white p-3 rounded-xl border border-gray-100 hover:border-emerald-200 transition">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-200 bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] hover:border-emerald-200 dark:hover:border-emerald-500/30 transition">
                     <div>
-                      <p className="font-bold text-gray-800">Negrito nos Cabeçalhos e Títulos</p>
-                      <p className="text-[11px] text-gray-400 font-normal">Ex: <b>Prezados!</b>, <b>🚨 Inconformidade 1</b></p>
+                      <p className="font-bold text-gray-800 dark:text-zinc-100">Negrito nos Cabeçalhos e Títulos</p>
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-normal">Ex: <b>Prezados!</b>, <b>🚨 Inconformidade 1</b></p>
                     </div>
                     <input 
                       type="checkbox" 
@@ -2623,105 +2623,105 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               )}
 
               {configTab === 'colors' && (
-                <div className="p-4 bg-gray-50 rounded-2xl space-y-4 border border-gray-100">
+                <div className="p-4 bg-gray-50 dark:bg-white/[0.03] rounded-2xl space-y-4 border border-gray-100 dark:border-white/[0.06]">
                   <div>
-                    <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Cores por Gravidade (E-mail & Destaques)</p>
-                    <p className="text-[11px] text-gray-500 mb-3">Escolha a cor exata para as bordas, textos e cartões no E-mail enviado.</p>
+                    <p className="text-xs font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Cores por Gravidade (E-mail & Destaques)</p>
+                    <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-3">Escolha a cor exata para as bordas, textos e cartões no E-mail enviado.</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                    <div className="bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5">
                           🔴 Gravíssima
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{msgConfig.colorGravissima}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono">{msgConfig.colorGravissima}</span>
                       </div>
                       <input 
                         type="color" 
                         value={msgConfig.colorGravissima} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, colorGravissima: e.target.value }))}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 dark:border-white/[0.1] bg-transparent p-0.5"
                       />
                     </div>
 
-                    <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                    <div className="bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5">
                           🟠 Grave
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{msgConfig.colorGrave}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono">{msgConfig.colorGrave}</span>
                       </div>
                       <input 
                         type="color" 
                         value={msgConfig.colorGrave} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, colorGrave: e.target.value }))}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 dark:border-white/[0.1] bg-transparent p-0.5"
                       />
                     </div>
 
-                    <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                    <div className="bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5">
                           🟡 Média
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{msgConfig.colorMedia}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono">{msgConfig.colorMedia}</span>
                       </div>
                       <input 
                         type="color" 
                         value={msgConfig.colorMedia} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, colorMedia: e.target.value }))}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 dark:border-white/[0.1] bg-transparent p-0.5"
                       />
                     </div>
 
-                    <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                    <div className="bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5">
                           🔵 Leve
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{msgConfig.colorLeve}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono">{msgConfig.colorLeve}</span>
                       </div>
                       <input 
                         type="color" 
                         value={msgConfig.colorLeve} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, colorLeve: e.target.value }))}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 dark:border-white/[0.1] bg-transparent p-0.5"
                       />
                     </div>
 
-                    <div className="bg-white p-3 rounded-xl border border-red-100 flex items-center justify-between bg-red-50/20">
+                    <div className="bg-white dark:bg-red-500/10 p-3 rounded-xl border border-red-100 dark:border-red-500/30 flex items-center justify-between bg-red-50/20">
                       <div>
-                        <span className="text-xs font-extrabold text-red-700 flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold text-red-700 dark:text-red-300 flex items-center gap-1.5">
                           ⚠️ Prazo Vencido
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{msgConfig.colorOverdue}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono">{msgConfig.colorOverdue}</span>
                       </div>
                       <input 
                         type="color" 
                         value={msgConfig.colorOverdue} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, colorOverdue: e.target.value }))}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 dark:border-white/[0.1] bg-transparent p-0.5"
                       />
                     </div>
 
-                    <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                    <div className="bg-white dark:bg-white/[0.04] p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5">
                           🔠 Título / Cabeçalho
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{msgConfig.colorHeader}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono">{msgConfig.colorHeader}</span>
                       </div>
                       <input 
                         type="color" 
                         value={msgConfig.colorHeader} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, colorHeader: e.target.value }))}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 dark:border-white/[0.1] bg-transparent p-0.5"
                       />
                     </div>
                   </div>
 
-                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 pt-1">
+                  <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-200 pt-1">
                     <span>Exibir Emojis Coloridos (🔴 🟠 🟡 🔵) nas mensagens</span>
                     <input 
                       type="checkbox" 
@@ -2735,39 +2735,39 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
               {configTab === 'text' && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-gray-50 rounded-2xl space-y-3.5 border border-gray-100">
+                  <div className="p-4 bg-gray-50 dark:bg-white/[0.03] rounded-2xl space-y-3.5 border border-gray-100 dark:border-white/[0.06]">
                     <div>
-                      <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
                         Modelo de Assunto do E-mail
                       </label>
-                      <p className="text-[11px] text-gray-400 mb-1.5">Use <code className="bg-gray-200 px-1 py-0.5 rounded text-gray-800 font-bold">{'{local}'}</code> e <code className="bg-gray-200 px-1 py-0.5 rounded text-gray-800 font-bold">{'{numero}'}</code> para substituição automática.</p>
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 mb-1.5">Use <code className="bg-gray-200 dark:bg-white/[0.1] px-1 py-0.5 rounded text-gray-800 dark:text-zinc-200 font-bold">{'{local}'}</code> e <code className="bg-gray-200 dark:bg-white/[0.1] px-1 py-0.5 rounded text-gray-800 dark:text-zinc-200 font-bold">{'{numero}'}</code> para substituição automática.</p>
                       <input 
                         type="text" 
                         value={msgConfig.emailSubjectTemplate} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, emailSubjectTemplate: e.target.value }))}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
                         placeholder="Ex: Relatório de Inconformidade - {local} - Nº {numero}"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
                         Texto de Introdução
                       </label>
                       <input 
                         type="text" 
                         value={msgConfig.introText} 
                         onChange={(e) => setMsgConfig(prev => ({ ...prev, introText: e.target.value }))}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-medium text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
                         placeholder="Ex: Informo sobre o click segurança com inconformidades de:"
                       />
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-2xl space-y-3 border border-gray-100">
-                    <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Opções Adicionais</p>
+                  <div className="p-4 bg-gray-50 dark:bg-white/[0.03] rounded-2xl space-y-3 border border-gray-100 dark:border-white/[0.06]">
+                    <p className="text-xs font-extrabold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">Opções Adicionais</p>
 
-                    <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                    <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-200">
                       <span>Destacar Prazos Vencidos com etiqueta ⚠️ [PRAZO VENCIDO]</span>
                       <input 
                         type="checkbox" 
@@ -2777,7 +2777,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                       />
                     </label>
 
-                    <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700">
+                    <label className="flex items-center justify-between cursor-pointer text-xs font-semibold text-gray-700 dark:text-zinc-200">
                       <span>Incluir campo "Sugestão de Adequação"</span>
                       <input 
                         type="checkbox" 
@@ -2791,10 +2791,10 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/[0.08]">
               <button
                 onClick={() => setMsgConfig(DEFAULT_MSG_CONFIG)}
-                className="px-3.5 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-3.5 py-2 text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-xl transition-colors"
               >
                 Restaurar Padrão
               </button>
@@ -2804,7 +2804,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     setShowConfigModal(false);
                     setShowPreviewModal(true);
                   }}
-                  className="px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+                  className="px-4 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 rounded-xl transition-colors"
                 >
                   Ver Prévia
                 </button>
@@ -2823,21 +2823,21 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
       {/* Modal de Configuração de Logos Padrão (Salvas no Banco de Dados) */}
       {showLogosModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-transparent dark:border-white/[0.08] space-y-5 max-h-[90vh] flex flex-col">
             {/* Cabeçalho do Modal */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.08] pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl shadow-2xs">
+                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-2xl shadow-2xs">
                   <Database size={22} />
                 </div>
                 <div>
-                  <h3 className="font-black text-gray-900 text-lg">Logos Padrão no Banco de Dados</h3>
-                  <p className="text-xs text-gray-500">Salve as logos oficiais no banco para sempre gerar os PDFs com elas</p>
+                  <h3 className="font-black text-gray-900 dark:text-zinc-100 text-lg">Logos Padrão no Banco de Dados</h3>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">Salve as logos oficiais no banco para sempre gerar os PDFs com elas</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowLogosModal(false)} 
-                className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className="text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
               >
                 <X size={20} />
               </button>
@@ -2845,8 +2845,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
 
             {/* Banner de Sucesso */}
             {logosModalSuccess && (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
+              <div className="bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                 <span>Logos gravadas com sucesso no banco de dados! A partir de agora, todos os novos Clicks e PDFs gerados usarão essas logos automaticamente.</span>
               </div>
             )}
@@ -2855,27 +2855,27 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
             <div className="space-y-4 overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Logo 1 */}
-                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-200 flex flex-col justify-between">
+                <div className="bg-gray-50/80 dark:bg-white/[0.04] rounded-2xl p-4 border border-gray-200 dark:border-white/[0.08] flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-black text-gray-800 uppercase tracking-wider">Logo 1 • Principal</h4>
+                      <h4 className="text-xs font-black text-gray-800 dark:text-zinc-100 uppercase tracking-wider">Logo 1 • Principal</h4>
                       {modalLogo1 === savedLogos.logo_1 && savedLogos.logo_1 ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 rounded-md flex items-center gap-1 shadow-2xs">
                           <Database size={10} /> Salva no Banco
                         </span>
                       ) : modalLogo1 === DEFAULT_LOGOS.logo1 ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 text-gray-700 rounded-md">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 dark:bg-white/[0.1] text-gray-700 dark:text-zinc-300 rounded-md">
                           Padrão Oficial
                         </span>
                       ) : (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-md">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 rounded-md">
                           Nova Logo Selecionada
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-500 mb-3">Logo do Click Segurança ou a marca principal da sua empresa.</p>
+                    <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-3">Logo do Click Segurança ou a marca principal da sua empresa.</p>
 
-                    <div className="w-full h-24 rounded-xl border border-gray-200 bg-white p-2 flex items-center justify-center shadow-inner mb-3 overflow-hidden">
+                    <div className="w-full h-24 rounded-xl border border-gray-200 dark:border-white/[0.1] bg-white p-2 flex items-center justify-center shadow-inner mb-3 overflow-hidden">
                       <img 
                         src={modalLogo1 || DEFAULT_LOGOS.logo1} 
                         alt="Logo 1 Preview" 
@@ -2885,8 +2885,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                   </div>
 
                   <div className="flex items-center gap-2 pt-2">
-                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 border border-gray-300 hover:border-emerald-400 rounded-xl cursor-pointer text-xs font-bold transition-all shadow-2xs">
-                      <Upload size={13} className="text-emerald-600" />
+                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 text-gray-700 dark:text-zinc-200 hover:text-emerald-700 dark:hover:text-emerald-300 border border-gray-300 dark:border-white/[0.1] hover:border-emerald-400 dark:hover:border-emerald-500/40 rounded-xl cursor-pointer text-xs font-bold transition-all shadow-2xs">
+                      <Upload size={13} className="text-emerald-600 dark:text-emerald-400" />
                       <span>Substituir</span>
                       <input 
                         type="file" 
@@ -2904,7 +2904,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     <button
                       type="button"
                       onClick={() => setModalLogo1(DEFAULT_LOGOS.logo1)}
-                      className="px-2.5 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 border border-gray-200 rounded-xl text-xs font-bold transition-colors"
+                      className="px-2.5 py-2 text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100 hover:bg-gray-200/70 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-bold transition-colors"
                       title="Restaurar padrão oficial do sistema"
                     >
                       <RotateCcw size={13} />
@@ -2913,27 +2913,27 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                 </div>
 
                 {/* Logo 2 */}
-                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-200 flex flex-col justify-between">
+                <div className="bg-gray-50/80 dark:bg-white/[0.04] rounded-2xl p-4 border border-gray-200 dark:border-white/[0.08] flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-black text-gray-800 uppercase tracking-wider">Logo 2 • Secundária</h4>
+                      <h4 className="text-xs font-black text-gray-800 dark:text-zinc-100 uppercase tracking-wider">Logo 2 • Secundária</h4>
                       {modalLogo2 === savedLogos.logo_2 && savedLogos.logo_2 ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md flex items-center gap-1 shadow-2xs">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 rounded-md flex items-center gap-1 shadow-2xs">
                           <Database size={10} /> Salva no Banco
                         </span>
                       ) : modalLogo2 === DEFAULT_LOGOS.logo2 ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 text-gray-700 rounded-md">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 dark:bg-white/[0.1] text-gray-700 dark:text-zinc-300 rounded-md">
                           Padrão Oficial
                         </span>
                       ) : (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-md">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 rounded-md">
                           Nova Logo Selecionada
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-500 mb-3">Logo da Copasa ou contratante parceiro para o cabeçalho.</p>
+                    <p className="text-[11px] text-gray-500 dark:text-zinc-400 mb-3">Logo da Copasa ou contratante parceiro para o cabeçalho.</p>
 
-                    <div className="w-full h-24 rounded-xl border border-gray-200 bg-white p-2 flex items-center justify-center shadow-inner mb-3 overflow-hidden">
+                    <div className="w-full h-24 rounded-xl border border-gray-200 dark:border-white/[0.1] bg-white p-2 flex items-center justify-center shadow-inner mb-3 overflow-hidden">
                       <img 
                         src={modalLogo2 || DEFAULT_LOGOS.logo2} 
                         alt="Logo 2 Preview" 
@@ -2943,8 +2943,8 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                   </div>
 
                   <div className="flex items-center gap-2 pt-2">
-                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 border border-gray-300 hover:border-emerald-400 rounded-xl cursor-pointer text-xs font-bold transition-all shadow-2xs">
-                      <Upload size={13} className="text-emerald-600" />
+                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 text-gray-700 dark:text-zinc-200 hover:text-emerald-700 dark:hover:text-emerald-300 border border-gray-300 dark:border-white/[0.1] hover:border-emerald-400 dark:hover:border-emerald-500/40 rounded-xl cursor-pointer text-xs font-bold transition-all shadow-2xs">
+                      <Upload size={13} className="text-emerald-600 dark:text-emerald-400" />
                       <span>Substituir</span>
                       <input 
                         type="file" 
@@ -2962,7 +2962,7 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
                     <button
                       type="button"
                       onClick={() => setModalLogo2(DEFAULT_LOGOS.logo2)}
-                      className="px-2.5 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 border border-gray-200 rounded-xl text-xs font-bold transition-colors"
+                      className="px-2.5 py-2 text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100 hover:bg-gray-200/70 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-bold transition-colors"
                       title="Restaurar padrão oficial do sistema"
                     >
                       <RotateCcw size={13} />
@@ -2972,20 +2972,20 @@ export function SafetyReportGenerator({ fetchWithAuth }: SafetyReportGeneratorPr
               </div>
 
               {/* Informação sobre os PDFs */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-2.5">
-                <Shield size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-600">
-                  <strong className="text-slate-800">Como funciona:</strong> Ao salvar, estas imagens são gravadas diretamente no banco de dados e passam a ser o padrão oficial de toda a sua conta. Todos os relatórios PDF que você gerar (seja individualmente ou agrupados) carregarão essas logos automaticamente no cabeçalho oficial.
+              <div className="p-3.5 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-2xl flex items-start gap-2.5">
+                <Shield size={16} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
+                  <strong className="text-slate-800 dark:text-zinc-100">Como funciona:</strong> Ao salvar, estas imagens são gravadas diretamente no banco de dados e passam a ser o padrão oficial de toda a sua conta. Todos os relatórios PDF que você gerar (seja individualmente ou agrupados) carregarão essas logos automaticamente no cabeçalho oficial.
                 </p>
               </div>
             </div>
 
             {/* Rodapé de Ações */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => setShowLogosModal(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
+                className="px-4 py-2 text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-xl transition-colors"
               >
                 Cancelar
               </button>

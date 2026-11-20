@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { useDialog } from './DialogContext';
 import { PdfService } from '../lib/PdfService';
+import { computeBillBreakdown, fromCents, getLocalTodayStr } from '../lib/chacaraFinance';
 
 interface ChacaraAccountabilityManagerProps {
   fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
@@ -15,8 +16,8 @@ interface ChacaraAccountabilityManagerProps {
 }
 
 export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManagerProps> = ({ fetchWithAuth, supabaseClient }) => {
-  const { confirm: dialogConfirm, alert: dialogAlert, askOptions } = useDialog();
-  const [monthReference, setMonthReference] = useState(new Date().toISOString().slice(0, 7));
+  const { confirm: dialogConfirm, alert: dialogAlert, askOptions, toast } = useDialog();
+  const [monthReference, setMonthReference] = useState(() => getLocalTodayStr().slice(0, 7));
   const [accountability, setAccountability] = useState<ChacaraAccountability | null>(null);
   const [expenses, setExpenses] = useState<ChacaraExpense[]>([]);
   const [bills, setBills] = useState<ChacaraBill[]>([]);
@@ -40,7 +41,7 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
     description: '',
     category: 'Manutenção',
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalTodayStr(),
     receipt_url: ''
   });
   
@@ -55,18 +56,37 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
   }, [monthReference]);
 
   const accountabilityTotals = React.useMemo(() => {
-    if (bills.length === 0 || !accountability) return null;
-    const paidBills = bills.filter(b => b.status === 'paid');
-    return {
-      total_collected: paidBills.reduce((acc, b) => acc + (b.amount_paid || b.total), 0),
-      collected_reserve_fund: paidBills.reduce((acc, b) => acc + (b.include_reserve_fund ? b.reserve_fund : 0), 0),
-      collected_energy: paidBills.reduce((acc, b) => acc + b.kwh_value, 0),
-      collected_water: paidBills.reduce((acc, b) => acc + (b.water_value + (b.water_service_fee || 0)), 0),
-      collected_apportionment: paidBills.reduce((acc, b) => acc + (b.include_apportionment ? b.apportionment_value : 0), 0),
-    };
-  }, [bills, accountability]);
+    if (bills.length === 0) return null;
+    let totalCollectedCents = 0;
+    let reserveCents = 0;
+    let energyCents = 0;
+    let waterCents = 0;
+    let serviceFeeCents = 0;
+    let apportionmentCents = 0;
 
-  const displayAccountability = accountabilityTotals ? { ...accountability, ...accountabilityTotals } : accountability;
+    for (const b of bills) {
+      const bd = computeBillBreakdown(b);
+      totalCollectedCents += bd.paidCents;
+      reserveCents += bd.categories.fundo_reserva.recebidoCents;
+      energyCents += bd.categories.energia.recebidoCents;
+      waterCents += bd.categories.agua.recebidoCents;
+      serviceFeeCents += bd.categories.prestador.recebidoCents;
+      apportionmentCents += bd.categories.rateio.recebidoCents;
+    }
+
+    return {
+      total_collected: fromCents(totalCollectedCents),
+      collected_reserve_fund: fromCents(reserveCents),
+      collected_energy: fromCents(energyCents),
+      collected_water: fromCents(waterCents),
+      collected_service_fee: fromCents(serviceFeeCents),
+      collected_apportionment: fromCents(apportionmentCents),
+    };
+  }, [bills]);
+
+  const displayAccountability = accountabilityTotals
+    ? { ...(accountability || {}), ...accountabilityTotals }
+    : accountability;
 
   const fetchBills = async () => {
     try {
@@ -153,7 +173,7 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
       if (res.ok) {
         const data = await res.json();
         setAccountability(data);
-        dialogAlert('Dados salvos com sucesso!');
+        toast('Dados do mês salvos com sucesso!');
       } else {
         const err = await res.json().catch(() => ({ message: res.statusText }));
         dialogAlert(`Erro ao salvar dados: ${err.message || 'Erro desconhecido'}`);
@@ -222,9 +242,10 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
           description: '',
           category: 'Manutenção',
           amount: 0,
-          date: new Date().toISOString().split('T')[0],
+          date: getLocalTodayStr(),
           receipt_url: ''
         });
+        toast('Despesa registrada!');
       }
     } catch (error) {
       console.error('Error adding expense:', error);
@@ -334,20 +355,20 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-gray-900">Prestação de Contas</h2>
-          <p className="text-gray-500">Gerencie as finanças e gere relatórios mensais</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">Prestação de Contas</h2>
+          <p className="text-sm text-slate-500 dark:text-zinc-400">Gerencie as finanças e gere relatórios mensais</p>
         </div>
         <div className="flex flex-wrap gap-3 w-full md:w-auto">
           <input 
             type="month" 
             value={monthReference}
             onChange={e => setMonthReference(e.target.value)}
-            className="flex-1 md:flex-none px-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-gray-700 w-full sm:w-auto"
+            className="flex-1 md:flex-none px-4 py-2 bg-white dark:bg-[#141416] border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-800 dark:text-zinc-100 w-full sm:w-auto"
           />
           <button 
             onClick={exportToPDF}
             disabled={!accountability}
-            className="flex-1 md:flex-none px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 font-bold disabled:opacity-50 w-full sm:w-auto"
+            className="flex-1 md:flex-none px-4 py-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all flex items-center justify-center gap-2 font-bold disabled:opacity-50 w-full sm:w-auto"
           >
             <Download size={18} />
             Exportar PDF
@@ -358,90 +379,92 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Form */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar size={20} className="text-indigo-600" />
+          <div className="bg-white dark:bg-[#141416] rounded-2xl p-6 shadow-xs border border-slate-200/80 dark:border-zinc-800">
+            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+              <Calendar size={18} className="text-indigo-600 dark:text-indigo-400" />
               Saldos e Arrecadação
             </h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Total Arrecadado no Mês</label>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                  <div className="text-xl font-black text-emerald-600">R$ {accountability?.total_collected?.toFixed(2) || '0.00'}</div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Total Arrecadado no Mês</label>
+                <div className="bg-slate-50 dark:bg-zinc-900/70 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                  <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    R$ {(displayAccountability?.total_collected ?? 0).toFixed(2)}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Saldo Inicial Fundo Reserva</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Saldo Inicial Fundo Reserva</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-zinc-400 font-bold text-sm">R$</span>
                   <input 
                     type="number" 
                     step="0.01"
                     value={form.initial_reserve_fund}
                     onChange={e => setForm({...form, initial_reserve_fund: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100 tabular-nums"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Saldo Inicial Rateio</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Saldo Inicial Rateio</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-zinc-400 font-bold text-sm">R$</span>
                   <input 
                     type="number" 
                     step="0.01"
                     value={form.initial_apportionment}
                     onChange={e => setForm({...form, initial_apportionment: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100 tabular-nums"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Conta Luz (Valor)</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Conta Luz (Valor)</label>
                   <input 
                     type="number" 
                     step="0.01"
                     value={form.electricity_bill_value}
                     onChange={e => setForm({...form, electricity_bill_value: Number(e.target.value)})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100 tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Conta Água (Valor)</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Conta Água (Valor)</label>
                   <input 
                     type="number" 
                     step="0.01"
                     value={form.water_bill_value}
                     onChange={e => setForm({...form, water_bill_value: Number(e.target.value)})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100 tabular-nums"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Saldo Inicial Prestadores</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Saldo Inicial Prestadores</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-zinc-400 font-bold text-sm">R$</span>
                   <input 
                     type="number" 
                     step="0.01"
                     value={form.initial_services}
                     onChange={e => setForm({...form, initial_services: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100 tabular-nums"
                   />
                 </div>
               </div>
 
               <button 
                 onClick={handleSaveAccountability}
-                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
-                <CheckCircle size={20} />
+                <CheckCircle size={18} />
                 Salvar Dados do Mês
               </button>
             </div>
@@ -451,60 +474,72 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
         {/* Right Column: Cards & Expenses */}
         <div className="lg:col-span-2 space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
                 <TrendingUp size={14} className="text-emerald-500" /> Arrecadado
               </span>
-              <span className="text-2xl font-black text-emerald-600">R$ {(accountabilityTotals?.total_collected || 0).toFixed(2)}</span>
+              <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">R$ {(accountabilityTotals?.total_collected || 0).toFixed(2)}</span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+            <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
                 <TrendingDown size={14} className="text-rose-500" /> Despesas
               </span>
-              <span className="text-2xl font-black text-rose-600">R$ {totalExpenses.toFixed(2)}</span>
+              <span className="text-xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">R$ {totalExpenses.toFixed(2)}</span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+            <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col col-span-2 md:col-span-2">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
                 <DollarSign size={14} className="text-indigo-500" /> Saldo Final
               </span>
-              <span className={`text-2xl font-black ${finalBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+              <span className={`text-xl font-bold tabular-nums ${finalBalance >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 R$ {finalBalance.toFixed(2)}
               </span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Fundo Reserva</span>
-              <span className="text-lg font-black text-gray-900">R$ {(accountabilityTotals?.collected_reserve_fund || 0).toFixed(2)}</span>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Fundo Reserva</span>
+              <span className="text-base font-bold text-slate-900 dark:text-zinc-100 tabular-nums">R$ {(accountabilityTotals?.collected_reserve_fund || 0).toFixed(2)}</span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Rateio</span>
-              <span className="text-lg font-black text-gray-900">R$ {(accountabilityTotals?.collected_apportionment || 0).toFixed(2)}</span>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Energia Arrec.</span>
+              <span className="text-base font-bold text-slate-900 dark:text-zinc-100 tabular-nums">R$ {(accountabilityTotals?.collected_energy || 0).toFixed(2)}</span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Prestador</span>
-              <span className="text-lg font-black text-gray-900">R$ {totalServiceProviders.toFixed(2)}</span>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Água Arrec.</span>
+              <span className="text-base font-bold text-slate-900 dark:text-zinc-100 tabular-nums">R$ {(accountabilityTotals?.collected_water || 0).toFixed(2)}</span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Falta Luz</span>
-              <span className="text-lg font-black text-rose-600">R$ {remainingEnergy.toFixed(2)}</span>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Rateio Arrec.</span>
+              <span className="text-base font-bold text-slate-900 dark:text-zinc-100 tabular-nums">R$ {(accountabilityTotals?.collected_apportionment || 0).toFixed(2)}</span>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Falta Água</span>
-              <span className="text-lg font-black text-rose-600">R$ {remainingWater.toFixed(2)}</span>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Prestador Arrec.</span>
+              <span className="text-base font-bold text-slate-900 dark:text-zinc-100 tabular-nums">R$ {(accountabilityTotals?.collected_service_fee || 0).toFixed(2)}</span>
+            </div>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Gasto Prestador</span>
+              <span className="text-base font-bold text-slate-900 dark:text-zinc-100 tabular-nums">R$ {totalServiceProviders.toFixed(2)}</span>
+            </div>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Falta Luz</span>
+              <span className="text-base font-bold text-rose-600 dark:text-rose-400 tabular-nums">R$ {remainingEnergy.toFixed(2)}</span>
+            </div>
+            <div className="bg-white dark:bg-[#141416] p-4 rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <span className="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1">Falta Água</span>
+              <span className="text-base font-bold text-rose-600 dark:text-rose-400 tabular-nums">R$ {remainingWater.toFixed(2)}</span>
             </div>
           </div>
 
           {/* Expenses List */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileText size={20} className="text-indigo-600" />
+          <div className="bg-white dark:bg-[#141416] rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
+            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <FileText size={18} className="text-indigo-600 dark:text-indigo-400" />
                 Despesas do Mês
               </h3>
               <button 
                 onClick={() => setShowExpenseModal(true)}
                 disabled={!accountability}
-                className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-bold text-sm disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-bold text-sm disabled:opacity-50 cursor-pointer"
               >
                 <Plus size={16} />
                 Nova Despesa
@@ -514,35 +549,35 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Data</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Descrição</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Categoria</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Valor</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Comprovante</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ações</th>
+                  <tr className="bg-slate-50 dark:bg-zinc-900/70 border-b border-slate-100 dark:border-zinc-800">
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase">Data</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase">Descrição</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase">Categoria</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase text-right">Valor</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase text-center">Comprovante</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500 dark:text-zinc-400 text-sm">
                         Nenhuma despesa registrada neste mês.
                       </td>
                     </tr>
                   ) : (
                     expenses.map(exp => (
-                      <tr key={exp.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                      <tr key={exp.id} className="border-b border-slate-50 dark:border-zinc-800/70 hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-zinc-300 whitespace-nowrap">
                           {new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                         </td>
-                        <td className="px-6 py-4 font-medium text-gray-900">{exp.description}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-zinc-100">{exp.description}</td>
                         <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs font-bold">
+                          <span className="px-2 py-1 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 rounded-md text-xs font-bold">
                             {exp.category}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right font-bold text-rose-600">
+                        <td className="px-6 py-4 text-right font-bold text-rose-600 dark:text-rose-400 tabular-nums whitespace-nowrap">
                           R$ {exp.amount.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -551,18 +586,18 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
                               href={exp.receipt_url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-indigo-600 hover:underline text-sm font-medium"
+                              className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium"
                             >
                               Ver Anexo
                             </a>
                           ) : (
-                            <span className="text-gray-400 text-sm">-</span>
+                            <span className="text-slate-400 dark:text-zinc-600 text-sm">-</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button 
                             onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -576,10 +611,10 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
           </div>
 
           {/* Bills List */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-6">
-            <div className="p-6 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileText size={20} className="text-indigo-600" />
+          <div className="bg-white dark:bg-[#141416] rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 overflow-hidden mt-6">
+            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-zinc-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <FileText size={18} className="text-indigo-600 dark:text-indigo-400" />
                 Histórico de Contas (Bills)
               </h3>
             </div>
@@ -587,39 +622,39 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Usuário</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Vencimento</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Total</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Status</th>
+                  <tr className="bg-slate-50 dark:bg-zinc-900/70 border-b border-slate-100 dark:border-zinc-800">
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase">Usuário</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase">Vencimento</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase text-right">Total</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {bills.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={4} className="px-6 py-8 text-center text-slate-500 dark:text-zinc-400 text-sm">
                         Nenhuma conta registrada neste mês.
                       </td>
                     </tr>
                   ) : (
                     bills.map(bill => (
-                      <tr key={bill.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      <tr key={bill.id} className="border-b border-slate-50 dark:border-zinc-800/70 hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-zinc-100">
                           {bill.chacara_user_id}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-zinc-300 whitespace-nowrap">
                           {new Date(bill.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                         </td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-900">
+                        <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-zinc-100 tabular-nums whitespace-nowrap">
                           R$ {bill.total.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span className={`px-2 py-1 rounded-md text-xs font-bold ${
                             bill.status === 'paid' 
-                              ? 'bg-emerald-100 text-emerald-700' 
+                              ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' 
                               : (bill.status === 'partial' || (bill.amount_paid || 0) > 0)
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-amber-100 text-amber-700'
+                                ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400'
+                                : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
                           }`}>
                             {bill.status === 'paid' ? 'Pago' : (bill.status === 'partial' || (bill.amount_paid || 0) > 0) ? 'Parcial' : 'Pendente'}
                           </span>
@@ -647,52 +682,52 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.15, ease: "easeOut" }}
-              className="bg-white rounded-3xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col overflow-hidden"
+              className="bg-white dark:bg-[#141416] border border-slate-200 dark:border-zinc-800 rounded-3xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 shrink-0">
-                <h3 className="text-xl font-black text-gray-900">Nova Despesa</h3>
+              <div className="p-6 border-b border-slate-100 dark:border-zinc-800 shrink-0">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-zinc-100">Nova Despesa</h3>
               </div>
               
               <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Descrição</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-2">Descrição</label>
                   <input 
                     type="text" 
                     value={expenseForm.description}
                     onChange={e => setExpenseForm({...expenseForm, description: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium text-slate-900 dark:text-zinc-100"
                     placeholder="Ex: Conta de Luz"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Valor (R$)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-2">Valor (R$)</label>
                     <input 
                       type="number" 
                       step="0.01"
                       value={expenseForm.amount}
                       onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-rose-600"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-rose-600 dark:text-rose-400"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Data</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-2">Data</label>
                     <input 
                       type="date" 
                       value={expenseForm.date}
                       onChange={e => setExpenseForm({...expenseForm, date: e.target.value})}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Categoria</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-2">Categoria</label>
                   <select 
                     value={expenseForm.category}
                     onChange={e => setExpenseForm({...expenseForm, category: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium text-slate-900 dark:text-zinc-100"
                   >
                     {categories.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
@@ -701,7 +736,7 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Comprovante (Opcional)</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-2">Comprovante (Opcional)</label>
                   <div className="relative">
                     <input 
                       type="file" 
@@ -713,12 +748,12 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
                     />
                     <label 
                       htmlFor="receipt-upload"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 border-dashed rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 transition-all text-gray-600 font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 border-dashed rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all text-slate-600 dark:text-zinc-300 font-medium"
                     >
                       {isUploading ? (
                         <span className="animate-pulse">Enviando...</span>
                       ) : expenseForm.receipt_url ? (
-                        <span className="text-emerald-600 flex items-center gap-2"><CheckCircle size={18} /> Arquivo Anexado</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><CheckCircle size={18} /> Arquivo Anexado</span>
                       ) : (
                         <><Upload size={18} /> Escolher Arquivo</>
                       )}
@@ -727,17 +762,17 @@ export const ChacaraAccountabilityManager: React.FC<ChacaraAccountabilityManager
                 </div>
               </div>
 
-              <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 shrink-0">
+              <div className="p-6 border-t border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row gap-3 shrink-0">
                 <button 
                   onClick={() => setShowExpenseModal(false)}
-                  className="w-full sm:flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                  className="w-full sm:flex-1 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
                 >
                   Cancelar
                 </button>
                 <button 
                   onClick={handleAddExpense}
                   disabled={isUploading}
-                  className="w-full sm:flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
+                  className="w-full sm:flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50"
                 >
                   Adicionar
                 </button>

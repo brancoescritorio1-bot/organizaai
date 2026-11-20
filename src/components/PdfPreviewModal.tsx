@@ -45,14 +45,14 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ element, title
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-slate-100 w-full max-w-6xl max-h-[80vh] rounded-2xl md:rounded-3xl shadow-2xl overflow-y-auto relative flex flex-col"
+        className="bg-slate-100 dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] w-full max-w-6xl max-h-[80vh] rounded-2xl md:rounded-3xl shadow-2xl overflow-y-auto relative flex flex-col"
       >
         {/* Header matching screenshot */}
-        <div className="bg-slate-900 text-white px-4 md:px-6 py-4 flex items-center justify-between shadow-lg z-20 sticky top-0 shrink-0">
+        <div className="bg-slate-900 dark:bg-[#141416] text-white px-4 md:px-6 py-4 flex items-center justify-between shadow-lg z-20 sticky top-0 shrink-0 border-b border-white/[0.08]">
           <div className="flex items-center gap-4 md:gap-6">
             <button 
               onClick={() => onClose(null)} 
-              className="p-2 hover:bg-slate-800 rounded-full transition-colors shrink-0"
+              className="p-2 hover:bg-slate-800 dark:hover:bg-white/[0.1] rounded-full transition-colors shrink-0"
             >
               <X size={24} />
             </button>
@@ -84,9 +84,9 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ element, title
         </div>
 
         {/* Preview Area */}
-        <div className="flex-1 p-4 md:p-8 flex flex-col items-center bg-slate-200/50">
+        <div className="flex-1 p-4 md:p-8 flex flex-col items-center bg-slate-200/50 dark:bg-[#0b0b0c]/70">
           <div 
-            className="bg-white shadow-[0_10px_40px_rgba(0,0,0,0.1)] w-full max-w-[210mm] min-h-[297mm] h-fit p-[10mm] md:p-[15mm] relative origin-top transition-transform" 
+            className="bg-white text-slate-900 shadow-[0_10px_40px_rgba(0,0,0,0.1)] w-full max-w-[210mm] min-h-[297mm] h-fit p-[10mm] md:p-[15mm] relative origin-top transition-transform" 
             ref={containerRef}
             style={{ 
               transform: 'scale(1)',
@@ -96,7 +96,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ element, title
           >
             {/* Content will be injected here */}
           </div>
-          <div className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] py-8">
+          <div className="text-slate-400 dark:text-zinc-500 font-bold text-[10px] uppercase tracking-[0.2em] py-8">
             — Fim da Visualização —
           </div>
         </div>

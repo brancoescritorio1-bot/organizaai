@@ -58,10 +58,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userEmail = 'Lara'
 }) => {
   const content = (
-    <div className="flex flex-col h-full bg-[#fbfbfd]/95 backdrop-blur-2xl border-r border-black/[0.08] select-none text-[#1d1d1f]">
+    <div className="flex flex-col h-full bg-[#fbfbfd]/95 dark:bg-[#161618]/95 backdrop-blur-2xl border-r border-black/[0.08] dark:border-white/[0.08] select-none text-[#1d1d1f] dark:text-[#f5f5f7]">
       {/* macOS Window & Brand Header */}
       <div className={cn(
-        "h-16 flex items-center justify-between border-b border-black/[0.05] transition-all",
+        "h-16 flex items-center justify-between border-b border-black/[0.05] dark:border-white/[0.06] transition-all",
         isCollapsed ? "px-3" : "px-4"
       )}>
         <button
@@ -73,20 +73,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
           className={cn(
             "flex items-center text-left rounded-xl group cursor-pointer transition-all focus:outline-none",
-            isCollapsed ? "p-1 hover:opacity-80" : "gap-3 min-w-0 p-1 -m-1 hover:bg-black/[0.03]"
+            isCollapsed ? "p-1 hover:opacity-80" : "gap-3 min-w-0 p-1 -m-1 hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
           )}
           title="Ir para a Página Inicial"
           aria-label="Ir para a Página Inicial"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#1d1d1f] text-white flex items-center justify-center shadow-xs shrink-0 font-bold text-xs tracking-tight group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-xl bg-[#1d1d1f] dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center shadow-xs shrink-0 font-bold text-xs tracking-tight group-hover:scale-105 transition-transform">
             O
           </div>
           {!isCollapsed && (
             <div className="truncate">
-              <h1 className="text-sm font-semibold text-[#1d1d1f] leading-none tracking-tight">
+              <h1 className="text-sm font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-none tracking-tight">
                 OrganizaAI
               </h1>
-              <p className="text-[11px] text-[#86868b] font-normal mt-1 truncate">
+              <p className="text-[11px] text-[#86868b] dark:text-zinc-400 font-normal mt-1 truncate">
                 Central de Gestão
               </p>
             </div>
@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Mobile close button */}
         <button 
           onClick={onCloseMobile}
-          className="md:hidden p-1.5 text-[#86868b] hover:text-[#1d1d1f] rounded-lg transition-colors cursor-pointer"
+          className="md:hidden p-1.5 text-[#86868b] dark:text-zinc-400 hover:text-[#1d1d1f] dark:hover:text-white rounded-lg transition-colors cursor-pointer"
           title="Fechar Menu"
           aria-label="Fechar Menu"
         >
@@ -106,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Desktop collapse toggle button */}
         <button
           onClick={onToggleCollapse}
-          className="hidden md:flex p-1.5 text-[#86868b] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-lg transition-colors cursor-pointer"
+          className="hidden md:flex p-1.5 text-[#86868b] dark:text-zinc-400 hover:text-[#1d1d1f] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
           title={isCollapsed ? "Expandir Barra Lateral" : "Recolher Barra Lateral"}
           aria-label={isCollapsed ? "Expandir Barra Lateral" : "Recolher Barra Lateral"}
         >
@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Navigation List */}
       <div className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {!isCollapsed && (
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#86868b] px-3 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#86868b] dark:text-zinc-500 px-3 mb-2">
             Módulos
           </p>
         )}
@@ -138,12 +138,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={cn(
                   "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative group cursor-pointer",
                   isActive 
-                    ? "bg-black/[0.07] text-[#1d1d1f] font-semibold" 
-                    : "text-[#515154] hover:bg-black/[0.035] hover:text-[#1d1d1f] font-medium",
+                    ? "bg-black/[0.07] dark:bg-white/[0.1] text-[#1d1d1f] dark:text-white font-semibold" 
+                    : "text-[#515154] dark:text-zinc-400 hover:bg-black/[0.035] dark:hover:bg-white/[0.05] hover:text-[#1d1d1f] dark:hover:text-white font-medium",
                   isCollapsed && "justify-center px-0 py-2.5"
                 )}
               >
-                <Icon size={16} className={isActive ? "text-[#1d1d1f]" : "text-[#86868b] group-hover:text-[#1d1d1f]"} />
+                <Icon size={16} className={isActive ? "text-[#1d1d1f] dark:text-white" : "text-[#86868b] dark:text-zinc-400 group-hover:text-[#1d1d1f] dark:group-hover:text-white"} />
 
                 {!isCollapsed && (
                   <>
@@ -153,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {subtabs.length > 0 && (
                       <ChevronDown 
                         size={12} 
-                        className={cn("text-[#86868b] transition-transform", isActive ? "rotate-0 text-[#1d1d1f]" : "-rotate-90 opacity-40")} 
+                        className={cn("text-[#86868b] dark:text-zinc-400 transition-transform", isActive ? "rotate-0 text-[#1d1d1f] dark:text-white" : "-rotate-90 opacity-40")} 
                       />
                     )}
                   </>
@@ -161,13 +161,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Collapsed active dot indicator */}
                 {isCollapsed && isActive && (
-                  <div className="absolute right-1 w-1.5 h-1.5 rounded-full bg-[#1d1d1f]" />
+                  <div className="absolute right-1 w-1.5 h-1.5 rounded-full bg-[#1d1d1f] dark:bg-white" />
                 )}
               </button>
 
               {/* Subtabs list when module is active (macOS sidebar hierarchical items) */}
               {!isCollapsed && isActive && subtabs.length > 0 && (
-                <div className="pl-3 pr-1 py-1 space-y-0.5 border-l border-black/[0.08] ml-5 my-0.5">
+                <div className="pl-3 pr-1 py-1 space-y-0.5 border-l border-black/[0.08] dark:border-white/[0.1] ml-5 my-0.5">
                   {subtabs.map((sub: any) => {
                     const SubIcon = sub.icon;
                     const isSubActive = activeTab === sub.id;
@@ -182,11 +182,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         className={cn(
                           "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all cursor-pointer",
                           isSubActive
-                            ? "bg-black/[0.08] text-[#1d1d1f] font-semibold"
-                            : "text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.03] font-medium"
+                            ? "bg-black/[0.08] dark:bg-white/[0.12] text-[#1d1d1f] dark:text-white font-semibold"
+                            : "text-[#6e6e73] dark:text-zinc-400 hover:text-[#1d1d1f] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.05] font-medium"
                         )}
                       >
-                        <SubIcon size={12} className={isSubActive ? "text-[#1d1d1f]" : "text-[#86868b]"} />
+                        <SubIcon size={12} className={isSubActive ? "text-[#1d1d1f] dark:text-white" : "text-[#86868b] dark:text-zinc-400"} />
                         <span className="truncate">{sub.label}</span>
                       </button>
                     );
@@ -199,22 +199,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer Profile & Logout */}
-      <div className="p-3 border-t border-black/[0.06] bg-black/[0.015]">
+      <div className="p-3 border-t border-black/[0.06] dark:border-white/[0.08] bg-black/[0.015] dark:bg-white/[0.02]">
         {!isCollapsed ? (
-          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white border border-black/[0.06] shadow-xs">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] shadow-xs">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] font-semibold flex items-center justify-center text-xs shrink-0 border border-black/[0.06]">
+              <div className="w-7 h-7 rounded-lg bg-[#f5f5f7] dark:bg-zinc-800 text-[#1d1d1f] dark:text-zinc-100 font-semibold flex items-center justify-center text-xs shrink-0 border border-black/[0.06] dark:border-white/[0.08]">
                 L
               </div>
               <div className="truncate">
-                <p className="text-xs font-semibold text-[#1d1d1f] truncate leading-tight">Lara</p>
-                <p className="text-[10px] text-[#86868b] truncate">Sessão Ativa</p>
+                <p className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate leading-tight">Lara</p>
+                <p className="text-[10px] text-[#86868b] dark:text-zinc-400 truncate">Sessão Ativa</p>
               </div>
             </div>
 
             <button
               onClick={onLogout}
-              className="p-1.5 text-[#86868b] hover:text-[#ff3b30] hover:bg-rose-50 rounded-lg transition-colors shrink-0 cursor-pointer"
+              className="p-1.5 text-[#86868b] dark:text-zinc-400 hover:text-[#ff3b30] hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-colors shrink-0 cursor-pointer"
               title="Encerrar Sessão (Sair)"
             >
               <LogOut size={14} />
@@ -223,7 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <button
             onClick={onLogout}
-            className="w-full py-2 flex justify-center text-[#86868b] hover:text-[#ff3b30] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+            className="w-full py-2 flex justify-center text-[#86868b] dark:text-zinc-400 hover:text-[#ff3b30] hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer"
             title="Encerrar Sessão (Sair)"
           >
             <LogOut size={15} />

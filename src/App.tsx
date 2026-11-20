@@ -132,13 +132,13 @@ export default function App() {
   // While checking session on launch, show elegant branded loading screen (never flash Login screen!)
   if (authLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-gray-800 p-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-200 mb-4 animate-pulse font-black text-xl">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#0b0b0c] text-gray-800 dark:text-zinc-100 p-4 transition-colors">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-indigo-950/50 mb-4 animate-pulse font-black text-xl">
           OA
         </div>
-        <h1 className="text-xl font-black text-gray-900 tracking-tight">OrganizaAI</h1>
-        <p className="text-xs text-gray-400 font-medium mt-1">Restaurando sua sessão...</p>
-        <div className="mt-5 w-40 h-1 bg-gray-200 rounded-full overflow-hidden">
+        <h1 className="text-xl font-black text-gray-900 dark:text-zinc-100 tracking-tight">OrganizaAI</h1>
+        <p className="text-xs text-gray-400 dark:text-zinc-500 font-medium mt-1">Restaurando sua sessão...</p>
+        <div className="mt-5 w-40 h-1 bg-gray-200 dark:bg-white/[0.1] rounded-full overflow-hidden">
           <div className="h-full bg-indigo-600 rounded-full animate-pulse w-3/4"></div>
         </div>
       </div>

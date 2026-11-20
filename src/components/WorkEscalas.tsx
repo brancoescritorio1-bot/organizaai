@@ -480,46 +480,46 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
       {/* 1. Header & Quick stats (Apple Minimalist Metrics) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Metric 1 */}
-        <div className="bg-white border border-black/[0.06] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06]">
+        <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 bg-[#f5f5f7] dark:bg-white/[0.06] text-[#1d1d1f] dark:text-zinc-100 rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06] dark:border-white/[0.08]">
             <Users size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">Total de Escalas</p>
-            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] tabular-nums">{escalas.length}</h4>
+            <p className="text-[11px] font-semibold text-[#86868b] dark:text-zinc-400 uppercase tracking-wider">Total de Escalas</p>
+            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] dark:text-zinc-100 tabular-nums">{escalas.length}</h4>
           </div>
         </div>
         
         {/* Metric 2 */}
-        <div className="bg-white border border-black/[0.06] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06]">
+        <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 bg-[#f5f5f7] dark:bg-white/[0.06] text-[#1d1d1f] dark:text-zinc-100 rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06] dark:border-white/[0.08]">
             <Mail size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">E-mails Cadastrados</p>
-            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] tabular-nums">
-              {totalUniqueEmails} <span className="text-xs font-normal text-[#86868b]">únicos</span>
+            <p className="text-[11px] font-semibold text-[#86868b] dark:text-zinc-400 uppercase tracking-wider">E-mails Cadastrados</p>
+            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] dark:text-zinc-100 tabular-nums">
+              {totalUniqueEmails} <span className="text-xs font-normal text-[#86868b] dark:text-zinc-400">únicos</span>
             </h4>
           </div>
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-white border border-black/[0.06] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06]">
+        <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 bg-[#f5f5f7] dark:bg-white/[0.06] text-[#1d1d1f] dark:text-zinc-100 rounded-xl flex items-center justify-center shrink-0 border border-black/[0.06] dark:border-white/[0.08]">
             <FileText size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">Modelos Disponíveis</p>
-            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] tabular-nums">{templates.length}</h4>
+            <p className="text-[11px] font-semibold text-[#86868b] dark:text-zinc-400 uppercase tracking-wider">Modelos Disponíveis</p>
+            <h4 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] dark:text-zinc-100 tabular-nums">{templates.length}</h4>
           </div>
         </div>
       </div>
 
       {/* 2. Primary Buttons bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-black/[0.06] shadow-xs gap-3">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-xs gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="text-[#1d1d1f]" size={16} />
-          <span className="text-xs text-[#515154] font-medium">
+          <Sparkles className="text-[#1d1d1f] dark:text-zinc-100" size={16} />
+          <span className="text-xs text-[#515154] dark:text-zinc-400 font-medium">
             Gerencie escalas de trabalho e envie mensagens prontas rapidamente.
           </span>
         </div>
@@ -532,7 +532,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               setSelectedTemplateId(null);
               setIsEscalaModalOpen(true);
             }} 
-            className="flex-1 sm:flex-none justify-center bg-[#1d1d1f] hover:bg-[#2c2c2e] text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center bg-[#1d1d1f] hover:bg-[#2c2c2e] dark:bg-white dark:text-[#1d1d1f] dark:hover:bg-zinc-200 text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
           >
             <Plus size={15} /> Cadastrar Escala
           </button>
@@ -544,7 +544,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               setEditingTemplateId(null);
               setIsTemplateModalOpen(true);
             }} 
-            className="flex-1 sm:flex-none justify-center bg-[#f5f5f7] hover:bg-black/[0.06] text-[#1d1d1f] border border-black/[0.08] px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center bg-[#f5f5f7] dark:bg-white/[0.06] hover:bg-black/[0.06] dark:hover:bg-white/[0.12] text-[#1d1d1f] dark:text-zinc-100 border border-black/[0.08] dark:border-white/[0.08] px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
           >
             <Plus size={15} /> Cadastrar Modelo
           </button>
@@ -558,32 +558,32 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
         <div className="lg:col-span-5 space-y-6">
           
           {/* Card: Suas Escalas */}
-          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden flex flex-col max-h-[520px]">
-            <div className="p-4 border-b border-black/[0.05] flex items-center justify-between">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-xs overflow-hidden flex flex-col max-h-[520px]">
+            <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="text-[#1d1d1f]" size={17} />
-                <h3 className="font-semibold text-[#1d1d1f] text-sm">Suas Escalas</h3>
+                <Calendar className="text-[#1d1d1f] dark:text-zinc-100" size={17} />
+                <h3 className="font-semibold text-[#1d1d1f] dark:text-zinc-100 text-sm">Suas Escalas</h3>
               </div>
-              <span className="text-xs font-semibold text-[#1d1d1f] bg-[#f5f5f7] px-2 py-0.5 rounded-md border border-black/[0.06] tabular-nums">
+              <span className="text-xs font-semibold text-[#1d1d1f] dark:text-zinc-200 bg-[#f5f5f7] dark:bg-white/[0.08] px-2 py-0.5 rounded-md border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
                 {filteredEscalas.length}
               </span>
             </div>
             
             {/* Escalas Search */}
-            <div className="p-3 border-b border-black/[0.05] bg-[#fafafc]">
+            <div className="p-3 border-b border-black/[0.05] dark:border-white/[0.06] bg-[#fafafc] dark:bg-white/[0.02]">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-[#86868b]" size={15} />
+                <Search className="absolute left-3 top-2.5 text-[#86868b] dark:text-zinc-500" size={15} />
                 <input 
                   type="text" 
                   placeholder="Buscar escala por nome ou e-mail..." 
                   value={searchEscala}
                   onChange={(e) => setSearchEscala(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 border border-black/[0.08] rounded-xl text-xs focus:outline-none focus:border-[#0071e3] bg-white text-[#1d1d1f] placeholder:text-[#86868b]"
+                  className="w-full pl-9 pr-8 py-2 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs focus:outline-none focus:border-[#0071e3] bg-white dark:bg-zinc-900 text-[#1d1d1f] dark:text-zinc-100 placeholder:text-[#86868b] dark:placeholder:text-zinc-500"
                 />
                 {searchEscala && (
                   <button 
                     onClick={() => setSearchEscala('')} 
-                    className="absolute right-3 top-2.5 text-[#86868b] hover:text-[#1d1d1f]"
+                    className="absolute right-3 top-2.5 text-[#86868b] dark:text-zinc-500 hover:text-[#1d1d1f] dark:hover:text-zinc-200"
                   >
                     <X size={14} />
                   </button>
@@ -592,10 +592,10 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
             </div>
 
             {/* Escalas List Container */}
-            <div className="p-3 overflow-y-auto divide-y divide-black/[0.04] flex-1 space-y-1">
+            <div className="p-3 overflow-y-auto divide-y divide-black/[0.04] dark:divide-white/[0.05] flex-1 space-y-1">
               {filteredEscalas.length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-xs text-[#86868b] font-normal">Nenhuma escala encontrada.</p>
+                  <p className="text-xs text-[#86868b] dark:text-zinc-500 font-normal">Nenhuma escala encontrada.</p>
                 </div>
               ) : (
                 filteredEscalas.map(e => {
@@ -617,12 +617,12 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                       className={cn(
                         "group p-3 rounded-xl cursor-pointer transition-all duration-150 border text-left flex flex-col gap-2 relative",
                         isSelected 
-                          ? "bg-[#f5f5f7] border-black/[0.12] shadow-xs text-[#1d1d1f]" 
-                          : "bg-white hover:bg-[#fafafc] border-black/[0.04] text-[#515154]"
+                          ? "bg-[#f5f5f7] dark:bg-white/[0.09] border-black/[0.12] dark:border-white/[0.18] shadow-xs text-[#1d1d1f] dark:text-zinc-100" 
+                          : "bg-white dark:bg-white/[0.02] hover:bg-[#fafafc] dark:hover:bg-white/[0.05] border-black/[0.04] dark:border-white/[0.06] text-[#515154] dark:text-zinc-300"
                       )}
                     >
                       <div className="flex items-start justify-between pr-14">
-                        <span className={cn("font-semibold text-xs tracking-tight transition-colors", isSelected ? "text-[#1d1d1f]" : "text-[#515154]")}>
+                        <span className={cn("font-semibold text-xs tracking-tight transition-colors", isSelected ? "text-[#1d1d1f] dark:text-zinc-100" : "text-[#515154] dark:text-zinc-300")}>
                           {e.name}
                         </span>
                         
@@ -638,7 +638,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                               setEditingBody(e.email_body_template || '');
                               setIsEditEscalaModalOpen(true);
                             }}
-                            className="p-1 hover:bg-indigo-100 rounded text-slate-500 hover:text-indigo-600 transition"
+                            className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
                             title="Editar Escala"
                           >
                             <Edit2 size={13} />
@@ -648,7 +648,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                               event.stopPropagation();
                               handleDeleteEscala(e.id);
                             }}
-                            className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500 transition"
+                            className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded text-slate-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition"
                             title="Excluir Escala"
                           >
                             <Trash2 size={13} />
@@ -658,11 +658,11 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
                       {/* Badges */}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-100/50 text-indigo-700 tabular-nums whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-100/50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 tabular-nums whitespace-nowrap">
                           <Mail size={10} />
                           {scaleEmails.length} {scaleEmails.length === 1 ? 'e-mail' : 'e-mails'}
                         </span>
-                        <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 max-w-[150px] truncate">
+                        <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-zinc-400 max-w-[150px] truncate">
                           {templateName}
                         </span>
                         
@@ -675,8 +675,8 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                               copyToClipboard(text, `quick_${e.id}`);
                             }}
                             className={cn(
-                              "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md transition flex items-center gap-1 bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200/50 hover:text-indigo-700 whitespace-nowrap",
-                              copiedStatus[`quick_${e.id}`] && "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              "ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md transition flex items-center gap-1 bg-slate-50 dark:bg-white/[0.05] text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/[0.1] border border-slate-200/50 dark:border-white/[0.08] hover:text-indigo-700 dark:hover:text-indigo-300 whitespace-nowrap",
+                              copiedStatus[`quick_${e.id}`] && "bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
                             )}
                           >
                             <Copy size={10} />
@@ -692,32 +692,32 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
           </div>
 
           {/* Card: Modelos de E-mail */}
-          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden flex flex-col max-h-[300px]">
-            <div className="p-4 border-b border-black/[0.05] flex items-center justify-between">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-xs overflow-hidden flex flex-col max-h-[300px]">
+            <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="text-[#1d1d1f]" size={17} />
-                <h3 className="font-semibold text-[#1d1d1f] text-sm">Modelos de E-mail</h3>
+                <FileText className="text-[#1d1d1f] dark:text-zinc-100" size={17} />
+                <h3 className="font-semibold text-[#1d1d1f] dark:text-zinc-100 text-sm">Modelos de E-mail</h3>
               </div>
-              <span className="text-xs font-semibold text-[#1d1d1f] bg-[#f5f5f7] px-2 py-0.5 rounded-md border border-black/[0.06] tabular-nums">
+              <span className="text-xs font-semibold text-[#1d1d1f] dark:text-zinc-200 bg-[#f5f5f7] dark:bg-white/[0.08] px-2 py-0.5 rounded-md border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
                 {filteredTemplates.length}
               </span>
             </div>
 
             {/* Modelos Search */}
-            <div className="p-3 border-b border-black/[0.05] bg-[#fafafc]">
+            <div className="p-3 border-b border-black/[0.05] dark:border-white/[0.06] bg-[#fafafc] dark:bg-white/[0.02]">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-[#86868b]" size={15} />
+                <Search className="absolute left-3 top-2.5 text-[#86868b] dark:text-zinc-500" size={15} />
                 <input 
                   type="text" 
                   placeholder="Buscar modelo de e-mail..." 
                   value={searchTemplate}
                   onChange={(e) => setSearchTemplate(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 border border-black/[0.08] rounded-xl text-xs focus:outline-none focus:border-[#0071e3] bg-white text-[#1d1d1f] placeholder:text-[#86868b]"
+                  className="w-full pl-9 pr-8 py-2 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs focus:outline-none focus:border-[#0071e3] bg-white dark:bg-zinc-900 text-[#1d1d1f] dark:text-zinc-100 placeholder:text-[#86868b] dark:placeholder:text-zinc-500"
                 />
                 {searchTemplate && (
                   <button 
                     onClick={() => setSearchTemplate('')} 
-                    className="absolute right-3 top-2.5 text-[#86868b] hover:text-[#1d1d1f]"
+                    className="absolute right-3 top-2.5 text-[#86868b] dark:text-zinc-500 hover:text-[#1d1d1f] dark:hover:text-zinc-200"
                   >
                     <X size={14} />
                   </button>
@@ -726,22 +726,22 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
             </div>
 
             {/* Modelos List */}
-            <div className="p-3 overflow-y-auto divide-y divide-black/[0.04] flex-1 space-y-1">
+            <div className="p-3 overflow-y-auto divide-y divide-black/[0.04] dark:divide-white/[0.05] flex-1 space-y-1">
               {filteredTemplates.length === 0 ? (
                 <div className="text-center py-6">
-                  <p className="text-xs text-[#86868b] font-normal">Nenhum modelo encontrado.</p>
+                  <p className="text-xs text-[#86868b] dark:text-zinc-500 font-normal">Nenhum modelo encontrado.</p>
                 </div>
               ) : (
                 filteredTemplates.map(t => (
-                  <div key={t.id} className="flex justify-between items-center p-2.5 rounded-xl bg-white hover:bg-[#fafafc] transition group border border-black/[0.04] hover:border-black/[0.08] text-left">
+                  <div key={t.id} className="flex justify-between items-center p-2.5 rounded-xl bg-white dark:bg-white/[0.02] hover:bg-[#fafafc] dark:hover:bg-white/[0.05] transition group border border-black/[0.04] dark:border-white/[0.06] hover:border-black/[0.08] dark:hover:border-white/[0.12] text-left">
                     <div className="flex-1 min-w-0 pr-4">
-                      <p className="font-bold text-slate-700 text-xs truncate">{t.name}</p>
-                      <p className="text-[10px] text-slate-400 truncate mt-0.5">{t.subject_template || "Sem assunto padrão"}</p>
+                      <p className="font-bold text-slate-700 dark:text-zinc-200 text-xs truncate">{t.name}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-zinc-500 truncate mt-0.5">{t.subject_template || "Sem assunto padrão"}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <button 
                         onClick={() => handleSyncTemplate(t.id, t.name)}
-                        className="p-1.5 hover:bg-indigo-50 rounded text-slate-400 hover:text-indigo-600 transition"
+                        className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded text-slate-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
                         title="Sincronizar este modelo com todas as escalas vinculadas"
                       >
                         <RefreshCw size={13} />
@@ -754,7 +754,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                           setNewTemplateBody(t.body_template || '');
                           setIsTemplateModalOpen(true);
                         }} 
-                        className="p-1.5 hover:bg-emerald-50 rounded text-slate-400 hover:text-emerald-600 transition"
+                        className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 rounded text-slate-400 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
                         title="Editar Modelo"
                       >
                         <Edit2 size={13} />
@@ -773,24 +773,24 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
           
           {!selectedEscala ? (
             /* Empty state placeholder */
-            <div className="bg-white rounded-2xl border border-dashed border-black/[0.12] p-8 md:p-12 text-center flex flex-col items-center justify-center min-h-[480px] h-full shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-4 text-[#1d1d1f] border border-black/[0.06]">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-dashed border-black/[0.12] dark:border-white/[0.12] p-8 md:p-12 text-center flex flex-col items-center justify-center min-h-[480px] h-full shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#f5f5f7] dark:bg-white/[0.06] flex items-center justify-center mb-4 text-[#1d1d1f] dark:text-zinc-100 border border-black/[0.06] dark:border-white/[0.08]">
                 <Sparkles size={22} />
               </div>
-              <h3 className="text-[#1d1d1f] font-semibold text-base mb-1.5">Painel de Trabalho Ativo</h3>
-              <p className="text-[#86868b] text-xs max-w-sm mx-auto leading-relaxed mb-5">
+              <h3 className="text-[#1d1d1f] dark:text-zinc-100 font-semibold text-base mb-1.5">Painel de Trabalho Ativo</h3>
+              <p className="text-[#86868b] dark:text-zinc-400 text-xs max-w-sm mx-auto leading-relaxed mb-5">
                 Selecione uma escala na lista de <strong>Suas Escalas</strong> ao lado para carregar os e-mails dos integrantes, visualizar e editar as mensagens de e-mail em tempo real.
               </p>
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071e3] bg-[#0071e3]/10 px-3 py-1.5 rounded-xl border border-[#0071e3]/20">
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071e3] dark:text-sky-400 bg-[#0071e3]/10 dark:bg-sky-500/15 px-3 py-1.5 rounded-xl border border-[#0071e3]/20 dark:border-sky-500/25">
                 <ArrowRight size={13} /> Escolha uma escala para começar
               </div>
             </div>
           ) : (
             /* Selected scale detail workspace */
-            <div className="bg-white rounded-2xl border border-black/[0.08] shadow-xs overflow-hidden flex flex-col h-full min-h-[500px]">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.08] dark:border-white/[0.08] shadow-xs overflow-hidden flex flex-col h-full min-h-[500px]">
               
               {/* Workspace Header */}
-              <div className="p-5 bg-[#1d1d1f] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative">
+              <div className="p-5 bg-[#1d1d1f] dark:bg-[#141416] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative border-b border-transparent dark:border-white/[0.08]">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold bg-white/15 text-white px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/10">
@@ -833,43 +833,43 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               </div>
 
               {/* Workspace Contents */}
-              <div className="p-4 md:p-6 flex-1 bg-[#fbfbfd] flex flex-col gap-6 overflow-y-auto">
+              <div className="p-4 md:p-6 flex-1 bg-[#fbfbfd] dark:bg-[#141416]/50 flex flex-col gap-6 overflow-y-auto">
                 
                 {/* 1. MENSAGEM COMO VAI FICAR (Always visible, clean, prominent) */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-1.5">
-                      <Eye size={15} className="text-[#1d1d1f]" />
-                      <span className="text-xs font-semibold text-[#1d1d1f]">Como vai ficar a mensagem</span>
+                      <Eye size={15} className="text-[#1d1d1f] dark:text-zinc-100" />
+                      <span className="text-xs font-semibold text-[#1d1d1f] dark:text-zinc-100">Como vai ficar a mensagem</span>
                     </div>
-                    <span className="text-[10px] text-[#515154] font-medium bg-[#f5f5f7] border border-black/[0.06] px-2.5 py-1 rounded-md flex items-center gap-1 tabular-nums whitespace-nowrap">
+                    <span className="text-[10px] text-[#515154] dark:text-zinc-300 font-medium bg-[#f5f5f7] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] px-2.5 py-1 rounded-md flex items-center gap-1 tabular-nums whitespace-nowrap">
                       <Clock size={11} /> Mês: {getPortugueseMonthName(finFilter.month)} {finFilter.year}
                     </span>
                   </div>
 
                   {/* Mockup Window */}
-                  <div className="border border-black/[0.08] rounded-2xl overflow-hidden shadow-xs bg-white">
+                  <div className="border border-black/[0.08] dark:border-white/[0.08] rounded-2xl overflow-hidden shadow-xs bg-white dark:bg-[#1c1c1e]">
                     {/* Title Bar with Mac OSX buttons */}
-                    <div className="bg-[#f5f5f7] px-4 py-2 flex items-center justify-between border-b border-black/[0.06]">
+                    <div className="bg-[#f5f5f7] dark:bg-white/[0.04] px-4 py-2 flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.06]">
                       <div className="flex items-center gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
-                        <span className="text-[10px] text-[#86868b] font-medium ml-2 select-none">
+                        <span className="text-[10px] text-[#86868b] dark:text-zinc-400 font-medium ml-2 select-none">
                           Visualização da Mensagem
                         </span>
                       </div>
                     </div>
 
                     {/* Email Headers */}
-                    <div className="p-4 bg-slate-50/30 border-b border-slate-100 space-y-3 text-xs">
+                    <div className="p-4 bg-slate-50/30 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/[0.06] space-y-3 text-xs">
                       {/* Recipients (Emails) Field */}
-                      <div className="flex items-start md:items-center justify-between pb-2 border-b border-slate-100/60 gap-4">
+                      <div className="flex items-start md:items-center justify-between pb-2 border-b border-slate-100/60 dark:border-white/[0.06] gap-4">
                         <div className="flex items-center min-w-0 flex-1">
-                          <span className="font-bold text-slate-400 w-12 shrink-0 text-right pr-2">Para:</span>
-                          <span className="text-slate-600 font-mono font-medium truncate select-all">
+                          <span className="font-bold text-slate-400 dark:text-zinc-500 w-12 shrink-0 text-right pr-2">Para:</span>
+                          <span className="text-slate-600 dark:text-zinc-300 font-mono font-medium truncate select-all">
                             {emails.length === 0 ? (
-                              <span className="text-red-500 italic font-sans text-[11px]">Nenhum integrante cadastrado nesta escala. Clique em "Ajustar Modelo / Integrantes" para adicionar!</span>
+                              <span className="text-red-500 dark:text-red-400 italic font-sans text-[11px]">Nenhum integrante cadastrado nesta escala. Clique em "Ajustar Modelo / Integrantes" para adicionar!</span>
                             ) : (
                               emails.map(e => e.email).join('; ')
                             )}
@@ -881,8 +881,8 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                             className={cn(
                               "px-2.5 py-1 text-[11px] font-bold rounded-lg border transition flex items-center gap-1 shrink-0 active:scale-95 shadow-sm whitespace-nowrap",
                               copiedStatus['all_emails']
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                ? "bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                                : "bg-white dark:bg-white/[0.06] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-white/[0.1]"
                             )}
                           >
                             <Copy size={11} />
@@ -894,9 +894,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                       {/* Subject (Título) Field */}
                       <div className="flex items-start md:items-center justify-between gap-4">
                         <div className="flex items-center min-w-0 flex-1">
-                          <span className="font-bold text-slate-400 w-12 shrink-0 text-right pr-2">Assunto:</span>
-                          <span className="text-slate-800 font-bold truncate">
-                            {generateMessage(true) || <span className="text-slate-300 italic font-normal">Sem assunto configurado</span>}
+                          <span className="font-bold text-slate-400 dark:text-zinc-500 w-12 shrink-0 text-right pr-2">Assunto:</span>
+                          <span className="text-slate-800 dark:text-zinc-100 font-bold truncate">
+                            {generateMessage(true) || <span className="text-slate-300 dark:text-zinc-600 italic font-normal">Sem assunto configurado</span>}
                           </span>
                         </div>
                         {generateMessage(true) && (
@@ -905,8 +905,8 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                             className={cn(
                               "px-2.5 py-1 text-[11px] font-bold rounded-lg border transition flex items-center gap-1 shrink-0 active:scale-95 shadow-sm whitespace-nowrap",
                               copiedStatus['subject']
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                ? "bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                                : "bg-white dark:bg-white/[0.06] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-white/[0.1]"
                             )}
                           >
                             <Copy size={11} />
@@ -917,9 +917,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                     </div>
 
                     {/* Email Body Content */}
-                    <div className="p-5 min-h-[160px] max-h-[300px] overflow-y-auto text-slate-700 text-xs font-mono whitespace-pre-wrap leading-relaxed bg-white select-all">
+                    <div className="p-5 min-h-[160px] max-h-[300px] overflow-y-auto text-slate-700 dark:text-zinc-200 text-xs font-mono whitespace-pre-wrap leading-relaxed bg-white dark:bg-[#1c1c1e] select-all">
                       {generateMessage(false) || (
-                        <span className="text-slate-300 italic font-sans">
+                        <span className="text-slate-300 dark:text-zinc-600 italic font-sans">
                           Nenhum texto de mensagem configurado. Clique em "Ajustar Modelo / Integrantes" para definir o corpo do e-mail.
                         </span>
                       )}
@@ -931,8 +931,8 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                     <button 
                       onClick={() => copyToClipboard(generateMessage(false), 'body')}
                       className={cn(
-                        "bg-white border border-slate-200 hover:border-indigo-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95",
-                        copiedStatus['body'] && "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        "bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] hover:border-indigo-200 dark:hover:border-indigo-500/30 text-slate-700 dark:text-zinc-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95",
+                        copiedStatus['body'] && "border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
                       )}
                     >
                       <Copy size={13} /> 
@@ -942,8 +942,8 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                     <button 
                       onClick={() => copyToClipboard(`Assunto: ${generateMessage(true)}\n\n${generateMessage(false)}`, 'full')}
                       className={cn(
-                        "bg-white border border-slate-200 hover:border-indigo-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95",
-                        copiedStatus['full'] && "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        "bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] hover:border-indigo-200 dark:hover:border-indigo-500/30 text-slate-700 dark:text-zinc-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95",
+                        copiedStatus['full'] && "border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
                       )}
                     >
                       <Copy size={13} /> 
@@ -965,16 +965,16 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
                 {/* 2. SETTINGS SECTION (COLLAPSIBLE / ACCORDION) */}
                 {isEditSectionOpen && (
-                  <div className="border-t border-slate-150 pt-6 space-y-6 animate-in fade-in duration-200">
+                  <div className="border-t border-slate-150 dark:border-white/[0.08] pt-6 space-y-6 animate-in fade-in duration-200">
                     
-                    <div className="bg-slate-100/60 p-1.5 rounded-xl flex gap-1 border border-slate-200/50">
+                    <div className="bg-slate-100/60 dark:bg-white/[0.04] p-1.5 rounded-xl flex gap-1 border border-slate-200/50 dark:border-white/[0.08]">
                       <button 
                         onClick={() => setWorkspaceTab('message')}
                         className={cn(
                           "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5",
                           workspaceTab === 'message' 
-                            ? 'text-indigo-700 bg-white shadow-sm ring-1 ring-black/5' 
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'text-indigo-700 dark:text-indigo-300 bg-white dark:bg-white/[0.12] shadow-sm ring-1 ring-black/5 dark:ring-white/10' 
+                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'
                         )}
                       >
                         <FileText size={14} /> Configurar Textos e Tags
@@ -984,8 +984,8 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                         className={cn(
                           "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5",
                           workspaceTab === 'emails' 
-                            ? 'text-indigo-700 bg-white shadow-sm ring-1 ring-black/5' 
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'text-indigo-700 dark:text-indigo-300 bg-white dark:bg-white/[0.12] shadow-sm ring-1 ring-black/5 dark:ring-white/10' 
+                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200'
                         )}
                       >
                         <Users size={14} /> Gerenciar Integrantes ({emails.length})
@@ -999,11 +999,11 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                           {/* Assunto Input */}
                           <div className="space-y-1">
                             <div className="flex justify-between items-center">
-                              <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Assunto do E-mail</label>
-                              <span className="text-[10px] text-slate-400">Suporta tags</span>
+                              <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wide">Assunto do E-mail</label>
+                              <span className="text-[10px] text-slate-400 dark:text-zinc-500">Suporta tags</span>
                             </div>
                             <input 
-                              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white"
+                              className="w-full px-3 py-2 border border-slate-200 dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                               value={editingSubject}
                               onChange={(e) => setEditingSubject(e.target.value)}
                               placeholder="Digite o assunto com tags, ex: {MES}"
@@ -1013,11 +1013,11 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                           {/* Corpo Textarea */}
                           <div className="space-y-1">
                             <div className="flex justify-between items-center">
-                              <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Corpo da Mensagem</label>
-                              <span className="text-[10px] text-slate-400">Suporta tags</span>
+                              <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wide">Corpo da Mensagem</label>
+                              <span className="text-[10px] text-slate-400 dark:text-zinc-500">Suporta tags</span>
                             </div>
                             <textarea 
-                              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white"
+                              className="w-full px-3 py-2 border border-slate-200 dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                               rows={3}
                               value={editingBody}
                               onChange={(e) => setEditingBody(e.target.value)}
@@ -1027,37 +1027,37 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                         </div>
 
                         {/* Interactive Tags Guide */}
-                        <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl space-y-2">
+                        <div className="bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 p-3.5 rounded-xl space-y-2">
                           <div className="flex items-center gap-1.5">
-                            <Info size={14} className="text-indigo-600" />
-                            <span className="text-xs font-bold text-indigo-950">Tags Inteligentes (Placeholder System)</span>
+                            <Info size={14} className="text-indigo-600 dark:text-indigo-400" />
+                            <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">Tags Inteligentes (Placeholder System)</span>
                           </div>
-                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                          <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed">
                             Clique em qualquer tag abaixo para inseri-la nos campos. No momento de visualizar ou copiar, as tags serão substituídas dinamicamente com as informações do mês e ano selecionados.
                           </p>
                           
                           <div className="flex flex-wrap gap-1.5 pt-1">
                             <button 
                               onClick={() => insertPlaceholder('{SAUDAÇÃO}', 'body')}
-                              className="text-[10px] font-bold bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2.5 py-1 rounded-md transition"
+                              className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md transition"
                             >
                               + {'{SAUDAÇÃO}'}
                             </button>
                             <button 
                               onClick={() => insertPlaceholder('{MES}', 'body')}
-                              className="text-[10px] font-bold bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2.5 py-1 rounded-md transition"
+                              className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md transition"
                             >
                               + {'{MES}'}
                             </button>
                             <button 
                               onClick={() => insertPlaceholder('{ANO}', 'body')}
-                              className="text-[10px] font-bold bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2.5 py-1 rounded-md transition"
+                              className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md transition"
                             >
                               + {'{ANO}'}
                             </button>
                             <button 
                               onClick={() => insertPlaceholder('{NOME DA ESCALA}', 'body')}
-                              className="text-[10px] font-bold bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2.5 py-1 rounded-md transition"
+                              className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md transition"
                             >
                               + {'{NOME DA ESCALA}'}
                             </button>
@@ -1065,7 +1065,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                         </div>
 
                         {/* Save scale template customization inline */}
-                        <div className="flex justify-end pt-3 border-t border-slate-100">
+                        <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-white/[0.06]">
                           <button 
                             onClick={() => {
                               setEditingEscalaName(selectedEscala.name);
@@ -1082,14 +1082,14 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
                       <div className="space-y-5">
                         {/* Add Email Form */}
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                          <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wide">
                             Adicionar Novo Integrante (E-mail)
                           </label>
                           <div className="flex gap-2">
                             <div className="relative flex-1">
-                              <Mail className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                              <Mail className="absolute left-3 top-2.5 text-slate-400 dark:text-zinc-500" size={16} />
                               <input 
-                                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white"
+                                className="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                                 value={newEmail}
                                 onChange={(e) => setNewEmail(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
@@ -1107,62 +1107,62 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
                         {/* Emails Filter Row */}
                         {emails.length > 0 && (
-                          <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50 border border-slate-150 p-3 rounded-xl gap-3">
+                          <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50 dark:bg-white/[0.04] border border-slate-150 dark:border-white/[0.08] p-3 rounded-xl gap-3">
                             <div className="relative w-full sm:w-auto flex-1 max-w-xs">
-                              <Search className="absolute left-3 top-2 text-slate-400" size={14} />
+                              <Search className="absolute left-3 top-2 text-slate-400 dark:text-zinc-500" size={14} />
                               <input 
                                 type="text" 
                                 placeholder="Filtrar e-mails nesta lista..." 
                                 value={searchEmailList}
                                 onChange={(e) => setSearchEmailList(e.target.value)}
-                                className="w-full pl-8 pr-3 py-1 border border-slate-200 rounded-lg text-xs bg-white"
+                                className="w-full pl-8 pr-3 py-1 border border-slate-200 dark:border-white/[0.08] rounded-lg text-xs bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                               />
                             </div>
                           </div>
                         )}
 
                         {/* Email Items List */}
-                        <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
-                          <div className="px-4 py-2.5 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase border-b border-slate-100 flex justify-between">
+                        <div className="border border-slate-100 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-[#1c1c1e]">
+                          <div className="px-4 py-2.5 bg-slate-50/50 dark:bg-white/[0.03] text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase border-b border-slate-100 dark:border-white/[0.06] flex justify-between">
                             <span>E-mail</span>
                             <span>Ações</span>
                           </div>
                           
-                          <div className="divide-y divide-slate-100 max-h-[240px] overflow-y-auto">
+                          <div className="divide-y divide-slate-100 dark:divide-white/[0.06] max-h-[240px] overflow-y-auto">
                             {filteredEmails.length === 0 ? (
-                              <div className="text-center py-10 text-slate-400 text-xs">
+                              <div className="text-center py-10 text-slate-400 dark:text-zinc-500 text-xs">
                                 {emails.length === 0 
                                   ? "Nenhum integrante cadastrado nesta escala. Adicione acima!" 
                                   : "Nenhum integrante atende à busca."}
                               </div>
                             ) : (
                               filteredEmails.map(em => (
-                                <div key={em.id} className="flex justify-between items-center p-3 hover:bg-slate-50 transition group">
+                                <div key={em.id} className="flex justify-between items-center p-3 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition group">
                                   {editingEmailId === em.id ? (
                                     <div className="flex items-center gap-2 flex-1">
                                       <input 
-                                        className="px-3 py-1 border border-slate-300 rounded-lg text-xs bg-white flex-1 max-w-sm" 
+                                        className="px-3 py-1 border border-slate-300 dark:border-white/[0.12] rounded-lg text-xs bg-white dark:bg-zinc-900 dark:text-zinc-100 flex-1 max-w-sm" 
                                         value={editingEmailVal} 
                                         onChange={(e) => setEditingEmailVal(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleEditEmail(em.id)}
                                       />
-                                      <button onClick={() => handleEditEmail(em.id)} className="text-emerald-600 hover:bg-emerald-50 p-1 rounded transition"><Check size={16} /></button>
-                                      <button onClick={() => setEditingEmailId(null)} className="text-slate-400 hover:bg-slate-100 p-1 rounded transition"><X size={16} /></button>
+                                      <button onClick={() => handleEditEmail(em.id)} className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 p-1 rounded transition"><Check size={16} /></button>
+                                      <button onClick={() => setEditingEmailId(null)} className="text-slate-400 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.08] p-1 rounded transition"><X size={16} /></button>
                                     </div>
                                   ) : (
                                     <>
-                                      <span className="text-xs font-mono text-slate-600 font-medium select-all">{em.email}</span>
+                                      <span className="text-xs font-mono text-slate-600 dark:text-zinc-300 font-medium select-all">{em.email}</span>
                                       <div className="flex gap-2 opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                                         <button 
                                           onClick={() => { setEditingEmailId(em.id); setEditingEmailVal(em.email); }} 
-                                          className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition"
+                                          className="p-1 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
                                           title="Editar Integrante"
                                         >
                                           <Edit2 size={13} />
                                         </button>
                                         <button 
                                           onClick={() => handleDeleteEmail(em.id)} 
-                                          className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500 transition"
+                                          className="p-1 hover:bg-red-50 dark:hover:bg-red-500/15 rounded text-slate-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition"
                                           title="Excluir Integrante"
                                         >
                                           <Trash2 size={13} />
@@ -1190,18 +1190,18 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
       {/* ================= MODAL: CADASTRAR ESCALA ================= */}
       {isEscalaModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-50 pb-3">
-              <h3 className="font-extrabold text-slate-800 text-lg">Nova Escala de Trabalho</h3>
-              <button onClick={() => setIsEscalaModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <div className="bg-white dark:bg-[#1c1c1e] p-6 rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] shadow-2xl border border-slate-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-50 dark:border-white/[0.06] pb-3">
+              <h3 className="font-extrabold text-slate-800 dark:text-zinc-100 text-lg">Nova Escala de Trabalho</h3>
+              <button onClick={() => setIsEscalaModalOpen(false)} className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"><X size={18} /></button>
             </div>
             
             <div className="space-y-4 overflow-y-auto flex-1 pb-4 pr-1">
               {/* Nome */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Nome da Escala</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Nome da Escala</label>
                 <input 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={newEscalaName} 
                   onChange={(e) => setNewEscalaName(e.target.value)} 
                   placeholder="Ex: Engenheiros GMNL, Teófilo Otoni" 
@@ -1210,9 +1210,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
               {/* Modelo Select */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Modelo de E-mail (Opcional)</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Modelo de E-mail (Opcional)</label>
                 <select 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={selectedTemplateId || ''} 
                   onChange={(e) => {
                     const t = templates.find(t => t.id === parseInt(e.target.value));
@@ -1228,9 +1228,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
               {/* Assunto Customizado */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Assunto Customizado</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Assunto Customizado</label>
                 <input 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={subjectTemplate} 
                   onChange={(e) => setSubjectTemplate(e.target.value)} 
                   placeholder="Ex: Escala de Sobreaviso {MES}/{ANO}" 
@@ -1239,9 +1239,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
               {/* Corpo Customizado */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Corpo da Mensagem</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Corpo da Mensagem</label>
                 <textarea 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={bodyTemplate} 
                   onChange={(e) => setBodyTemplate(e.target.value)} 
                   placeholder="Digite o texto padrão..." 
@@ -1250,7 +1250,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 border-t border-slate-100 pt-4 mt-2">
+            <div className="flex gap-2 shrink-0 border-t border-slate-100 dark:border-white/[0.06] pt-4 mt-2">
               <button 
                 onClick={() => { handleCreateEscala(); setIsEscalaModalOpen(false); }} 
                 disabled={!newEscalaName}
@@ -1260,7 +1260,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               </button>
               <button 
                 onClick={() => setIsEscalaModalOpen(false)} 
-                className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition"
+                className="flex-1 bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200 py-2.5 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-white/[0.12] transition"
               >
                 Cancelar
               </button>
@@ -1272,51 +1272,51 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
       {/* ================= MODAL: CADASTRAR/EDITAR MODELO ================= */}
       {isTemplateModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-50 pb-3">
-              <h3 className="font-extrabold text-slate-800 text-lg">
+          <div className="bg-white dark:bg-[#1c1c1e] p-6 rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] shadow-2xl border border-slate-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-50 dark:border-white/[0.06] pb-3">
+              <h3 className="font-extrabold text-slate-800 dark:text-zinc-100 text-lg">
                 {editingTemplateId ? "Editar Modelo de E-mail" : "Novo Modelo de E-mail"}
               </h3>
-              <button onClick={() => { setIsTemplateModalOpen(false); setEditingTemplateId(null); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+              <button onClick={() => { setIsTemplateModalOpen(false); setEditingTemplateId(null); }} className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"><X size={18} /></button>
             </div>
             
             <div className="space-y-4 overflow-y-auto flex-1 pb-4 pr-1">
               {/* Nome */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Nome do Modelo</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Nome do Modelo</label>
                 <input 
                   value={newTemplateName} 
                   onChange={(e) => setNewTemplateName(e.target.value)} 
                   placeholder="Ex: SOBREAVISO, REVEZAMENTO" 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-emerald-500" 
                 />
               </div>
 
               {/* Assunto */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Assunto Padrão</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Assunto Padrão</label>
                 <input 
                   value={newTemplateSubject} 
                   onChange={(e) => setNewTemplateSubject(e.target.value)} 
                   placeholder="Ex: Sobreaviso - Engenharia {MES}/{ANO}" 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-emerald-500" 
                 />
               </div>
 
               {/* Corpo */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Corpo da Mensagem Padrão</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Corpo da Mensagem Padrão</label>
                 <textarea 
                   value={newTemplateBody} 
                   onChange={(e) => setNewTemplateBody(e.target.value)} 
                   placeholder="Ex: {SAUDAÇÃO}, segue a escala de {NOME DA ESCALA} do mês de {MES}." 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-emerald-500" 
                   rows={6} 
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 border-t border-slate-100 pt-4 mt-2">
+            <div className="flex gap-2 shrink-0 border-t border-slate-100 dark:border-white/[0.06] pt-4 mt-2">
               <button 
                 onClick={() => { 
                     if (editingTemplateId) handleUpdateTemplate();
@@ -1330,7 +1330,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               </button>
               <button 
                 onClick={() => { setIsTemplateModalOpen(false); setEditingTemplateId(null); }} 
-                className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition"
+                className="flex-1 bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200 py-2.5 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-white/[0.12] transition"
               >
                 Cancelar
               </button>
@@ -1342,18 +1342,18 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
       {/* ================= MODAL: EDITAR ESCALA ================= */}
       {isEditEscalaModalOpen && editingEscalaId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-50 pb-3">
-              <h3 className="font-extrabold text-slate-800 text-lg">Editar Escala de Trabalho</h3>
-              <button onClick={() => { setIsEditEscalaModalOpen(false); setEditingEscalaId(null); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <div className="bg-white dark:bg-[#1c1c1e] p-6 rounded-3xl w-full max-w-md flex flex-col max-h-[90vh] shadow-2xl border border-slate-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-50 dark:border-white/[0.06] pb-3">
+              <h3 className="font-extrabold text-slate-800 dark:text-zinc-100 text-lg">Editar Escala de Trabalho</h3>
+              <button onClick={() => { setIsEditEscalaModalOpen(false); setEditingEscalaId(null); }} className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"><X size={18} /></button>
             </div>
             
             <div className="space-y-4 overflow-y-auto flex-1 pb-4 pr-1">
               {/* Nome */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Nome da Escala</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Nome da Escala</label>
                 <input 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={editingEscalaName} 
                   onChange={(e) => setEditingEscalaName(e.target.value)} 
                   placeholder="Nome da escala" 
@@ -1362,9 +1362,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
               {/* Modelo Select */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Modelo de E-mail</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Modelo de E-mail</label>
                 <select 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={selectedTemplateId || ''} 
                   onChange={(e) => {
                     const t = templates.find(t => t.id === parseInt(e.target.value));
@@ -1382,9 +1382,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
               {/* Assunto */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Assunto Customizado</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Assunto Customizado</label>
                 <input 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={editingSubject} 
                   onChange={(e) => setEditingSubject(e.target.value)} 
                   placeholder="Assunto" 
@@ -1393,9 +1393,9 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
 
               {/* Corpo */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase">Corpo da Mensagem</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 uppercase">Corpo da Mensagem</label>
                 <textarea 
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50/50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 text-sm focus:ring-2 focus:ring-indigo-500" 
                   value={editingBody} 
                   onChange={(e) => setEditingBody(e.target.value)} 
                   placeholder="Corpo" 
@@ -1404,7 +1404,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 border-t border-slate-100 pt-4 mt-2">
+            <div className="flex gap-2 shrink-0 border-t border-slate-100 dark:border-white/[0.06] pt-4 mt-2">
               <button 
                 onClick={() => handleEditEscala(editingEscalaId)} 
                 disabled={!editingEscalaName}
@@ -1414,7 +1414,7 @@ export const WorkEscalas: React.FC<WorkEscalasProps> = ({ fetchWithAuth, finFilt
               </button>
               <button 
                 onClick={() => { setIsEditEscalaModalOpen(false); setEditingEscalaId(null); }} 
-                className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition"
+                className="flex-1 bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200 py-2.5 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-white/[0.12] transition"
               >
                 Cancelar
               </button>

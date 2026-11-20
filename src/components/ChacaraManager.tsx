@@ -58,10 +58,13 @@ import { cn } from '../lib/utils';
 import { PdfService } from '../lib/PdfService';
 import { useDialog } from './DialogContext';
 import { StrictFinanceDashboard } from './StrictFinanceDashboard';
+import { useTheme } from './ThemeContext';
 import {
   computeBillCategoryValues,
   computeBillSaveTotals,
   generateChacaraLancamentos,
+  getLocalTodayStr,
+  normalizeDateStr,
   toCents,
   fromCents,
 } from '../lib/chacaraFinance';
@@ -74,12 +77,12 @@ interface ChacaraManagerProps {
 }
 
 const Card = ({ children, title, icon: Icon, className = "" }: { children: React.ReactNode, title?: string, icon?: any, key?: any, className?: string }) => (
-  <div className={cn("bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-6 transition-all hover:border-slate-300", className)}>
+  <div className={cn("bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs overflow-hidden mb-6 transition-all hover:border-slate-300 dark:hover:border-zinc-700", className)}>
     {title && (
-      <div className="px-5 md:px-6 py-3.5 md:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+      <div className="px-5 md:px-6 py-3.5 md:py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-slate-50/60 dark:bg-zinc-900/60">
         <div className="flex items-center gap-2.5">
-          {Icon && <Icon size={18} className="text-slate-700" />}
-          <h3 className="font-bold text-slate-900 text-sm tracking-tight">{title}</h3>
+          {Icon && <Icon size={18} className="text-slate-700 dark:text-zinc-300" />}
+          <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm tracking-tight">{title}</h3>
         </div>
       </div>
     )}
@@ -175,10 +178,10 @@ const MonthYearPicker = ({
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium hover:border-indigo-300 transition-all shadow-sm group"
+        className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#141416] border border-gray-200 dark:border-zinc-800 rounded-xl text-xs font-medium hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all shadow-sm group"
       >
         <Filter size={14} className="text-gray-400 group-hover:text-indigo-500" />
-        <span className="text-gray-700 min-w-[100px] text-left">{getLabel()}</span>
+        <span className="text-gray-700 dark:text-zinc-200 min-w-[100px] text-left">{getLabel()}</span>
         <Calendar size={14} className="text-gray-400 group-hover:text-indigo-500" />
       </button>
 
@@ -188,19 +191,19 @@ const MonthYearPicker = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute top-full left-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 p-4 min-w-[260px]"
+            className="absolute top-full left-0 mt-2 bg-white dark:bg-[#141416] border border-gray-100 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 p-4 min-w-[260px]"
           >
-            <div className="flex items-center justify-between mb-4 bg-gray-50/80 p-2 rounded-xl">
+            <div className="flex items-center justify-between mb-4 bg-gray-50/80 dark:bg-zinc-900/80 p-2 rounded-xl">
               <button 
                 onClick={() => setViewYear((parseInt(viewYear) - 1).toString())}
-                className="p-1.5 hover:bg-white rounded-lg transition-all text-gray-400 hover:text-indigo-600 active:scale-95"
+                className="p-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-all text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95"
               >
                 <ArrowRight size={16} className="rotate-180" />
               </button>
-              <span className="font-black text-gray-800 text-sm tracking-tight">{viewYear}</span>
+              <span className="font-black text-gray-800 dark:text-zinc-100 text-sm tracking-tight">{viewYear}</span>
               <button 
                 onClick={() => setViewYear((parseInt(viewYear) + 1).toString())}
-                className="p-1.5 hover:bg-white rounded-lg transition-all text-gray-400 hover:text-indigo-600 active:scale-95"
+                className="p-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-all text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95"
               >
                 <ArrowRight size={16} />
               </button>
@@ -220,7 +223,7 @@ const MonthYearPicker = ({
                       "py-2 rounded-xl text-[10px] font-black transition-all border uppercase tracking-wider",
                       isActive 
                         ? "bg-[#007bff] text-white border-[#007bff] shadow-md scale-105" 
-                        : "bg-white text-gray-600 border-gray-100/50 hover:border-indigo-100 hover:bg-indigo-50/50"
+                        : "bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 border-gray-100/50 dark:border-zinc-800 hover:border-indigo-100 hover:bg-indigo-50/50 dark:hover:bg-zinc-800"
                     )}
                   >
                     {m.label}
@@ -229,13 +232,13 @@ const MonthYearPicker = ({
               })}
             </div>
 
-            <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-50">
+            <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-50 dark:border-zinc-800">
               <button
                 onClick={() => {
                   onSelect('all', 'all');
                   setIsOpen(false);
                 }}
-                className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest px-2"
+                className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 uppercase tracking-widest px-2"
               >
                 Limpar
               </button>
@@ -245,7 +248,7 @@ const MonthYearPicker = ({
                   onSelect(now.getFullYear().toString(), (now.getMonth() + 1).toString().padStart(2, '0'));
                   setIsOpen(false);
                 }}
-                className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest px-2"
+                className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 uppercase tracking-widest px-2"
               >
                 Este mês
               </button>
@@ -258,7 +261,8 @@ const MonthYearPicker = ({
 };
 
 export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, activeTab, onDataUpdate, setActiveTab }) => {
-  const { confirm: dialogConfirm, alert: dialogAlert, askOptions, preview } = useDialog();
+  const { confirm: dialogConfirm, alert: dialogAlert, askOptions, preview, toast } = useDialog();
+  const { themeMode, setThemeMode } = useTheme();
   const [users, setUsers] = useState<ChacaraUser[]>([]);
   const [bills, setBills] = useState<ChacaraBill[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -313,7 +317,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   
   const [billForm, setBillForm] = useState({
     user_id: '',
-    month_reference: new Date().toISOString().slice(0, 7), // YYYY-MM
+    month_reference: getLocalTodayStr().slice(0, 7), // YYYY-MM
     reading_date: '',
     due_date: '',
     // Energy
@@ -343,19 +347,20 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   const [editingBill, setEditingBill] = useState<ChacaraBill | null>(null);
   
   const [expenseForm, setExpenseForm] = useState({
-    month_reference: new Date().toISOString().slice(0, 7),
+    month_reference: getLocalTodayStr().slice(0, 7),
     description: '',
     category: 'manutencao',
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalTodayStr(),
     receipt_url: ''
   });
   const [editingExpense, setEditingExpense] = useState<any | null>(null);
+  const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
   const [whatsappChacaraTemplate, setWhatsappChacaraTemplate] = useState(() => localStorage.getItem('whatsappChacaraTemplate') || 'Olá {nome}, tudo bem?');
   const [sentChacaraMessages, setSentChacaraMessages] = useState<string[]>([]);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [filterMonth, setFilterMonth] = useState(() => getLocalTodayStr().slice(0, 7));
   const [searchBill, setSearchBill] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'partial'>('all');
   const [paymentDateModal, setPaymentDateModal] = useState<{isOpen: boolean, bill: ChacaraBill | null, date: string, amountPaid: number, paidCategories: Record<string, boolean>, isDivergent: boolean}>({isOpen: false, bill: null, date: '', amountPaid: 0, paidCategories: {}, isDivergent: false});
@@ -367,6 +372,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   const [detailsYearFilter, setDetailsYearFilter] = useState<string>('all');
   const [detailsMonthFilter, setDetailsMonthFilter] = useState<string>('all');
   const modalContentRef = useRef<HTMLDivElement>(null);
+  const hasInitializedMonthRef = useRef(false);
 
   const exportPendingDetailsToPDF = async (ref: React.RefObject<HTMLDivElement>, fileName: string, action: 'save' | 'share' = 'save', shareText?: string) => {
     if (!ref.current) return;
@@ -631,10 +637,13 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
         setSettings(sData);
         setSettingsForm(sData);
         
-        // Apply default month reference if set and not editing
-        if (sData.default_month_reference && !editingBill && !billForm.user_id) {
-           setBillForm(prev => ({ ...prev, month_reference: sData.default_month_reference }));
-           setFilterMonth(sData.default_month_reference);
+        // Apply default month reference ONLY on initial mount so user's active filter never snaps back
+        if (!hasInitializedMonthRef.current) {
+          hasInitializedMonthRef.current = true;
+          if (sData.default_month_reference && !editingBill && !billForm.user_id) {
+            setBillForm(prev => ({ ...prev, month_reference: sData.default_month_reference }));
+            setFilterMonth(sData.default_month_reference);
+          }
         }
       }
     } catch (error) {
@@ -770,10 +779,14 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   const handleUserSelectForBill = (userId: string) => {
     const user = users.find(u => u.id === Number(userId));
     if (user) {
-      const now = new Date();
-      const readingDate = new Date(now.getFullYear(), now.getMonth() - 1, settings.default_reading_day);
-      const dueDate = new Date(now.getFullYear(), now.getMonth(), settings.default_due_day);
-      const currentMonthRef = billForm.month_reference;
+      const currentMonthRef = billForm.month_reference || getLocalTodayStr().slice(0, 7);
+      const [refYearRaw, refMonthRaw] = currentMonthRef.split('-').map(Number);
+      const refYear = Number.isFinite(refYearRaw) ? refYearRaw : new Date().getFullYear();
+      const refMonth = Number.isFinite(refMonthRaw) ? refMonthRaw : (new Date().getMonth() + 1);
+      const readingDayMax = new Date(refYear, refMonth - 1, 0).getDate();
+      const readingDate = new Date(refYear, refMonth - 2, Math.min(Math.max(1, settings.default_reading_day || 5), readingDayMax));
+      const dueDayMax = new Date(refYear, refMonth, 0).getDate();
+      const dueDate = new Date(refYear, refMonth - 1, Math.min(Math.max(1, settings.default_due_day || 10), dueDayMax));
 
       // Initialize energy readings - ONLY ACTIVE METERS
       const energyReadings = [];
@@ -838,8 +851,8 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
         apportionment_value: settings.default_apportionment_value,
         include_apportionment: true,
         include_reserve_fund: true,
-        reading_date: readingDate.toISOString().split('T')[0],
-        due_date: dueDate.toISOString().split('T')[0],
+        reading_date: getLocalTodayStr(readingDate),
+        due_date: getLocalTodayStr(dueDate),
         month_reference: currentMonthRef,
         energy_readings: energyReadings,
         water_readings: waterReadings
@@ -852,7 +865,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   const handleClearBillForm = () => {
     setBillForm({
       user_id: '',
-      month_reference: settings.default_month_reference || new Date().toISOString().slice(0, 7),
+      month_reference: settings.default_month_reference || getLocalTodayStr().slice(0, 7),
       reading_date: '',
       due_date: '',
       prev_reading: 0,
@@ -1019,16 +1032,17 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
       
       if (res.ok) {
         setExpenseForm({
-          month_reference: new Date().toISOString().slice(0, 7),
+          month_reference: filterMonth || getLocalTodayStr().slice(0, 7),
           description: '',
           category: 'manutencao',
           amount: 0,
-          date: new Date().toISOString().split('T')[0],
+          date: getLocalTodayStr(),
           receipt_url: ''
         });
         setEditingExpense(null);
         fetchData();
         if (onDataUpdate) onDataUpdate();
+        toast('Despesa salva!');
       } else {
         const err = await res.json().catch(() => ({ message: res.statusText }));
         dialogAlert(`Erro ao salvar despesa: ${err.message || 'Erro desconhecido'}`);
@@ -1059,11 +1073,11 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
   const handleEditExpense = (expense: any) => {
     setEditingExpense(expense);
     setExpenseForm({
-      month_reference: expense.month_reference || new Date().toISOString().slice(0, 7),
+      month_reference: expense.month_reference || getLocalTodayStr().slice(0, 7),
       description: expense.description,
       category: expense.category,
       amount: expense.amount,
-      date: expense.date,
+      date: normalizeDateStr(expense.date),
       receipt_url: expense.receipt_url || ''
     });
     if (setActiveTab) {
@@ -1192,7 +1206,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
     setPaymentDateModal({ 
       isOpen: true, 
       bill, 
-      date: bill.payment_date ? String(bill.payment_date).split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0],
+      date: bill.payment_date ? String(bill.payment_date).split('T')[0].split(' ')[0] : getLocalTodayStr(),
       amountPaid: initialAmount,
       paidCategories: initialCategories,
       isDivergent: false
@@ -1216,7 +1230,8 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
       if (res.ok) {
         fetchData();
         if (onDataUpdate) onDataUpdate();
-        setPaymentDateModal({ isOpen: false, bill: null, date: '', amountPaid: 0, paidCategories: {} });
+        setPaymentDateModal({ isOpen: false, bill: null, date: '', amountPaid: 0, paidCategories: {}, isDivergent: false });
+        toast('Pagamento atualizado!');
       } else {
         const errorData = await res.json().catch(() => ({}));
         console.error('API Error:', errorData);
@@ -1359,7 +1374,7 @@ export const ChacaraManager: React.FC<ChacaraManagerProps> = ({ fetchWithAuth, a
 
       if (res.ok) {
         setSettings(settingsForm);
-        dialogAlert('Configurações salvas!');
+        toast('Configurações salvas!');
       } else {
         const err = await res.json().catch(() => ({ message: res.statusText }));
         dialogAlert(`Erro ao salvar configurações: ${err.message || 'Erro desconhecido'}`);
@@ -1556,12 +1571,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
           >
             <Card title="Relatório de Pendências Acumuladas" icon={AlertCircle}>
               <div className="space-y-6">
-                <div className="bg-gray-50/50 p-5 sm:p-6 rounded-2xl border border-gray-100 mb-6 space-y-5">
+                <div className="bg-gray-50/50 dark:bg-zinc-900/50 p-5 sm:p-6 rounded-2xl border border-gray-100 dark:border-zinc-800 mb-6 space-y-5">
                   <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                       {/* Search */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 block">Buscar Morador</label>
+                        <label className="text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider px-1 block">Buscar Morador</label>
                         <div className="relative group">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                           <input 
@@ -1569,18 +1584,18 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             placeholder="Nome ou telefone..."
                             value={pendingSearch}
                             onChange={(e) => setPendingSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#141416] border border-gray-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-gray-900 dark:text-zinc-100 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                           />
                         </div>
                       </div>
 
                       {/* Sort */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 block">Ordenar Lista</label>
+                        <label className="text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider px-1 block">Ordenar Lista</label>
                         <select
                           value={pendingSort}
                           onChange={(e) => setPendingSort(e.target.value as 'name' | 'balance')}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                          className="w-full px-4 py-2.5 bg-white dark:bg-[#141416] border border-gray-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-gray-900 dark:text-zinc-100 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                         >
                           <option value="name">Por Nome (A-Z)</option>
                           <option value="balance">Por Saldo (Maior)</option>
@@ -1588,8 +1603,8 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       </div>
 
                       <div className="flex flex-col items-start lg:items-end gap-1.5">
-                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 block">Resumo Financeiro</label>
-                        <div className="bg-amber-100 text-amber-800 px-5 py-2.5 rounded-xl text-xs font-bold border border-amber-200 shadow-sm whitespace-nowrap tabular-nums">
+                        <label className="text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider px-1 block">Resumo Financeiro</label>
+                        <div className="bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 px-5 py-2.5 rounded-xl text-xs font-bold border border-amber-200 dark:border-amber-500/30 shadow-sm whitespace-nowrap tabular-nums">
                           Total em Aberto: R$ {users.reduce((acc, user) => {
                             const userBills = bills.filter(b => {
                               if (b.chacara_user_id !== user.id || b.status === 'paid') return false;
@@ -1605,9 +1620,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start border-t border-gray-100 pt-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start border-t border-gray-100 dark:border-zinc-800 pt-6">
                     <div className="lg:col-span-12 space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Selecione o Período de Pendência</label>
+                       <label className="text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest px-1">Selecione o Período de Pendência</label>
                        <div className="flex flex-wrap gap-3">
                          <MonthYearPicker 
                            year={detailsYearFilter}
@@ -1625,11 +1640,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 <div className="overflow-x-auto -mx-5 md:mx-0">
                   <table className="w-full text-left border-collapse min-w-[600px]">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100">
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Morador</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Meses Devendo</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total Pendente</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ações</th>
+                      <tr className="bg-gray-50 dark:bg-zinc-900/70 border-b border-gray-100 dark:border-zinc-800">
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Morador</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Meses Devendo</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider text-right">Total Pendente</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider text-right">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1718,10 +1733,10 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             const totalPending = pendingBills.reduce((acc, b) => acc + (b.total - (b.amount_paid || 0)), 0);
 
                             return (
-                              <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-all">
+                              <tr key={user.id} className="border-b border-gray-50 dark:border-zinc-800/70 hover:bg-gray-50/50 dark:hover:bg-zinc-800/40 transition-all">
                                 <td className="px-6 py-4">
-                                  <div className="font-bold text-gray-800">{user.name}</div>
-                                  <div className="text-xs text-gray-500">{user.phone}</div>
+                                  <div className="font-bold text-gray-800 dark:text-zinc-100">{user.name}</div>
+                                  <div className="text-xs text-gray-500 dark:text-zinc-400">{user.phone}</div>
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="flex flex-wrap gap-1">
@@ -1731,7 +1746,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                         <button 
                                           key={b.id} 
                                           onClick={() => handleToggleStatusClick(b)}
-                                          className="bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100 hover:bg-red-100 transition-all flex items-center gap-1 group"
+                                          className="bg-red-50 dark:bg-rose-500/15 text-red-600 dark:text-rose-400 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-100 dark:border-rose-500/30 hover:bg-red-100 dark:hover:bg-rose-500/25 transition-all flex items-center gap-1 group"
                                           title="Dar baixa neste pagamento"
                                         >
                                           {m}/{y}
@@ -1741,14 +1756,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     })}
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 text-right font-bold text-red-600 tabular-nums whitespace-nowrap">
+                                <td className="px-6 py-4 text-right font-bold text-red-600 dark:text-rose-400 tabular-nums whitespace-nowrap">
                                   R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <div className="flex flex-col sm:flex-row items-center justify-end gap-2">
                                     <button
                                       onClick={() => setPendingDetailsModal({ isOpen: true, user })}
-                                      className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all shadow-sm active:scale-95"
+                                      className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all shadow-sm active:scale-95"
                                     >
                                       <Eye size={14} />
                                       Ver Detalhes
@@ -1767,9 +1782,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           })
                       ) : (
                         <tr>
-                          <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                          <td colSpan={4} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">
                             <CheckCircle size={48} className="mx-auto mb-2 opacity-20 text-emerald-500" />
-                            <p className="font-medium text-gray-500">Nenhuma pendência encontrada com esses filtros.</p>
+                            <p className="font-medium text-gray-500 dark:text-zinc-400">Nenhuma pendência encontrada com esses filtros.</p>
                           </td>
                         </tr>
                       )}
@@ -1790,36 +1805,36 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
           >
             <Card title="Mensagem em Massa (WhatsApp)" icon={WhatsAppIcon}>
               <div className="space-y-4">
-                <p className="text-sm text-gray-500">
-                  Crie uma mensagem padrão para enviar aos seus usuários da chácara. Use <span className="font-bold text-indigo-600">{'{nome}'}</span> e <span className="font-bold text-indigo-600">{'{observacoes}'}</span> para inserir as informações automaticamente.
+                <p className="text-sm text-gray-500 dark:text-zinc-400">
+                  Crie uma mensagem padrão para enviar aos seus usuários da chácara. Use <span className="font-bold text-indigo-600 dark:text-indigo-400">{'{nome}'}</span> e <span className="font-bold text-indigo-600 dark:text-indigo-400">{'{observacoes}'}</span> para inserir as informações automaticamente.
                 </p>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">Mensagem</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-zinc-300">Mensagem</label>
                   <textarea
                     value={whatsappChacaraTemplate}
                     onChange={(e) => setWhatsappChacaraTemplate(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm resize-y min-h-[120px]"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm text-gray-900 dark:text-zinc-100 resize-y min-h-[120px]"
                     placeholder="Olá {nome}, tudo bem?"
                   />
                   <button
                     onClick={() => {
                       localStorage.setItem('whatsappChacaraTemplate', whatsappChacaraTemplate);
-                      dialogAlert('Mensagem salva como padrão!');
+                      toast('Mensagem salva como padrão!');
                     }}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800"
                   >
                     Salvar como padrão
                   </button>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800">
                   <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-gray-800">Selecione os usuários para enviar:</h4>
+                    <h4 className="font-bold text-gray-800 dark:text-zinc-100">Selecione os usuários para enviar:</h4>
                     {sentChacaraMessages.length > 0 && (
                       <button
                         onClick={() => setSentChacaraMessages([])}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-semibold"
                       >
                         Reiniciar Envios
                       </button>
@@ -1839,10 +1854,10 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         const hasSent = sentChacaraMessages.includes(String(user.id));
                         
                         return (
-                          <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
+                          <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-zinc-900/60 rounded-xl border border-gray-100 dark:border-zinc-800 gap-4">
                             <div>
-                              <h5 className="font-bold text-gray-800">{user.name}</h5>
-                              <p className="text-xs text-gray-500">{user.phone || 'Sem telefone'}</p>
+                              <h5 className="font-bold text-gray-800 dark:text-zinc-100">{user.name}</h5>
+                              <p className="text-xs text-gray-500 dark:text-zinc-400">{user.phone || 'Sem telefone'}</p>
                             </div>
                             <div className="flex-shrink-0">
                               <a
@@ -1857,9 +1872,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 className={cn(
                                   "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors",
                                   !user.phone 
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none"
+                                    ? "bg-gray-100 dark:bg-zinc-800 text-gray-400 cursor-not-allowed pointer-events-none"
                                     : hasSent
-                                      ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                      ? "bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-300"
                                       : "bg-green-500 text-white hover:bg-green-600 shadow-sm"
                                 )}
                               >
@@ -1871,7 +1886,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         );
                       })
                     ) : (
-                      <div className="text-center py-6 text-gray-400">
+                      <div className="text-center py-6 text-gray-400 dark:text-zinc-500">
                         <p>Nenhum usuário cadastrado.</p>
                       </div>
                     )}
@@ -1988,34 +2003,34 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             >
               {/* Top Stats / KPI Cards - Minimalist & Modern */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Total de Moradores</span>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums">{totalUsersCount}</div>
-                  <span className="text-xs text-gray-500 mt-1 block">titulares cadastrados</span>
+                <div className="bg-white dark:bg-[#141416] rounded-2xl p-5 border border-gray-100 dark:border-zinc-800 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 dark:text-zinc-400 uppercase tracking-wider block mb-1">Total de Moradores</span>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight tabular-nums">{totalUsersCount}</div>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 mt-1 block">titulares cadastrados</span>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Energia Elétrica</span>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums">
-                    {activeEnergyUsersCount} <span className="text-sm font-normal text-gray-400">ativos</span>
+                <div className="bg-white dark:bg-[#141416] rounded-2xl p-5 border border-gray-100 dark:border-zinc-800 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 dark:text-zinc-400 uppercase tracking-wider block mb-1">Energia Elétrica</span>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight tabular-nums">
+                    {activeEnergyUsersCount} <span className="text-sm font-normal text-gray-400 dark:text-zinc-500">ativos</span>
                   </div>
-                  <span className="text-xs text-gray-500 mt-1 block tabular-nums">{totalEnergyMetersCount} padrão(ões) totais</span>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 mt-1 block tabular-nums">{totalEnergyMetersCount} padrão(ões) totais</span>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Água Encanada</span>
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums">
-                    {activeWaterUsersCount} <span className="text-sm font-normal text-gray-400">ativos</span>
+                <div className="bg-white dark:bg-[#141416] rounded-2xl p-5 border border-gray-100 dark:border-zinc-800 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 dark:text-zinc-400 uppercase tracking-wider block mb-1">Água Encanada</span>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight tabular-nums">
+                    {activeWaterUsersCount} <span className="text-sm font-normal text-gray-400 dark:text-zinc-500">ativos</span>
                   </div>
-                  <span className="text-xs text-gray-500 mt-1 block tabular-nums">{totalWaterMetersCount} hidrômetro(s) totais</span>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 mt-1 block tabular-nums">{totalWaterMetersCount} hidrômetro(s) totais</span>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Pontos Desligados</span>
-                  <div className={`text-2xl sm:text-3xl font-bold tracking-tight tabular-nums ${inactiveServicesCount > 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                <div className="bg-white dark:bg-[#141416] rounded-2xl p-5 border border-gray-100 dark:border-zinc-800 shadow-xs">
+                  <span className="text-[11px] font-semibold text-gray-400 dark:text-zinc-400 uppercase tracking-wider block mb-1">Pontos Desligados</span>
+                  <div className={`text-2xl sm:text-3xl font-bold tracking-tight tabular-nums ${inactiveServicesCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-zinc-100'}`}>
                     {inactiveServicesCount}
                   </div>
-                  <span className="text-xs text-gray-500 mt-1 block">
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 mt-1 block">
                     {inactiveServicesCount === 0 ? 'todas as ligações ativas' : 'pontos com corte/desligados'}
                   </span>
                 </div>
@@ -2030,23 +2045,23 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     ref={userFormRef} 
-                    className="bg-white rounded-2xl shadow-xs border border-indigo-100/80 overflow-hidden"
+                    className="bg-white dark:bg-[#141416] rounded-2xl shadow-xs border border-indigo-100/80 dark:border-zinc-800 overflow-hidden"
                   >
-                    <div className="px-6 py-4 bg-gradient-to-r from-indigo-50/50 to-white border-b border-indigo-100/60 flex items-center justify-between">
+                    <div className="px-6 py-4 bg-gradient-to-r from-indigo-50/50 to-white dark:from-zinc-900/80 dark:to-[#141416] border-b border-indigo-100/60 dark:border-zinc-800 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${editingUser ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${editingUser ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'}`}>
                           {editingUser ? <Edit2 size={18} /> : <UserPlus size={18} />}
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                          <h3 className="font-bold text-gray-900 dark:text-zinc-100 text-base flex items-center gap-2">
                             {editingUser ? 'Editar Morador' : 'Cadastrar Novo Morador'}
                             {editingUser && (
-                              <span className="text-xs font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              <span className="text-xs font-mono text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-500/30">
                                 #{editingUser.id}
                               </span>
                             )}
                           </h3>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-zinc-400">
                             {editingUser ? `Atualizando informações de ${editingUser.name}` : 'Preencha os dados e configurações de fornecimento'}
                           </p>
                         </div>
@@ -2054,7 +2069,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       <button
                         type="button"
                         onClick={handleCancelEditUser}
-                        className="text-xs text-gray-500 hover:text-gray-800 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+                        className="text-xs text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
                       >
                         <X size={14} />
                         Fechar
@@ -2066,28 +2081,28 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
                         {/* Nome Completo */}
                         <div className="lg:col-span-4">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
                             Nome Completo <span className="text-rose-500">*</span>
                           </label>
                           <input 
                             type="text"
                             value={userForm.name}
                             onChange={e => setUserForm({ ...userForm, name: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                            className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                             placeholder="Nome completo do morador"
                           />
                         </div>
 
                         {/* CPF */}
                         <div className="lg:col-span-2">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
                             CPF
                           </label>
                           <input 
                             type="text"
                             value={userForm.cpf}
                             onChange={e => handleUserCpfChange(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 font-mono"
                             placeholder="000.000.000-00"
                             maxLength={14}
                           />
@@ -2095,14 +2110,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                         {/* Telefone / WhatsApp */}
                         <div className="lg:col-span-2">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
                             Telefone / WhatsApp <span className="text-rose-500">*</span>
                           </label>
                           <input 
                             type="text"
                             value={userForm.phone}
                             onChange={e => handleUserPhoneChange(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 font-mono"
                             placeholder="(00) 00000-0000"
                             maxLength={15}
                           />
@@ -2110,49 +2125,49 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                         {/* Rua / Alameda */}
                         <div className="lg:col-span-2">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
                             Rua (Número)
                           </label>
                           <input 
                             type="text"
                             value={userForm.street}
                             onChange={e => setUserForm({ ...userForm, street: cleanAddressNumber(e.target.value) })}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 font-mono"
                             placeholder="Ex: 03"
                           />
                         </div>
 
                         {/* Casa / Lote */}
                         <div className="lg:col-span-2">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
                             Casa (Número)
                           </label>
                           <input 
                             type="text"
                             value={userForm.house_number}
                             onChange={e => setUserForm({ ...userForm, house_number: cleanAddressNumber(e.target.value) })}
-                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 font-mono"
+                            className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm text-gray-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 font-mono"
                             placeholder="Ex: 14"
                           />
                         </div>
                       </div>
 
                       {/* Serviços de Medição: Energia e Água */}
-                      <div className="pt-3 border-t border-gray-100">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                      <div className="pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
                           Pontos de Medição e Fornecimento
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Energia Elétrica */}
-                          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/50">
+                          <div className="p-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.03]">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center">
                                   <Zap size={16} />
                                 </div>
                                 <div>
-                                  <div className="text-sm font-semibold text-gray-900">Energia Elétrica</div>
-                                  <div className="text-xs text-gray-500">Controle de padrões e consumo</div>
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Energia Elétrica</div>
+                                  <div className="text-xs text-gray-500 dark:text-zinc-400">Controle de padrões e consumo</div>
                                 </div>
                               </div>
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -2162,15 +2177,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   onChange={e => setUserForm({ ...userForm, has_energy: e.target.checked })}
                                   className="sr-only peer"
                                 />
-                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                                <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                               </label>
                             </div>
 
                             {userForm.has_energy && (
-                              <div className="mt-3 pt-3 border-t border-gray-200/80 space-y-3">
+                              <div className="mt-3 pt-3 border-t border-gray-200/80 dark:border-white/[0.08] space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-700 font-semibold">Quantidade de Padrões:</span>
-                                  <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
+                                  <span className="text-xs text-gray-700 dark:text-zinc-300 font-semibold">Quantidade de Padrões:</span>
+                                  <div className="flex items-center border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 rounded-lg overflow-hidden">
                                     <button
                                       type="button"
                                       disabled={(userForm.energy_meters_count || 1) <= 1}
@@ -2182,11 +2197,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           energy_meter_statuses: (userForm.energy_meter_statuses || []).slice(0, nextCount)
                                         });
                                       }}
-                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
+                                      className="px-2.5 py-1 text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-30 text-xs font-semibold"
                                     >
                                       -
                                     </button>
-                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[40px] text-center bg-gray-50/50">
+                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 dark:text-zinc-100 min-w-[40px] text-center bg-gray-50/50 dark:bg-zinc-800/50">
                                       {userForm.energy_meters_count || 1}
                                     </span>
                                     <button
@@ -2201,7 +2216,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           energy_meter_statuses: currentStatuses
                                         });
                                       }}
-                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
+                                      className="px-2.5 py-1 text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-semibold"
                                     >
                                       +
                                     </button>
@@ -2209,14 +2224,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 </div>
 
                                 <div className="space-y-1.5 pt-1">
-                                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Status Individual dos Padrões:</span>
+                                  <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider block">Status Individual dos Padrões:</span>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {Array.from({ length: userForm.energy_meters_count || 1 }).map((_, idx) => {
                                       const isLigado = (userForm.energy_meter_statuses || [])[idx] !== false;
                                       return (
-                                        <div key={`meter-e-${idx}`} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-200">
-                                          <span className="text-xs font-semibold text-gray-800">Padrão {idx + 1}</span>
-                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 text-xs">
+                                        <div key={`meter-e-${idx}`} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08]">
+                                          <span className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Padrão {idx + 1}</span>
+                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 dark:bg-zinc-800 text-xs">
                                             <button
                                               type="button"
                                               onClick={() => {
@@ -2226,7 +2241,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                                 setUserForm({ ...userForm, energy_meter_statuses: st });
                                               }}
                                               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
-                                                isLigado ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                                isLigado ? 'bg-white dark:bg-zinc-700 text-emerald-700 dark:text-emerald-300 shadow-2xs' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300'
                                               }`}
                                             >
                                               Ligado
@@ -2240,7 +2255,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                                 setUserForm({ ...userForm, energy_meter_statuses: st });
                                               }}
                                               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
-                                                !isLigado ? 'bg-white text-rose-600 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                                !isLigado ? 'bg-white dark:bg-zinc-700 text-rose-600 dark:text-rose-400 shadow-2xs' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300'
                                               }`}
                                             >
                                               Desligado
@@ -2256,15 +2271,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           </div>
 
                           {/* Água Encanada */}
-                          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/50">
+                          <div className="p-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.03]">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center justify-center">
                                   <Droplets size={16} />
                                 </div>
                                 <div>
-                                  <div className="text-sm font-semibold text-gray-900">Água Encanada</div>
-                                  <div className="text-xs text-gray-500">Controle de hidrômetros e consumo</div>
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Água Encanada</div>
+                                  <div className="text-xs text-gray-500 dark:text-zinc-400">Controle de hidrômetros e consumo</div>
                                 </div>
                               </div>
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -2274,15 +2289,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   onChange={e => setUserForm({ ...userForm, has_water: e.target.checked })}
                                   className="sr-only peer"
                                 />
-                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                                <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
                               </label>
                             </div>
 
                             {userForm.has_water && (
-                              <div className="mt-3 pt-3 border-t border-gray-200/80 space-y-3">
+                              <div className="mt-3 pt-3 border-t border-gray-200/80 dark:border-white/[0.08] space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-700 font-semibold">Quantidade de Hidrômetros:</span>
-                                  <div className="flex items-center border border-gray-200 bg-white rounded-lg overflow-hidden">
+                                  <span className="text-xs text-gray-700 dark:text-zinc-300 font-semibold">Quantidade de Hidrômetros:</span>
+                                  <div className="flex items-center border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 rounded-lg overflow-hidden">
                                     <button
                                       type="button"
                                       disabled={(userForm.water_meters_count || 1) <= 1}
@@ -2294,11 +2309,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           water_meter_statuses: (userForm.water_meter_statuses || []).slice(0, nextCount)
                                         });
                                       }}
-                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs font-semibold"
+                                      className="px-2.5 py-1 text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-30 text-xs font-semibold"
                                     >
                                       -
                                     </button>
-                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 min-w-[40px] text-center bg-gray-50/50">
+                                    <span className="px-3 py-1 text-xs font-semibold text-gray-800 dark:text-zinc-100 min-w-[40px] text-center bg-gray-50/50 dark:bg-zinc-800/50">
                                       {userForm.water_meters_count || 1}
                                     </span>
                                     <button
@@ -2313,7 +2328,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           water_meter_statuses: currentStatuses
                                         });
                                       }}
-                                      className="px-2.5 py-1 text-gray-600 hover:bg-gray-50 text-xs font-semibold"
+                                      className="px-2.5 py-1 text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-semibold"
                                     >
                                       +
                                     </button>
@@ -2321,14 +2336,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 </div>
 
                                 <div className="space-y-1.5 pt-1">
-                                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Status Individual dos Hidrômetros:</span>
+                                  <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider block">Status Individual dos Hidrômetros:</span>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {Array.from({ length: userForm.water_meters_count || 1 }).map((_, idx) => {
                                       const isLigado = (userForm.water_meter_statuses || [])[idx] !== false;
                                       return (
-                                        <div key={`meter-w-${idx}`} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-200">
-                                          <span className="text-xs font-semibold text-gray-800">Hidrômetro {idx + 1}</span>
-                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 text-xs">
+                                        <div key={`meter-w-${idx}`} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08]">
+                                          <span className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Hidrômetro {idx + 1}</span>
+                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 dark:bg-zinc-800 text-xs">
                                             <button
                                               type="button"
                                               onClick={() => {
@@ -2338,7 +2353,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                                 setUserForm({ ...userForm, water_meter_statuses: st });
                                               }}
                                               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
-                                                isLigado ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                                isLigado ? 'bg-white dark:bg-zinc-700 text-emerald-700 dark:text-emerald-300 shadow-2xs' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300'
                                               }`}
                                             >
                                               Ligado
@@ -2352,7 +2367,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                                 setUserForm({ ...userForm, water_meter_statuses: st });
                                               }}
                                               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
-                                                !isLigado ? 'bg-white text-rose-600 shadow-2xs' : 'text-gray-400 hover:text-gray-700'
+                                                !isLigado ? 'bg-white dark:bg-zinc-700 text-rose-600 dark:text-rose-400 shadow-2xs' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300'
                                               }`}
                                             >
                                               Desligado
@@ -2370,11 +2385,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       </div>
 
                       {/* Botões de Ação do Formulário */}
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
+                      <div className="pt-3 border-t border-gray-100 dark:border-white/[0.06] flex items-center justify-end gap-3">
                         <button
                           type="button"
                           onClick={handleCancelEditUser}
-                          className="px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-medium text-sm transition-colors"
+                          className="px-4 py-2.5 text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl font-medium text-sm transition-colors"
                         >
                           Cancelar
                         </button>
@@ -2400,17 +2415,17 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 )}
 
                 {/* LISTAGEM DE MORADORES (Full width card) */}
-                <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 overflow-hidden">
+                <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-xs border border-gray-200/80 dark:border-white/[0.08] overflow-hidden">
                   {/* Header da Listagem */}
-                  <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-gray-900 text-lg">Moradores Cadastrados</h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <h3 className="font-bold text-gray-900 dark:text-zinc-100 text-lg">Moradores Cadastrados</h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/25">
                           {filteredUsersList.length} {filteredUsersList.length === 1 ? 'morador' : 'moradores'}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">Gestão completa de moradores, hidrômetros e padrões da chácara</p>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Gestão completa de moradores, hidrômetros e padrões da chácara</p>
                     </div>
 
                     <div className="flex items-center gap-2.5">
@@ -2430,15 +2445,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   </div>
 
                   {/* Toolbar com Filtros e Busca */}
-                  <div className="p-4 border-b border-gray-100 bg-gray-50/40 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                  <div className="p-4 border-b border-gray-100 dark:border-white/[0.06] bg-gray-50/40 dark:bg-white/[0.02] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
                     {/* Segmented Filter Tabs */}
-                    <div className="inline-flex rounded-xl p-1 bg-gray-200/60 overflow-x-auto text-xs font-medium gap-1 shrink-0">
+                    <div className="inline-flex rounded-xl p-1 bg-gray-200/60 dark:bg-zinc-800/80 overflow-x-auto text-xs font-medium gap-1 shrink-0">
                       <button
                         onClick={() => { setUserServiceFilter('all'); setUserPage(1); }}
                         className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap ${
                           userServiceFilter === 'all'
-                            ? 'bg-white text-gray-900 shadow-2xs font-semibold'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 shadow-2xs font-semibold'
+                            : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100'
                         }`}
                       >
                         Todos ({totalUsersCount})
@@ -2447,8 +2462,8 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         onClick={() => { setUserServiceFilter('energy'); setUserPage(1); }}
                         className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
                           userServiceFilter === 'energy'
-                            ? 'bg-white text-amber-800 shadow-2xs font-semibold'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white dark:bg-zinc-900 text-amber-800 dark:text-amber-300 shadow-2xs font-semibold'
+                            : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100'
                         }`}
                       >
                         <Zap size={13} className="text-amber-500" />
@@ -2458,8 +2473,8 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         onClick={() => { setUserServiceFilter('water'); setUserPage(1); }}
                         className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
                           userServiceFilter === 'water'
-                            ? 'bg-white text-sky-800 shadow-2xs font-semibold'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white dark:bg-zinc-900 text-sky-800 dark:text-sky-300 shadow-2xs font-semibold'
+                            : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100'
                         }`}
                       >
                         <Droplets size={13} className="text-sky-500" />
@@ -2469,8 +2484,8 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         onClick={() => { setUserServiceFilter('inactive'); setUserPage(1); }}
                         className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
                           userServiceFilter === 'inactive'
-                            ? 'bg-white text-rose-700 shadow-2xs font-semibold'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white dark:bg-zinc-900 text-rose-700 dark:text-rose-400 shadow-2xs font-semibold'
+                            : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100'
                         }`}
                       >
                         <AlertCircle size={13} className="text-rose-500" />
@@ -2480,18 +2495,18 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                     {/* Campo de Busca */}
                     <div className="relative w-full md:w-80">
-                      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
                       <input
                         type="text"
                         value={userSearchTerm}
                         onChange={e => { setUserSearchTerm(e.target.value); setUserPage(1); }}
                         placeholder="Buscar por nome, rua, casa, CPF..."
-                        className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-500 outline-none text-gray-800 placeholder:text-gray-400"
+                        className="w-full pl-9 pr-8 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-500 outline-none text-gray-800 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                       />
                       {userSearchTerm && (
                         <button
                           onClick={() => { setUserSearchTerm(''); setUserPage(1); }}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-xs"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-500 dark:text-zinc-400 text-xs"
                         >
                           ✕
                         </button>
@@ -2505,15 +2520,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       <>
                         <table className="w-full text-left border-collapse table-auto">
                           <thead>
-                            <tr className="border-b border-gray-200 bg-gray-50/80 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                            <tr className="border-b border-gray-200 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] text-xs font-bold text-gray-600 dark:text-zinc-400 uppercase tracking-wider">
                               <th className="px-5 py-3.5">
                                 <button
                                   type="button"
                                   onClick={() => toggleUserSort('name')}
-                                  className="inline-flex items-center gap-1.5 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                  className="inline-flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors uppercase font-bold"
                                 >
                                   Nome / Morador
-                                  <span className="text-xs text-gray-400 font-mono">
+                                  <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
                                     {userSortField === 'name' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                   </span>
                                 </button>
@@ -2523,23 +2538,23 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   <button
                                     type="button"
                                     onClick={() => toggleUserSort('street')}
-                                    className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                    className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors uppercase font-bold"
                                     title="Ordenar por Rua"
                                   >
                                     Rua
-                                    <span className="text-xs text-gray-400 font-mono">
+                                    <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
                                       {userSortField === 'street' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                     </span>
                                   </button>
-                                  <span className="text-gray-300">/</span>
+                                  <span className="text-gray-300 dark:text-zinc-600">/</span>
                                   <button
                                     type="button"
                                     onClick={() => toggleUserSort('house_number')}
-                                    className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                    className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors uppercase font-bold"
                                     title="Ordenar por Casa"
                                   >
                                     Casa
-                                    <span className="text-xs text-gray-400 font-mono">
+                                    <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
                                       {userSortField === 'house_number' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                     </span>
                                   </button>
@@ -2549,10 +2564,10 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 <button
                                   type="button"
                                   onClick={() => toggleUserSort('cpf')}
-                                  className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                  className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors uppercase font-bold"
                                 >
                                   CPF
-                                  <span className="text-xs text-gray-400 font-mono">
+                                  <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
                                     {userSortField === 'cpf' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                   </span>
                                 </button>
@@ -2561,10 +2576,10 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 <button
                                   type="button"
                                   onClick={() => toggleUserSort('phone')}
-                                  className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase font-bold"
+                                  className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors uppercase font-bold"
                                 >
                                   WhatsApp / Contato
-                                  <span className="text-xs text-gray-400 font-mono">
+                                  <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono">
                                     {userSortField === 'phone' ? (userSortOrder === 'asc' ? '▲' : '▼') : '↕'}
                                   </span>
                                 </button>
@@ -2573,7 +2588,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                               <th className="px-5 py-3.5 text-right font-bold">Ações</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 text-sm">
+                          <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06] text-sm">
                             {paginatedUsersList.map((user) => {
                               const isCurrentlyEditing = editingUser?.id === user.id;
                               const userStreet = cleanAddressNumber(user.street || user.rua);
@@ -2585,28 +2600,28 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                               return (
                                 <tr 
                                   key={user.id} 
-                                  className={`transition-colors hover:bg-indigo-50/30 ${
-                                    isCurrentlyEditing ? 'bg-amber-50/50 border-l-4 border-amber-500' : ''
+                                  className={`transition-colors hover:bg-indigo-50/30 dark:hover:bg-white/[0.03] ${
+                                    isCurrentlyEditing ? 'bg-amber-50/50 dark:bg-amber-500/10 border-l-4 border-amber-500' : ''
                                   }`}
                                 >
                                   {/* Nome */}
                                   <td className="px-5 py-4">
                                     <div className="flex items-center gap-3">
-                                      <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100 dark:border-indigo-500/25 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
                                         {initials}
                                       </div>
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate" title={user.name}>
+                                          <span className="font-bold text-gray-900 dark:text-zinc-100 text-sm sm:text-base leading-tight truncate" title={user.name}>
                                             {user.name}
                                           </span>
                                           {isCurrentlyEditing && (
-                                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                            <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 rounded-md text-[10px] font-bold uppercase tracking-wider">
                                               editando
                                             </span>
                                           )}
                                         </div>
-                                        <span className="text-xs text-gray-400 font-mono block mt-0.5">ID #{user.id}</span>
+                                        <span className="text-xs text-gray-400 dark:text-zinc-500 font-mono block mt-0.5">ID #{user.id}</span>
                                       </div>
                                     </div>
                                   </td>
@@ -2615,16 +2630,16 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   <td className="px-4 py-4">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       {userStreet ? (
-                                        <span className="text-sm font-bold text-gray-800 font-mono" title={`Rua ${userStreet}`}>
+                                        <span className="text-sm font-bold text-gray-800 dark:text-zinc-200 font-mono" title={`Rua ${userStreet}`}>
                                           {userStreet}
                                         </span>
                                       ) : (
-                                        <span className="text-gray-300 font-normal text-xs">-</span>
+                                        <span className="text-gray-300 dark:text-zinc-600 font-normal text-xs">-</span>
                                       )}
                                       {userHouse && (
                                         <>
-                                          <span className="text-gray-300 font-light">/</span>
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-bold text-xs font-mono border border-slate-200/60" title={`Casa ${userHouse}`}>
+                                          <span className="text-gray-300 dark:text-zinc-600 font-light">/</span>
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-bold text-xs font-mono border border-slate-200/60 dark:border-white/[0.08]" title={`Casa ${userHouse}`}>
                                             {userHouse}
                                           </span>
                                         </>
@@ -2635,11 +2650,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   {/* CPF */}
                                   <td className="px-4 py-4">
                                     {user.cpf ? (
-                                      <span className="font-mono text-gray-700 font-medium text-sm">
+                                      <span className="font-mono text-gray-700 dark:text-zinc-300 font-medium text-sm">
                                         {user.cpf}
                                       </span>
                                     ) : (
-                                      <span className="text-gray-300">-</span>
+                                      <span className="text-gray-300 dark:text-zinc-600">-</span>
                                     )}
                                   </td>
 
@@ -2650,14 +2665,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                         href={`https://wa.me/${formatWAPhone(user.phone)}?text=${encodeURIComponent(`${getGreeting()} ${getFirstName(user.name) || user.name}! Tudo bem? Entro em contato sobre a chácara.`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-sm text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100/90 border border-emerald-200/70 px-3 py-1.5 rounded-lg font-mono font-medium transition-all"
+                                        className="inline-flex items-center gap-1.5 text-sm text-emerald-800 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-200 bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100/90 dark:hover:bg-emerald-500/25 border border-emerald-200/70 dark:border-emerald-500/25 px-3 py-1.5 rounded-lg font-mono font-medium transition-all"
                                         title="Conversar no WhatsApp"
                                       >
-                                        <MessageCircle size={14} className="text-emerald-600 shrink-0" />
+                                        <MessageCircle size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                                         <span>{user.phone}</span>
                                       </a>
                                     ) : (
-                                      <span className="text-gray-400 text-sm">Não informado</span>
+                                      <span className="text-gray-400 dark:text-zinc-500 text-sm">Não informado</span>
                                     )}
                                   </td>
 
@@ -2667,10 +2682,10 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                       {user.has_energy !== false ? (
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                                           user.energy_active !== false
-                                            ? 'bg-amber-50 text-amber-900 border border-amber-200'
-                                            : 'bg-gray-100 text-gray-400 line-through'
+                                            ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25'
+                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 line-through'
                                         }`} title={user.energy_active !== false ? 'Energia Ativa' : 'Energia Desligada'}>
-                                          <Zap size={13} className={user.energy_active !== false ? 'text-amber-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                                          <Zap size={13} className={user.energy_active !== false ? 'text-amber-500 shrink-0' : 'text-gray-400 dark:text-zinc-500 shrink-0'} />
                                           {user.energy_meters_count || 1} {user.energy_meters_count === 1 ? 'padrão' : 'padrões'}
                                         </span>
                                       ) : null}
@@ -2678,16 +2693,16 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                       {user.has_water !== false ? (
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                                           user.water_active !== false
-                                            ? 'bg-sky-50 text-sky-900 border border-sky-200'
-                                            : 'bg-gray-100 text-gray-400 line-through'
+                                            ? 'bg-sky-50 dark:bg-sky-500/15 text-sky-900 dark:text-sky-300 border border-sky-200 dark:border-sky-500/25'
+                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 line-through'
                                         }`} title={user.water_active !== false ? 'Água Ativa' : 'Água Desligada'}>
-                                          <Droplets size={13} className={user.water_active !== false ? 'text-sky-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                                          <Droplets size={13} className={user.water_active !== false ? 'text-sky-500 shrink-0' : 'text-gray-400 dark:text-zinc-500 shrink-0'} />
                                           {user.water_meters_count || 1} {user.water_meters_count === 1 ? 'hidrômetro' : 'hidrômetros'}
                                         </span>
                                       ) : null}
 
                                       {user.has_energy === false && user.has_water === false && (
-                                        <span className="text-gray-400 text-xs">Nenhum serviço</span>
+                                        <span className="text-gray-400 dark:text-zinc-500 text-xs">Nenhum serviço</span>
                                       )}
                                     </div>
                                   </td>
@@ -2704,7 +2719,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                             setPendingDetailsModal({ isOpen: true, user });
                                           }
                                         }}
-                                        className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                        className="p-2 text-gray-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-colors"
                                         title="Ver Extrato / Fatura"
                                       >
                                         <FileText size={16} />
@@ -2740,14 +2755,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           }); 
                                           userFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         }}
-                                        className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                        className="p-2 text-gray-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/15 rounded-lg transition-colors"
                                         title="Editar Morador"
                                       >
                                         <Edit2 size={16} />
                                       </button>
                                       <button 
                                         onClick={() => handleDeleteUser(user.id)}
-                                        className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                        className="p-2 text-gray-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-colors"
                                         title="Excluir Morador"
                                       >
                                         <Trash2 size={16} />
@@ -2761,21 +2776,21 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         </table>
 
                         {/* Barra de Paginação */}
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/70 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
-                          <div className="flex items-center gap-4 text-gray-600">
+                        <div className="px-6 py-4 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/70 dark:bg-white/[0.02] flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+                          <div className="flex items-center gap-4 text-gray-600 dark:text-zinc-400">
                             <span>
-                              Mostrando <strong className="text-gray-900 font-bold">{startUserIdx}</strong>–<strong className="text-gray-900 font-bold">{endUserIdx}</strong> de <strong className="text-gray-900 font-bold">{filteredUsersList.length}</strong> moradores
+                              Mostrando <strong className="text-gray-900 dark:text-zinc-100 font-bold">{startUserIdx}</strong>–<strong className="text-gray-900 dark:text-zinc-100 font-bold">{endUserIdx}</strong> de <strong className="text-gray-900 dark:text-zinc-100 font-bold">{filteredUsersList.length}</strong> moradores
                             </span>
 
-                            <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
-                              <span className="text-gray-500 text-xs font-medium">Exibir por página:</span>
+                            <div className="flex items-center gap-2 pl-4 border-l border-gray-200 dark:border-white/[0.08]">
+                              <span className="text-gray-500 dark:text-zinc-400 text-xs font-medium">Exibir por página:</span>
                               <select
                                 value={userPageSize}
                                 onChange={e => {
                                   setUserPageSize(Number(e.target.value));
                                   setUserPage(1);
                                 }}
-                                className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                                className="px-2.5 py-1.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] rounded-lg text-xs text-gray-800 dark:text-zinc-100 font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
                               >
                                 <option value={10}>10 linhas</option>
                                 <option value={20}>20 linhas</option>
@@ -2792,7 +2807,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 type="button"
                                 onClick={() => setUserPage(1)}
                                 disabled={safeUserPage <= 1}
-                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                className="p-2 rounded-lg border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 title="Primeira página"
                               >
                                 <ChevronsLeft size={15} />
@@ -2801,7 +2816,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 type="button"
                                 onClick={() => setUserPage(prev => Math.max(1, prev - 1))}
                                 disabled={safeUserPage <= 1}
-                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                className="p-2 rounded-lg border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 title="Página anterior"
                               >
                                 <ChevronLeft size={15} />
@@ -2823,7 +2838,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     return (
                                       <React.Fragment key={pageNum}>
                                         {showEllipsis && (
-                                          <span className="px-1 text-gray-400 text-xs">...</span>
+                                          <span className="px-1 text-gray-400 dark:text-zinc-500 text-xs">...</span>
                                         )}
                                         <button
                                           type="button"
@@ -2831,7 +2846,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                           className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-semibold transition-all ${
                                             safeUserPage === pageNum
                                               ? 'bg-indigo-600 text-white shadow-xs'
-                                              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                                              : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.1] text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
                                           }`}
                                         >
                                           {pageNum}
@@ -2845,7 +2860,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 type="button"
                                 onClick={() => setUserPage(prev => Math.min(totalUserPages, prev + 1))}
                                 disabled={safeUserPage >= totalUserPages}
-                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                className="p-2 rounded-lg border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 title="Próxima página"
                               >
                                 <ChevronRight size={15} />
@@ -2854,7 +2869,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 type="button"
                                 onClick={() => setUserPage(totalUserPages)}
                                 disabled={safeUserPage >= totalUserPages}
-                                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                className="p-2 rounded-lg border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 title="Última página"
                               >
                                 <ChevronsRight size={15} />
@@ -2865,11 +2880,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       </>
                     ) : (
                       <div className="p-12 text-center">
-                        <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-3">
                           <User size={24} />
                         </div>
-                        <h4 className="font-bold text-gray-800 text-base">Nenhum morador encontrado</h4>
-                        <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                        <h4 className="font-bold text-gray-800 dark:text-zinc-200 text-base">Nenhum morador encontrado</h4>
+                        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
                           {userSearchTerm 
                             ? `Nenhum resultado corresponde à busca "${userSearchTerm}".`
                             : 'Nenhum morador cadastrado. Clique no botão acima para cadastrar o primeiro morador.'}
@@ -2877,7 +2892,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         {userSearchTerm ? (
                           <button
                             onClick={() => { setUserSearchTerm(''); setUserPage(1); }}
-                            className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors"
+                            className="mt-4 px-4 py-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-colors"
                           >
                             Limpar Pesquisa
                           </button>
@@ -2911,27 +2926,27 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <Banknote className="text-slate-800" size={24} />
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <Banknote className="text-slate-800 dark:text-zinc-200" size={24} />
                   Despesas da Chácara
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">Gerenciamento de pagamentos, manutenções e comprovantes</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Gerenciamento de pagamentos, manutenções e comprovantes</p>
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2 bg-white dark:bg-[#141416] px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-xs">
                   <Filter size={15} className="text-slate-400" />
-                  <span className="text-xs font-semibold text-slate-500">Mês:</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Mês:</span>
                   <input 
                     type="month" 
                     value={filterMonth}
                     onChange={(e) => setFilterMonth(e.target.value)}
-                    className="bg-transparent border-none text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                    className="bg-transparent border-none text-xs font-bold text-slate-800 dark:text-zinc-100 outline-none cursor-pointer"
                   />
                   {filterMonth && (
                     <button
                       onClick={() => setFilterMonth('')}
-                      className="text-[10px] text-slate-400 hover:text-slate-700 px-1.5 py-0.5 bg-slate-100 rounded-md transition-colors"
+                      className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-md transition-colors"
                       title="Ver todos os meses"
                     >
                       Todos
@@ -2942,14 +2957,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             </div>
 
             {/* Form: Nova Despesa (Apple Compact Form) */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-              <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <PlusCircle size={17} className="text-indigo-600" />
+            <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100 dark:border-zinc-800">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                  <PlusCircle size={17} className="text-indigo-600 dark:text-indigo-400" />
                   {editingExpense ? 'Editar Despesa' : 'Nova Despesa'}
                 </h3>
                 {editingExpense && (
-                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-500/30">
                     Modo Edição
                   </span>
                 )}
@@ -2958,33 +2973,33 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* 1. Competência */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-                    Competência <span className="text-[10px] font-normal text-slate-400 normal-case">(mês ref.)</span>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
+                    Competência <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 normal-case">(mês ref.)</span>
                   </label>
                   <input 
                     type="month"
                     value={expenseForm.month_reference}
                     onChange={e => setExpenseForm({ ...expenseForm, month_reference: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 dark:focus:border-indigo-500 transition-all text-xs font-semibold text-slate-800 dark:text-zinc-100"
                   />
                 </div>
 
                 {/* 2. Data do Pagamento */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-                    Data do Pagamento <span className="text-[10px] font-normal text-slate-400 normal-case">(efetivação)</span>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
+                    Data do Pagamento <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500 normal-case">(efetivação)</span>
                   </label>
                   <input 
                     type="date"
                     value={expenseForm.date}
                     onChange={e => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 dark:focus:border-indigo-500 transition-all text-xs font-semibold text-slate-800 dark:text-zinc-100"
                   />
                 </div>
 
                 {/* 3. Valor */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                     Valor (R$)
                   </label>
                   <div className="relative">
@@ -2995,20 +3010,20 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       placeholder="0,00"
                       value={expenseForm.amount || ''}
                       onChange={e => setExpenseForm({ ...expenseForm, amount: Number(e.target.value) })}
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-bold text-slate-900"
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 dark:focus:border-indigo-500 transition-all text-xs font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                 </div>
 
                 {/* 4. Categoria */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                     Categoria
                   </label>
                   <select 
                     value={expenseForm.category}
                     onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 dark:focus:border-indigo-500 transition-all text-xs font-semibold text-slate-800 dark:text-zinc-100 cursor-pointer"
                   >
                     <option value="manutencao">Manutenção</option>
                     <option value="limpeza">Limpeza</option>
@@ -3022,31 +3037,31 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                 {/* 5. Descrição */}
                 <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                     Descrição Detalhada
                   </label>
                   <input 
                     type="text"
                     value={expenseForm.description}
                     onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-medium text-slate-800"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 dark:focus:border-indigo-500 transition-all text-xs font-medium text-slate-800 dark:text-zinc-100"
                     placeholder="Ex: Manutenção da bomba d'água principal, roçagem dos lotes..."
                   />
                 </div>
 
                 {/* 6. Comprovante */}
                 <div className="sm:col-span-2 lg:col-span-1">
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                     Comprovante
                   </label>
                   <input 
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleFileUpload}
-                    className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                    className="w-full text-xs text-slate-500 dark:text-zinc-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-slate-100 dark:file:bg-zinc-800 file:text-slate-700 dark:file:text-zinc-200 hover:file:bg-slate-200 cursor-pointer"
                   />
                   {expenseForm.receipt_url && (
-                    <div className="mt-1 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                    <div className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                       <CheckCircle2 size={12} /> Comprovante anexado
                     </div>
                   )}
@@ -3054,22 +3069,22 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-3">
                 {editingExpense && (
                   <button 
                     type="button"
                     onClick={() => {
                       setEditingExpense(null);
                       setExpenseForm({
-                        month_reference: new Date().toISOString().slice(0, 7),
+                        month_reference: filterMonth || getLocalTodayStr().slice(0, 7),
                         description: '',
                         category: 'manutencao',
                         amount: 0,
-                        date: new Date().toISOString().split('T')[0],
+                        date: getLocalTodayStr(),
                         receipt_url: ''
                       });
                     }}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors"
+                    className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 rounded-xl text-xs font-semibold hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors"
                   >
                     Cancelar Edição
                   </button>
@@ -3077,7 +3092,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 <button 
                   type="button"
                   onClick={handleSaveExpense}
-                  className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-slate-800 shadow-xs transition-all cursor-pointer"
+                  className="px-6 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-xs transition-all cursor-pointer"
                 >
                   <Save size={15} />
                   {editingExpense ? 'Atualizar Despesa' : 'Salvar Despesa'}
@@ -3086,14 +3101,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             </div>
 
             {/* Expenses Table */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+            <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-zinc-900/50">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
                     Despesas Registradas {filterMonth ? `(${filterMonth})` : '(Todas)'}
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Total: <strong className="text-slate-900 font-bold">R$ {filteredMonthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0).toFixed(2)}</strong> ({filteredMonthExpenses.length} registro{filteredMonthExpenses.length === 1 ? '' : 's'})
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                    Total: <strong className="text-slate-900 dark:text-zinc-100 font-bold">R$ {filteredMonthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0).toFixed(2)}</strong> ({filteredMonthExpenses.length} registro{filteredMonthExpenses.length === 1 ? '' : 's'})
                   </p>
                 </div>
 
@@ -3105,7 +3120,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     
                     const bodyData = filteredExps.map(e => [
                       e.month_reference || '-',
-                      new Date(e.date).toLocaleDateString('pt-BR'),
+                      new Date(normalizeDateStr(e.date) + 'T12:00:00').toLocaleDateString('pt-BR'),
                       e.description,
                       e.category,
                       `R$ ${Number(e.amount).toFixed(2)}`
@@ -3121,9 +3136,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       `despesas_${filterMonth || 'geral'}`
                     );
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 border border-slate-200/80 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 border border-slate-200/80 dark:border-zinc-800 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-xs"
                 >
-                  <Download size={14} className="text-slate-500" />
+                  <Download size={14} className="text-slate-500 dark:text-zinc-400" />
                   Exportar PDF
                 </button>
               </div>
@@ -3131,72 +3146,63 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200/60">
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Competência</th>
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Data Pgto</th>
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Descrição</th>
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider">Categoria</th>
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-right">Valor</th>
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-center">Comprovante</th>
-                      <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+                    <tr className="bg-slate-50 dark:bg-zinc-900/70 border-b border-slate-200/60 dark:border-zinc-800">
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Competência</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Data Pgto</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Descrição</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Categoria</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider text-right">Valor</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider text-center">Comprovante</th>
+                      <th className="px-4 py-3 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider text-right">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/70">
                     {filteredMonthExpenses.map(expense => (
-                      <tr key={expense.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md font-mono text-[11px]">
+                      <tr key={expense.id} className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-slate-700 dark:text-zinc-200 whitespace-nowrap">
+                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-md font-mono text-[11px]">
                             {expense.month_reference || '-'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                          {new Date(expense.date).toLocaleDateString('pt-BR')}
+                        <td className="px-4 py-3 text-slate-600 dark:text-zinc-300 whitespace-nowrap">
+                          {new Date(normalizeDateStr(expense.date) + 'T12:00:00').toLocaleDateString('pt-BR')}
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900 max-w-xs truncate">
+                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-zinc-100 max-w-xs truncate">
                           {expense.description}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300">
                             {expense.category}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-bold text-rose-600 text-right whitespace-nowrap tabular-nums">
+                        <td className="px-4 py-3 font-bold text-rose-600 dark:text-rose-400 text-right whitespace-nowrap tabular-nums">
                           R$ {Number(expense.amount).toFixed(2)}
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           {expense.receipt_url ? (
                             <button 
-                              onClick={() => {
-                                const win = window.open();
-                                if (win) {
-                                  if (expense.receipt_url.startsWith('data:application/pdf')) {
-                                    win.document.write(`<iframe src="${expense.receipt_url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                  } else {
-                                    win.document.write(`<img src="${expense.receipt_url}" style="max-width: 100%; height: auto;" />`);
-                                  }
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
+                              onClick={() => setReceiptPreviewUrl(expense.receipt_url)}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-1 rounded-lg transition-colors cursor-pointer"
                               title="Ver Comprovante"
                             >
                               <FileText size={13} />
                               Ver
                             </button>
                           ) : (
-                            <span className="text-slate-300 text-[11px]">—</span>
+                            <span className="text-slate-300 dark:text-zinc-600 text-[11px]">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap space-x-1">
                           <button 
                             onClick={() => handleEditExpense(expense)}
-                            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                             title="Editar"
                           >
                             <Edit2 size={14} />
                           </button>
                           <button 
                             onClick={() => handleDeleteExpense(expense.id)}
-                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                            className="p-1.5 text-rose-500 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                             title="Excluir"
                           >
                             <Trash2 size={14} />
@@ -3206,7 +3212,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     ))}
                     {filteredMonthExpenses.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
+                        <td colSpan={7} className="px-4 py-10 text-center text-slate-400 dark:text-zinc-500">
                           Nenhuma despesa registrada para {filterMonth || 'o filtro selecionado'}.
                         </td>
                       </tr>
@@ -3252,11 +3258,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               {/* Top Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <PlusCircle className="text-slate-800" size={24} />
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#f5f5f7] tracking-tight flex items-center gap-2">
+                    <PlusCircle className="text-slate-800 dark:text-zinc-200" size={24} />
                     {editingBill ? 'Editar Conta do Morador' : 'Lançar Nova Conta'}
                   </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
                     Preencha as leituras e confira os valores em tempo real antes do envio direto
                   </p>
                 </div>
@@ -3266,7 +3272,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       handleClearBillForm();
                       if (setActiveTab) setActiveTab('chacara_history');
                     }}
-                    className="text-xs font-semibold text-rose-600 hover:text-rose-800 px-3 py-1.5 bg-rose-50 rounded-xl border border-rose-200/60 transition-colors self-start"
+                    className="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 rounded-xl border border-rose-200/60 dark:border-rose-500/25 transition-colors self-start"
                   >
                     Cancelar Edição
                   </button>
@@ -3274,10 +3280,10 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               </div>
 
               {/* 1. SELEÇÃO DO MORADOR (PROMINENTE COM BUSCA) */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <User size={16} className="text-slate-700" />
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-5 sm:p-6 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-white/[0.06]">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-[#f5f5f7] flex items-center gap-2">
+                    <User size={16} className="text-slate-700 dark:text-zinc-300" />
                     1. Identificação do Morador
                   </h3>
                   {selectedBillUser && (
@@ -3287,7 +3293,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         setBillForm(prev => ({ ...prev, user_id: '' }));
                         setBillUserSearch('');
                       }}
-                      className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                      className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 px-2 py-1 bg-indigo-50 dark:bg-indigo-500/15 rounded-lg transition-colors cursor-pointer"
                     >
                       Trocar Morador
                     </button>
@@ -3298,19 +3304,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   <div className="space-y-3">
                     {/* Search Input */}
                     <div className="relative">
-                      <Search size={16} className="text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Search size={16} className="text-slate-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input 
                         type="text"
                         placeholder="Digite o nome, rua, número da casa ou CPF do morador..."
                         value={billUserSearch}
                         onChange={(e) => setBillUserSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs font-medium text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 focus:border-slate-800 dark:focus:border-white/25 transition-all"
                       />
                       {billUserSearch && (
                         <button
                           type="button"
                           onClick={() => setBillUserSearch('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"
                         >
                           ✕
                         </button>
@@ -3318,7 +3324,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     </div>
 
                     {/* Quick Selection Dropdown / Grid */}
-                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-200/80 rounded-xl bg-slate-50/40">
+                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] rounded-xl bg-slate-50/40 dark:bg-zinc-900/50">
                       {filteredBillUsers.slice(0, 15).map(u => (
                         <div
                           key={u.id}
@@ -3326,33 +3332,33 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             handleUserSelectForBill(u.id.toString());
                             setBillUserSearch('');
                           }}
-                          className="p-3 hover:bg-white flex items-center justify-between cursor-pointer transition-colors group"
+                          className="p-3 hover:bg-white dark:hover:bg-white/[0.05] flex items-center justify-between cursor-pointer transition-colors group"
                         >
                           <div>
-                            <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            <p className="text-xs font-bold text-slate-900 dark:text-[#f5f5f7] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                               {u.name}
                             </p>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
                               {[u.street || u.rua, (u.house_number || u.casa) ? `Casa ${u.house_number || u.casa}` : '', u.phone].filter(Boolean).join(' • ')}
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {u.has_energy !== false && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 rounded">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-500/25 rounded">
                                 ⚡ Energia
                               </span>
                             )}
                             {u.has_water !== false && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/60 rounded">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-500/25 rounded">
                                 💧 Água
                               </span>
                             )}
-                            <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-700" />
+                            <ChevronRight size={14} className="text-slate-300 dark:text-zinc-600 group-hover:text-slate-700 dark:group-hover:text-zinc-300" />
                           </div>
                         </div>
                       ))}
                       {filteredBillUsers.length === 0 && (
-                        <div className="p-4 text-center text-xs text-slate-400">
+                        <div className="p-4 text-center text-xs text-slate-400 dark:text-zinc-500">
                           Nenhum morador encontrado para "{billUserSearch}".
                         </div>
                       )}
@@ -3360,19 +3366,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   </div>
                 ) : (
                   /* Morador Selecionado Card */
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-slate-200 dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center shrink-0 text-sm">
+                      <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-zinc-900 font-bold flex items-center justify-center shrink-0 text-sm">
                         {selectedBillUser.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-slate-900">{selectedBillUser.name}</h4>
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-200/70 text-slate-700 rounded">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-[#f5f5f7]">{selectedBillUser.name}</h4>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-200/70 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-300 rounded">
                             ID #{selectedBillUser.id}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
                           {[selectedBillUser.street || selectedBillUser.rua, (selectedBillUser.house_number || selectedBillUser.casa) ? `Casa ${selectedBillUser.house_number || selectedBillUser.casa}` : '', selectedBillUser.phone].filter(Boolean).join(' • ')}
                         </p>
                       </div>
@@ -3380,12 +3386,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                     <div className="flex items-center gap-2">
                       {selectedBillUser.has_energy !== false && (
-                        <span className="text-xs font-semibold px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200/70 rounded-lg flex items-center gap-1">
+                        <span className="text-xs font-semibold px-2 py-1 bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-500/25 rounded-lg flex items-center gap-1">
                           ⚡ {selectedBillUser.energy_meters_count || 1} Padrão(ões)
                         </span>
                       )}
                       {selectedBillUser.has_water !== false && (
-                        <span className="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-800 border border-blue-200/70 rounded-lg flex items-center gap-1">
+                        <span className="text-xs font-semibold px-2 py-1 bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-200/70 dark:border-blue-500/25 rounded-lg flex items-center gap-1">
                           💧 {selectedBillUser.water_meters_count || 1} Hidrômetro(s)
                         </span>
                       )}
@@ -3395,34 +3401,34 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               </div>
 
               {/* 2. DADOS DA COMPETÊNCIA & LEITURA (1ª LINHA) */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
-                  <Calendar size={16} className="text-slate-700" />
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-5 sm:p-6 shadow-xs">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-[#f5f5f7] flex items-center gap-2 pb-3 mb-4 border-b border-slate-100 dark:border-white/[0.06]">
+                  <Calendar size={16} className="text-slate-700 dark:text-zinc-300" />
                   2. Mês de Referência & Data de Leitura
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                       Mês de Referência (Competência)
                     </label>
                     <input 
                       type="month"
                       value={billForm.month_reference}
                       onChange={e => setBillForm({ ...billForm, month_reference: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-bold text-slate-800"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 focus:border-slate-800 dark:focus:border-white/25 transition-all text-xs font-bold text-slate-800 dark:text-zinc-100"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                       Data da Leitura
                     </label>
                     <input 
                       type="date"
                       value={billForm.reading_date}
                       onChange={e => setBillForm({ ...billForm, reading_date: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-semibold text-slate-800"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 focus:border-slate-800 dark:focus:border-white/25 transition-all text-xs font-semibold text-slate-800 dark:text-zinc-100"
                     />
                   </div>
                 </div>
@@ -3430,13 +3436,13 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
               {/* 3. PAINEL DE CONSUMO DE ENERGIA */}
               {showEnergy && (
-                <div className="bg-white rounded-2xl border border-amber-200/80 p-5 sm:p-6 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-amber-100">
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-amber-200/80 dark:border-amber-500/25 p-5 sm:p-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-amber-100 dark:border-amber-500/15">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-[#f5f5f7] flex items-center gap-2">
                       <Zap size={16} className="text-amber-500" />
                       3. Consumo de Energia Elétrica
                     </h3>
-                    <div className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60">
+                    <div className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-200/60 dark:border-amber-500/25">
                       Subtotal: R$ {energySubtotal.toFixed(2)}
                     </div>
                   </div>
@@ -3445,19 +3451,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     {billForm.energy_readings.map((reading, index) => {
                       const consumption = Math.max(0, (reading.curr || 0) - (reading.prev || 0));
                       return (
-                        <div key={`energy-${index}`} className="p-4 bg-amber-50/30 rounded-xl border border-amber-100/80">
+                        <div key={`energy-${index}`} className="p-4 bg-amber-50/30 dark:bg-amber-500/[0.06] rounded-xl border border-amber-100/80 dark:border-amber-500/20">
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-bold text-slate-800">
+                            <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
                               Padrão {index + 1}
                             </span>
-                            <span className="text-xs font-bold text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200 shadow-2xs">
+                            <span className="text-xs font-bold text-amber-800 dark:text-amber-300 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-500/25 shadow-2xs">
                               Consumo: {consumption.toFixed(2)} kWh
                             </span>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                                 Leitura Anterior (kWh)
                               </label>
                               <input 
@@ -3473,12 +3479,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     return { ...prev, energy_readings: newReadings };
                                   });
                                 }}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-lg text-xs font-semibold text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                               />
                             </div>
 
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                                 Leitura Atual (kWh)
                               </label>
                               <input 
@@ -3495,7 +3501,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     return { ...prev, energy_readings: newReadings };
                                   });
                                 }}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-lg text-xs font-bold text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                               />
                             </div>
                           </div>
@@ -3505,7 +3511,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                           Valor do kWh (R$)
                         </label>
                         <input 
@@ -3513,12 +3519,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           step="0.01"
                           value={billForm.kwh_value}
                           onChange={e => setBillForm({ ...billForm, kwh_value: Number(e.target.value) })}
-                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10"
                         />
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                        <span className="text-slate-500 font-medium">Consumo Total Energia:</span>
-                        <strong className="text-slate-900 font-bold">{energyConsumptionTotal.toFixed(2)} kWh</strong>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-slate-200 dark:border-white/[0.08] text-xs">
+                        <span className="text-slate-500 dark:text-zinc-400 font-medium">Consumo Total Energia:</span>
+                        <strong className="text-slate-900 dark:text-[#f5f5f7] font-bold">{energyConsumptionTotal.toFixed(2)} kWh</strong>
                       </div>
                     </div>
                   </div>
@@ -3527,13 +3533,13 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
               {/* 4. PAINEL DE CONSUMO DE ÁGUA */}
               {showWater && (
-                <div className="bg-white rounded-2xl border border-blue-200/80 p-5 sm:p-6 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-blue-100">
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-blue-200/80 dark:border-blue-500/25 p-5 sm:p-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-blue-100 dark:border-blue-500/15">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-[#f5f5f7] flex items-center gap-2">
                       <Zap size={16} className="text-blue-500" />
                       4. Consumo de Água
                     </h3>
-                    <div className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/60">
+                    <div className="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2.5 py-1 rounded-lg border border-blue-200/60 dark:border-blue-500/25">
                       Subtotal: R$ {waterSubtotal.toFixed(2)}
                     </div>
                   </div>
@@ -3542,19 +3548,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     {billForm.water_readings.map((reading, index) => {
                       const consumption = Math.max(0, (reading.curr || 0) - (reading.prev || 0));
                       return (
-                        <div key={`water-${index}`} className="p-4 bg-blue-50/30 rounded-xl border border-blue-100/80">
+                        <div key={`water-${index}`} className="p-4 bg-blue-50/30 dark:bg-blue-500/[0.06] rounded-xl border border-blue-100/80 dark:border-blue-500/20">
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-bold text-slate-800">
+                            <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
                               Hidrômetro {index + 1}
                             </span>
-                            <span className="text-xs font-bold text-blue-800 bg-white px-2 py-0.5 rounded-md border border-blue-200 shadow-2xs">
+                            <span className="text-xs font-bold text-blue-800 dark:text-blue-300 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-500/25 shadow-2xs">
                               Consumo: {consumption.toFixed(2)} m³
                             </span>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                                 Leitura Anterior (m³)
                               </label>
                               <input 
@@ -3570,12 +3576,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     return { ...prev, water_readings: newReadings };
                                   });
                                 }}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-lg text-xs font-semibold text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                               />
                             </div>
 
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                                 Leitura Atual (m³)
                               </label>
                               <input 
@@ -3592,7 +3598,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                     return { ...prev, water_readings: newReadings };
                                   });
                                 }}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-lg text-xs font-bold text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                               />
                             </div>
                           </div>
@@ -3602,7 +3608,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                           Valor da Água (R$/m³)
                         </label>
                         <input 
@@ -3610,12 +3616,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           step="0.01"
                           value={billForm.water_value}
                           onChange={e => setBillForm({ ...billForm, water_value: Number(e.target.value) })}
-                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1">
                           Taxa de Serviço (R$)
                         </label>
                         <input 
@@ -3623,13 +3629,13 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           step="0.01"
                           value={billForm.water_service_fee}
                           onChange={e => setBillForm({ ...billForm, water_service_fee: Number(e.target.value) })}
-                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                        <span className="text-slate-500 font-medium">Consumo Água:</span>
-                        <strong className="text-slate-900 font-bold">{waterConsumptionTotal.toFixed(2)} m³</strong>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-slate-200 dark:border-white/[0.08] text-xs">
+                        <span className="text-slate-500 dark:text-zinc-400 font-medium">Consumo Água:</span>
+                        <strong className="text-slate-900 dark:text-[#f5f5f7] font-bold">{waterConsumptionTotal.toFixed(2)} m³</strong>
                       </div>
                     </div>
                   </div>
@@ -3637,19 +3643,19 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               )}
 
               {/* 5. COBRANÇAS ADICIONAIS / RATEIOS (APENAS SWITCHES COMPACTOS) */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-100">
-                  <DollarSign size={16} className="text-slate-700" />
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-5 sm:p-6 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-[#f5f5f7] flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-white/[0.06]">
+                  <DollarSign size={16} className="text-slate-700 dark:text-zinc-300" />
                   5. Rateios e Cobranças Adicionais
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Switch Fundo de Reserva */}
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors cursor-pointer">
+                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/60 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.07] transition-colors cursor-pointer">
                     <div>
-                      <span className="text-xs font-bold text-slate-800 block">Fundo de Reserva</span>
-                      <span className="text-[11px] text-slate-500">
-                        Valor fixado: <strong className="text-slate-700">R$ {(settings.reserve_fund_value || 0).toFixed(2)}</strong>
+                      <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 block">Fundo de Reserva</span>
+                      <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                        Valor fixado: <strong className="text-slate-700 dark:text-zinc-200">R$ {(settings.reserve_fund_value || 0).toFixed(2)}</strong>
                       </span>
                     </div>
 
@@ -3660,16 +3666,16 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         onChange={e => setBillForm({ ...billForm, include_reserve_fund: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      <div className="w-10 h-6 bg-slate-300 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                     </div>
                   </label>
 
                   {/* Switch Pag. Advogado e Contador */}
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors cursor-pointer">
+                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/60 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.07] transition-colors cursor-pointer">
                     <div>
-                      <span className="text-xs font-bold text-slate-800 block">Pag. Advogado e Contador</span>
-                      <span className="text-[11px] text-slate-500">
-                        Valor fixado: <strong className="text-slate-700">R$ {(settings.default_apportionment_value || billForm.apportionment_value || 0).toFixed(2)}</strong>
+                      <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 block">Pag. Advogado e Contador</span>
+                      <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                        Valor fixado: <strong className="text-slate-700 dark:text-zinc-200">R$ {(settings.default_apportionment_value || billForm.apportionment_value || 0).toFixed(2)}</strong>
                       </span>
                     </div>
 
@@ -3684,44 +3690,44 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         })}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      <div className="w-10 h-6 bg-slate-300 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                     </div>
                   </label>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                     Observações da Fatura (anexo à mensagem WhatsApp)
                   </label>
                   <textarea 
                     value={billForm.observations}
                     onChange={e => setBillForm({ ...billForm, observations: e.target.value })}
                     rows={2}
-                    className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all text-xs font-medium text-slate-800"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/70 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 focus:border-slate-800 dark:focus:border-white/25 transition-all text-xs font-medium text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500"
                     placeholder="Adicione qualquer observação ou detalhe relevante..."
                   />
                 </div>
               </div>
 
               {/* 6. BARRA DE RESUMO & LANÇAMENTO (APPLE STYLE BAR) */}
-              <div className="p-5 sm:p-6 bg-slate-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="p-5 sm:p-6 bg-slate-900 dark:bg-[#1c1c1e] dark:border dark:border-white/[0.1] text-white rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="grid grid-cols-3 gap-4 sm:gap-8 w-full md:w-auto text-center md:text-left">
                   <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Energia</span>
+                    <span className="block text-[10px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">Energia</span>
                     <span className="text-base sm:text-xl font-bold text-amber-400 tabular-nums">
                       {energyConsumptionTotal.toFixed(2)} kWh
                     </span>
                   </div>
 
                   <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Água</span>
+                    <span className="block text-[10px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">Água</span>
                     <span className="text-base sm:text-xl font-bold text-sky-400 tabular-nums">
                       {waterConsumptionTotal.toFixed(2)} m³
                     </span>
                   </div>
 
                   <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Estimado</span>
+                    <span className="block text-[10px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">Total Estimado</span>
                     <span className="text-base sm:text-xl font-bold text-emerald-400 tabular-nums">
                       R$ {estimatedBillTotal.toFixed(2)}
                     </span>
@@ -3732,7 +3738,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   <button 
                     type="button"
                     onClick={() => handleClearBillForm()}
-                    className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+                    className="p-3 bg-slate-800 dark:bg-white/[0.08] hover:bg-slate-700 dark:hover:bg-white/[0.14] text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
                     title="Limpar Formulário"
                   >
                     <Trash2 size={17} />
@@ -3760,96 +3766,96 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}
             className="space-y-6"
           >
-            {/* 1. CINCO INDICADORES FINANCEIROS NO TOPO (Apple Clean Cards) */}
+              {/* 1. CINCO INDICADORES FINANCEIROS NO TOPO (Apple Clean Cards) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {/* 1. Total Previsto a Receber */}
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-                <span className="text-slate-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+              <div className="bg-white dark:bg-[#141416] p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                <span className="text-slate-400 dark:text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                   Total Previsto
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight tabular-nums">
+                  <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight tabular-nums">
                     R$ {totalToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5">A faturar no período</p>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">A faturar no período</p>
                 </div>
               </div>
 
               {/* 2. Total Recebido */}
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between">
-                <span className="text-emerald-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="bg-white dark:bg-[#141416] p-4 sm:p-5 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 shadow-xs flex flex-col justify-between">
+                <span className="text-emerald-700 dark:text-emerald-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   Total Recebido
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-bold text-emerald-600 tracking-tight tabular-nums">
+                  <span className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight tabular-nums">
                     R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[11px] text-emerald-600/80 mt-0.5">Entradas confirmadas</p>
+                  <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/75 mt-0.5">Entradas confirmadas</p>
                 </div>
               </div>
 
               {/* 3. Total de Despesas Pagas */}
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-rose-200/80 shadow-xs flex flex-col justify-between">
-                <span className="text-rose-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="bg-white dark:bg-[#141416] p-4 sm:p-5 rounded-2xl border border-rose-200/80 dark:border-rose-500/30 shadow-xs flex flex-col justify-between">
+                <span className="text-rose-700 dark:text-rose-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
                   Despesas Pagas
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-bold text-rose-600 tracking-tight tabular-nums">
+                  <span className="text-lg sm:text-xl font-bold text-rose-600 dark:text-rose-400 tracking-tight tabular-nums">
                     R$ {totalCompetenceExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[11px] text-rose-600/80 mt-0.5 tabular-nums">{filteredMonthExpenses.length} pagamento(s)</p>
+                  <p className="text-[11px] text-rose-600/80 dark:text-rose-400/75 mt-0.5 tabular-nums">{filteredMonthExpenses.length} pagamento(s)</p>
                 </div>
               </div>
 
               {/* 4. Saldo Após Despesas (Recebido - Despesas Pagas) */}
               <div className={cn(
-                "bg-white p-4 sm:p-5 rounded-2xl border shadow-xs flex flex-col justify-between",
-                balanceAfterExpenses >= 0 ? "border-slate-300" : "border-rose-300"
+                "bg-white dark:bg-[#141416] p-4 sm:p-5 rounded-2xl border shadow-xs flex flex-col justify-between",
+                balanceAfterExpenses >= 0 ? "border-slate-300 dark:border-zinc-700" : "border-rose-300 dark:border-rose-500/40"
               )}>
-                <span className="text-slate-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+                <span className="text-slate-500 dark:text-zinc-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                   Saldo após Despesas
                 </span>
                 <div className="mt-2">
                   <span className={cn(
                     "text-lg sm:text-xl font-bold tracking-tight tabular-nums",
-                    balanceAfterExpenses >= 0 ? "text-slate-900" : "text-rose-600"
+                    balanceAfterExpenses >= 0 ? "text-slate-900 dark:text-zinc-100" : "text-rose-600 dark:text-rose-400"
                   )}>
                     R$ {balanceAfterExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Recebido – Despesas pagas</p>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">Recebido – Despesas pagas</p>
                 </div>
               </div>
 
               {/* 5. Total Pendente */}
-              <div className="col-span-2 sm:col-span-1 bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col justify-between">
-                <span className="text-amber-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="col-span-2 sm:col-span-1 bg-white dark:bg-[#141416] p-4 sm:p-5 rounded-2xl border border-amber-200/80 dark:border-amber-500/30 shadow-xs flex flex-col justify-between">
+                <span className="text-amber-700 dark:text-amber-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
                   Total Pendente
                 </span>
                 <div className="mt-2">
-                  <span className="text-lg sm:text-xl font-bold text-amber-600 tracking-tight tabular-nums">
+                  <span className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400 tracking-tight tabular-nums">
                     R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <p className="text-[11px] text-amber-600/80 mt-0.5">Aguardando quitação</p>
+                  <p className="text-[11px] text-amber-600/80 dark:text-amber-400/75 mt-0.5">Aguardando quitação</p>
                 </div>
               </div>
             </div>
 
             {/* 2. SEÇÃO EXCLUSIVA: DESPESAS DA COMPETÊNCIA */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+            <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-zinc-900/50">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-zinc-800 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                     <Banknote size={15} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
                       Despesas da Competência {filterMonth ? `(${filterMonth})` : '(Todas)'}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Total lançado para esta competência: <strong className="text-slate-900 font-bold">R$ {totalCompetenceExpenses.toFixed(2)}</strong> ({filteredMonthExpenses.length} despesa{filteredMonthExpenses.length === 1 ? '' : 's'})
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                      Total lançado para esta competência: <strong className="text-slate-900 dark:text-zinc-100 font-bold">R$ {totalCompetenceExpenses.toFixed(2)}</strong> ({filteredMonthExpenses.length} despesa{filteredMonthExpenses.length === 1 ? '' : 's'})
                     </p>
                   </div>
                 </div>
@@ -3858,7 +3864,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   <button
                     type="button"
                     onClick={() => setActiveTab('chacara_expenses')}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer"
+                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 rounded-xl transition-colors cursor-pointer"
                   >
                     Gerenciar Despesas →
                   </button>
@@ -3869,50 +3875,41 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="bg-slate-50/80 border-b border-slate-200/60">
-                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Data Pgto</th>
-                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Descrição</th>
-                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Categoria</th>
-                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-right">Valor</th>
-                        <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-center">Comprovante</th>
+                      <tr className="bg-slate-50/80 dark:bg-zinc-900/70 border-b border-slate-200/60 dark:border-zinc-800">
+                        <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Data Pgto</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Descrição</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Categoria</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider text-right">Valor</th>
+                        <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider text-center">Comprovante</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/70">
                       {filteredMonthExpenses.slice(0, 8).map(exp => (
-                        <tr key={exp.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
-                            {new Date(exp.date).toLocaleDateString('pt-BR')}
+                        <tr key={exp.id} className="hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors">
+                          <td className="px-4 py-2.5 text-slate-600 dark:text-zinc-300 whitespace-nowrap">
+                            {new Date(normalizeDateStr(exp.date) + 'T12:00:00').toLocaleDateString('pt-BR')}
                           </td>
-                          <td className="px-4 py-2.5 font-medium text-slate-900 truncate max-w-xs">
+                          <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-zinc-100 truncate max-w-xs">
                             {exp.description}
                           </td>
                           <td className="px-4 py-2.5 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300">
                               {exp.category}
                             </span>
                           </td>
-                          <td className="px-4 py-2.5 font-bold text-rose-600 text-right whitespace-nowrap">
+                          <td className="px-4 py-2.5 font-bold text-rose-600 dark:text-rose-400 text-right whitespace-nowrap tabular-nums">
                             R$ {Number(exp.amount).toFixed(2)}
                           </td>
                           <td className="px-4 py-2.5 text-center whitespace-nowrap">
                             {exp.receipt_url ? (
                               <button
-                                onClick={() => {
-                                  const win = window.open();
-                                  if (win) {
-                                    if (exp.receipt_url.startsWith('data:application/pdf')) {
-                                      win.document.write(`<iframe src="${exp.receipt_url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                    } else {
-                                      win.document.write(`<img src="${exp.receipt_url}" style="max-width: 100%; height: auto;" />`);
-                                    }
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-md"
+                                onClick={() => setReceiptPreviewUrl(exp.receipt_url)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-0.5 rounded-md cursor-pointer"
                               >
                                 <FileText size={12} /> Ver
                               </button>
                             ) : (
-                              <span className="text-slate-300">—</span>
+                              <span className="text-slate-300 dark:text-zinc-600">—</span>
                             )}
                           </td>
                         </tr>
@@ -3920,78 +3917,78 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     </tbody>
                   </table>
                   {filteredMonthExpenses.length > 8 && (
-                    <div className="p-2.5 text-center bg-slate-50/50 border-t border-slate-100 text-xs text-slate-500">
+                    <div className="p-2.5 text-center bg-slate-50/50 dark:bg-zinc-900/50 border-t border-slate-100 dark:border-zinc-800 text-xs text-slate-500 dark:text-zinc-400">
                       Mostrando 8 de {filteredMonthExpenses.length} despesas. Clique em <strong>Gerenciar Despesas</strong> para ver todas.
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="p-6 text-center text-xs text-slate-400">
+                <div className="p-6 text-center text-xs text-slate-400 dark:text-zinc-500">
                   Nenhuma despesa registrada para a competência {filterMonth || 'selecionada'}.
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <History size={20} className="text-indigo-600" />
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] overflow-hidden">
+              <div className="p-6 border-b border-gray-100 dark:border-white/[0.06] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-[#f5f5f7] flex items-center gap-2">
+                  <History size={20} className="text-indigo-600 dark:text-indigo-400" />
                   Histórico de Lançamentos
                 </h3>
                 <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="relative flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
-                    <Search size={18} className="text-gray-400 shrink-0" />
+                  <div className="relative flex items-center gap-2 bg-gray-50 dark:bg-zinc-900 p-2 rounded-xl border border-gray-100 dark:border-white/[0.08] w-full sm:w-auto">
+                    <Search size={18} className="text-gray-400 dark:text-zinc-500 shrink-0" />
                     <input 
                       type="text" 
                       placeholder="Buscar por morador, valor, CPF, telefone, rua, casa..."
                       value={searchBill}
                       onChange={(e) => setSearchBill(e.target.value)}
-                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 w-full sm:w-64 pr-6 outline-none"
+                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 w-full sm:w-64 pr-6 outline-none"
                     />
                     {searchBill && (
                       <button
                         onClick={() => setSearchBill('')}
-                        className="text-gray-400 hover:text-gray-600 text-xs px-1"
+                        className="text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 text-xs px-1"
                         title="Limpar busca"
                       >
                         ✕
                       </button>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
-                    <Filter size={18} className="text-gray-400 shrink-0" />
+                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-zinc-900 p-2 rounded-xl border border-gray-100 dark:border-white/[0.08] w-full sm:w-auto">
+                    <Filter size={18} className="text-gray-400 dark:text-zinc-500 shrink-0" />
                     <input 
                       type="month" 
                       value={filterMonth}
                       onChange={(e) => setFilterMonth(e.target.value)}
-                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 w-full"
+                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-zinc-100 w-full"
                     />
                     {filterMonth && (
                       <button
                         onClick={() => setFilterMonth('')}
-                        className="text-[11px] text-gray-500 hover:text-indigo-600 whitespace-nowrap font-medium px-1 bg-white/60 hover:bg-white rounded border border-gray-200/60"
+                        className="text-[11px] text-gray-500 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 whitespace-nowrap font-medium px-1 bg-white/60 dark:bg-white/[0.08] hover:bg-white dark:hover:bg-white/[0.14] rounded border border-gray-200/60 dark:border-white/[0.1]"
                         title="Ver todos os meses"
                       >
                         Todos
                       </button>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto">
-                    <CheckCircle size={18} className="text-gray-400 shrink-0" />
+                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-zinc-900 p-2 rounded-xl border border-gray-100 dark:border-white/[0.08] w-full sm:w-auto">
+                    <CheckCircle size={18} className="text-gray-400 dark:text-zinc-500 shrink-0" />
                     <select 
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value as any)}
-                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 w-full outline-none"
+                      className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-zinc-100 w-full outline-none"
                     >
-                      <option value="all">Todos Status</option>
-                      <option value="pending">Pendente</option>
-                      <option value="partial">Parcial</option>
-                      <option value="paid">Pago</option>
+                      <option value="all" className="dark:bg-[#1c1c1e]">Todos Status</option>
+                      <option value="pending" className="dark:bg-[#1c1c1e]">Pendente</option>
+                      <option value="partial" className="dark:bg-[#1c1c1e]">Parcial</option>
+                      <option value="paid" className="dark:bg-[#1c1c1e]">Pago</option>
                     </select>
                   </div>
                   <button 
                     onClick={exportToPDF}
-                    className="w-full sm:w-auto p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 px-4 font-bold text-sm"
+                    className="w-full sm:w-auto p-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all flex items-center justify-center gap-2 px-4 font-bold text-sm"
                   >
                     <Download size={18} />
                     Exportar PDF
@@ -4003,16 +4000,16 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               <div className="overflow-x-auto hidden md:block">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Usuário</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Total Energia</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Total Água</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Pag. Adv. e Cont.</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Fundo de Reserva</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Taxas de Serviço</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Total</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Status</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ações</th>
+                    <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/[0.06]">
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">Usuário</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Total Energia</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Total Água</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Pag. Adv. e Cont.</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Fundo de Reserva</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Taxas de Serviço</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Total</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-center">Status</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -4043,39 +4040,39 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             key={`desktop-${bill.id}`} 
                             id={`bill-${bill.id}`}
                             className={cn(
-                              "border-b border-gray-50 hover:bg-gray-50/50 transition-all",
+                              "border-b border-gray-50 dark:border-white/[0.05] hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-all",
                               isPaid ? 'opacity-75' : '',
-                              highlightedBillId === bill.id ? "bg-indigo-50 ring-2 ring-indigo-500 ring-inset" : ""
+                              highlightedBillId === bill.id ? "bg-indigo-50 dark:bg-indigo-500/15 ring-2 ring-indigo-500 ring-inset" : ""
                             )}
                           >
-                            <td className={`px-6 py-4 ${isPaid ? 'line-through text-gray-400' : ''}`}>
-                              <span className="font-semibold text-gray-800 block">{user?.name || 'Não Identificado'}</span>
-                              <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                            <td className={`px-6 py-4 ${isPaid ? 'line-through text-gray-400 dark:text-zinc-500' : ''}`}>
+                              <span className="font-semibold text-gray-800 dark:text-[#f5f5f7] block">{user?.name || 'Não Identificado'}</span>
+                              <div className="text-xs text-gray-500 dark:text-zinc-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                                 {user?.phone && <span>{user.phone}</span>}
                                 {((user?.street || user?.rua) || (user?.house_number || user?.casa)) && (
-                                  <span className="text-gray-400">
+                                  <span className="text-gray-400 dark:text-zinc-500">
                                     • {[user?.street || user?.rua, (user?.house_number || user?.casa) ? `Casa ${user?.house_number || user?.casa}` : ''].filter(Boolean).join(', ')}
                                   </span>
                                 )}
-                                {user?.cpf && <span className="font-mono text-gray-400">• CPF: {user.cpf}</span>}
+                                {user?.cpf && <span className="font-mono text-gray-400 dark:text-zinc-500">• CPF: {user.cpf}</span>}
                               </div>
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 dark:text-zinc-300 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {energyTotal.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 dark:text-zinc-300 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {waterValueTotal.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 dark:text-zinc-300 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {apportionment.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 dark:text-zinc-300 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {reserveFund.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center text-gray-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center text-gray-600 dark:text-zinc-300 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {serviceFee.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 text-center font-bold text-indigo-600 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
+                            <td className={`px-6 py-4 text-center font-bold text-indigo-600 dark:text-indigo-400 tabular-nums whitespace-nowrap ${isPaid ? 'line-through' : ''}`}>
                               R$ {bill.total.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 text-center">
@@ -4083,7 +4080,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   onClick={() => handleToggleStatusClick(bill)}
                                   className={`px-3 py-2 rounded-xl text-[11px] font-black flex items-center gap-2 mx-auto transition-all shadow-sm active:scale-95 uppercase tracking-wider ${
                                     isPaid 
-                                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                      ? 'bg-green-100 dark:bg-emerald-500/20 text-green-700 dark:text-emerald-300 hover:bg-green-200 dark:hover:bg-emerald-500/30' 
                                       : isPartial
                                         ? 'bg-indigo-500 text-white hover:bg-indigo-600'
                                         : 'bg-indigo-600 text-white hover:bg-indigo-700'
@@ -4093,12 +4090,12 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                   {isPaid ? 'PAGO' : isPartial ? 'PARCIAL' : 'RECEBER'}
                                 </button>
                               {(isPaid || isPartial) && bill.payment_date && (
-                                <div className="text-[10px] text-gray-500 mt-1 font-medium">
+                                <div className="text-[10px] text-gray-500 dark:text-zinc-400 mt-1 font-medium">
                                   Pago em: {new Date(bill.payment_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                 </div>
                               )}
                               {isPartial && (
-                                <div className="text-[10px] font-bold text-blue-600 mt-1">
+                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-1">
                                   R$ {(bill.amount_paid || 0).toFixed(2)} / R$ {bill.total.toFixed(2)}
                                 </div>
                               )}
@@ -4106,28 +4103,28 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             <td className="px-6 py-4 text-right space-x-1">
                               <button 
                                 onClick={() => setInvoiceDetailsModal({ isOpen: true, bill })}
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
                                 title="Ver Extrato / PDF"
                               >
                                 <FileText size={18} />
                               </button>
                               <button 
                                 onClick={() => sendWhatsApp(bill)}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all"
+                                className="p-2 text-green-600 dark:text-emerald-400 hover:bg-green-100 dark:hover:bg-emerald-500/15 rounded-lg transition-all"
                                 title="Enviar WhatsApp"
                               >
                                 <WhatsAppIcon size={18} />
                               </button>
                               <button 
                                 onClick={() => handleEditBill(bill)}
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
                                 title="Editar Lançamento"
                               >
                                 <Edit2 size={18} />
                               </button>
                               <button 
                                 onClick={() => handleDeleteBill(bill.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                className="p-2 text-red-600 dark:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-500/15 rounded-lg transition-all"
                                 title="Excluir Lançamento"
                               >
                                 <Trash2 size={18} />
@@ -4141,9 +4138,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-white/[0.06]">
                 {filteredBills.length === 0 ? (
-                  <div className="p-8 text-center text-gray-400">
+                  <div className="p-8 text-center text-gray-400 dark:text-zinc-500">
                     <History size={48} className="mx-auto mb-2 opacity-20" />
                     <p>Nenhum lançamento encontrado.</p>
                   </div>
@@ -4176,43 +4173,43 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         id={`bill-mob-${bill.id}`}
                         className={cn(
                           "p-4 space-y-3 transition-all duration-500",
-                          isPaid ? 'bg-gray-50/50' : 'bg-white',
-                          highlightedBillId === bill.id ? "bg-indigo-50 ring-2 ring-indigo-500 ring-inset" : ""
+                          isPaid ? 'bg-gray-50/50 dark:bg-white/[0.02]' : 'bg-white dark:bg-[#1c1c1e]',
+                          highlightedBillId === bill.id ? "bg-indigo-50 dark:bg-indigo-500/15 ring-2 ring-indigo-500 ring-inset" : ""
                         )}
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1 min-w-0">
-                            <h4 className={`font-bold text-gray-900 truncate ${isPaid ? 'line-through text-gray-400' : ''}`}>
+                            <h4 className={`font-bold text-gray-900 dark:text-[#f5f5f7] truncate ${isPaid ? 'line-through text-gray-400 dark:text-zinc-500' : ''}`}>
                               {user?.name || 'Não Identificado'}
                             </h4>
-                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                            <div className="text-xs text-gray-500 dark:text-zinc-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                               {user?.phone && <span>{user.phone}</span>}
                               {((user?.street || user?.rua) || (user?.house_number || user?.casa)) && (
-                                <span className="text-gray-400">
+                                <span className="text-gray-400 dark:text-zinc-500">
                                   • {[user?.street || user?.rua, (user?.house_number || user?.casa) ? `Casa ${user?.house_number || user?.casa}` : ''].filter(Boolean).join(', ')}
                                 </span>
                               )}
-                              {user?.cpf && <span className="font-mono text-gray-400">• CPF: {user.cpf}</span>}
+                              {user?.cpf && <span className="font-mono text-gray-400 dark:text-zinc-500">• CPF: {user.cpf}</span>}
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className={`text-xl font-black text-indigo-600 ${isPaid ? 'line-through text-gray-400' : ''}`}>
+                            <p className={`text-xl font-black text-indigo-600 dark:text-indigo-400 ${isPaid ? 'line-through text-gray-400 dark:text-zinc-500' : ''}`}>
                               R$ {bill.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                             {isPartial && (
-                              <p className="text-[10px] font-bold text-blue-600">
+                              <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
                                 Pago: R$ {(bill.amount_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                          {energyTotal > 0 && <span className="bg-gray-100 px-2 py-1 rounded-md">Energia: R$ {energyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
-                          {waterValueTotal > 0 && <span className="bg-gray-100 px-2 py-1 rounded-md">Água: R$ {waterValueTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
-                          {apportionment > 0 && <span className="bg-gray-100 px-2 py-1 rounded-md">Pag. Adv. e Cont.: R$ {apportionment.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
-                          {reserveFund > 0 && <span className="bg-gray-100 px-2 py-1 rounded-md">Fundo: R$ {reserveFund.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
-                          {serviceFee > 0 && <span className="bg-gray-100 px-2 py-1 rounded-md">Taxa: R$ {serviceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                        <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+                          {energyTotal > 0 && <span className="bg-gray-100 dark:bg-white/[0.06] px-2 py-1 rounded-md">Energia: R$ {energyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                          {waterValueTotal > 0 && <span className="bg-gray-100 dark:bg-white/[0.06] px-2 py-1 rounded-md">Água: R$ {waterValueTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                          {apportionment > 0 && <span className="bg-gray-100 dark:bg-white/[0.06] px-2 py-1 rounded-md">Pag. Adv. e Cont.: R$ {apportionment.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                          {reserveFund > 0 && <span className="bg-gray-100 dark:bg-white/[0.06] px-2 py-1 rounded-md">Fundo: R$ {reserveFund.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                          {serviceFee > 0 && <span className="bg-gray-100 dark:bg-white/[0.06] px-2 py-1 rounded-md">Taxa: R$ {serviceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-2 pt-2">
@@ -4220,7 +4217,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                               onClick={() => handleToggleStatusClick(bill)}
                               className={`w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-3 transition-all shadow-lg active:scale-95 uppercase tracking-widest ${
                                 isPaid 
-                                  ? 'bg-green-100 text-green-700' 
+                                  ? 'bg-green-100 dark:bg-emerald-500/20 text-green-700 dark:text-emerald-300' 
                                   : isPartial
                                     ? 'bg-indigo-500 text-white'
                                     : 'bg-indigo-600 text-white'
@@ -4232,7 +4229,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           
                           <button 
                             onClick={() => setInvoiceDetailsModal({ isOpen: true, bill })}
-                            className="w-full sm:w-auto p-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                            className="w-full sm:w-auto p-3 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/25 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm"
                             title="Ver Extrato"
                           >
                             <FileText size={20} className="sm:hidden mr-2" />
@@ -4251,23 +4248,23 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           </button>
                         </div>
 
-                        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-100 dark:border-white/[0.06]">
                           <div className="flex gap-2">
                             <button 
                               onClick={() => handleEditBill(bill)}
-                              className="p-2 bg-gray-50 text-gray-600 rounded-lg active:bg-gray-100"
+                              className="p-2 bg-gray-50 dark:bg-white/[0.06] text-gray-600 dark:text-zinc-300 rounded-lg active:bg-gray-100 dark:active:bg-white/[0.12]"
                             >
                               <Edit2 size={16} />
                             </button>
                             <button 
                               onClick={() => handleDeleteBill(bill.id)}
-                              className="p-2 bg-red-50 text-red-600 rounded-lg active:bg-red-100"
+                              className="p-2 bg-red-50 dark:bg-rose-500/15 text-red-600 dark:text-rose-400 rounded-lg active:bg-red-100 dark:active:bg-rose-500/25"
                             >
                               <Trash2 size={16} />
                             </button>
                           </div>
                           {bill.payment_date && (
-                            <span className="text-[10px] font-bold text-gray-400 uppercase">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase">
                               Pago em: {new Date(bill.payment_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                             </span>
                           )}
@@ -4287,109 +4284,140 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}
-            className="max-w-2xl mx-auto"
+            className="max-w-2xl mx-auto space-y-6"
           >
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-8">
-              <h3 className="text-xl font-bold text-gray-800 mb-6 md:mb-8 flex items-center gap-2">
-                <SettingsIcon size={24} className="text-indigo-600" />
+            {/* Aparência do Sistema */}
+            <div className="bg-white dark:bg-[#141416] rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 p-5 md:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">Aparência do Sistema</h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Escolha entre tema Claro, Escuro ou automático do dispositivo</p>
+                </div>
+                <div className="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
+                  {([
+                    { id: 'light', label: 'Claro' },
+                    { id: 'dark', label: 'Escuro' },
+                    { id: 'system', label: 'Sistema' },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setThemeMode(opt.id)}
+                      className={cn(
+                        'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+                        themeMode === opt.id
+                          ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
+                          : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#141416] rounded-2xl shadow-xs border border-slate-200/80 dark:border-zinc-800 p-5 md:p-8">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-zinc-100 mb-6 md:mb-8 flex items-center gap-2">
+                <SettingsIcon size={24} className="text-indigo-600 dark:text-indigo-400" />
                 Configurações Padrão
               </h3>
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor do kWh Padrão (R$)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Valor do kWh Padrão (R$)</label>
                     <input 
                       type="number"
                       step="0.01"
                       value={settingsForm.default_kwh}
                       onChange={e => setSettingsForm({ ...settingsForm, default_kwh: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor da Água Padrão (R$/m³)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Valor da Água Padrão (R$/m³)</label>
                     <input 
                       type="number"
                       step="0.01"
                       value={settingsForm.default_water_value}
                       onChange={e => setSettingsForm({ ...settingsForm, default_water_value: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Taxa de Serviço Água Padrão (R$)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Taxa de Serviço Água Padrão (R$)</label>
                     <input 
                       type="number"
                       step="0.01"
                       value={settingsForm.default_water_service_fee || 0}
                       onChange={e => setSettingsForm({ ...settingsForm, default_water_service_fee: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor do Pag. Adv. e Cont. Padrão (R$)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Valor do Pag. Adv. e Cont. Padrão (R$)</label>
                     <input 
                       type="number"
                       step="0.01"
                       value={settingsForm.default_apportionment_value}
                       onChange={e => setSettingsForm({ ...settingsForm, default_apportionment_value: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor Fundo de Reserva (R$)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Valor Fundo de Reserva (R$)</label>
                     <input 
                       type="number"
                       step="0.01"
                       value={settingsForm.reserve_fund_value}
                       onChange={e => setSettingsForm({ ...settingsForm, reserve_fund_value: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Dia Padrão da Leitura</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Dia Padrão da Leitura</label>
                     <input 
                       type="number"
                       min="1"
                       max="31"
                       value={settingsForm.default_reading_day}
                       onChange={e => setSettingsForm({ ...settingsForm, default_reading_day: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Dia Padrão de Vencimento</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Dia Padrão de Vencimento</label>
                     <input 
                       type="number"
                       min="1"
                       max="31"
                       value={settingsForm.default_due_day}
                       onChange={e => setSettingsForm({ ...settingsForm, default_due_day: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Mês de Referência Padrão (YYYY-MM)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Mês de Referência Padrão (YYYY-MM)</label>
                     <input 
                       type="month"
                       value={settingsForm.default_month_reference || ''}
                       onChange={e => setSettingsForm({ ...settingsForm, default_month_reference: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-900 dark:text-zinc-100"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Observação Padrão (WhatsApp)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase mb-1">Observação Padrão (WhatsApp)</label>
                     <textarea 
                       value={settingsForm.whatsapp_observation || ''}
                       onChange={e => setSettingsForm({ ...settingsForm, whatsapp_observation: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium min-h-[100px]"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium text-slate-900 dark:text-zinc-100 min-h-[100px]"
                       placeholder="Mensagem adicional que será enviada no final do WhatsApp..."
                     />
                   </div>
                 </div>
                 <button 
                   onClick={handleSaveSettings}
-                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all mt-4"
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-sm transition-all mt-4 cursor-pointer"
                 >
                   <Save size={20} />
                   Salvar Configurações
@@ -4409,25 +4437,25 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
             exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: "easeOut" }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
           >
-            <motion.div 
+              <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.15, ease: "easeOut" }}
-              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl"
+              className="bg-white dark:bg-[#141416] border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl"
             >
-              <h3 className="text-xl font-black text-gray-900 mb-4">Confirmar Pagamento</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-black text-gray-900 dark:text-zinc-100 mb-4">Confirmar Pagamento</h3>
+              <p className="text-gray-600 dark:text-zinc-400 mb-6">
                 Selecione os itens que foram pagos.
               </p>
               
               <div className="mb-6 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Data de Pagamento</label>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-2">Data de Pagamento</label>
                   <input 
                     type="date" 
                     value={paymentDateModal.date}
                     onChange={e => setPaymentDateModal({ ...paymentDateModal, date: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-gray-900 dark:text-zinc-100"
                   />
                 </div>
                 
@@ -4439,11 +4467,11 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     onChange={e => setPaymentDateModal({ ...paymentDateModal, isDivergent: e.target.checked })}
                     className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label htmlFor="isDivergent" className="text-sm font-medium text-gray-700">Pagamento Divergente</label>
+                  <label htmlFor="isDivergent" className="text-sm font-medium text-gray-700 dark:text-zinc-300">Pagamento Divergente</label>
                 </div>
 
-                <div className="space-y-2 border border-gray-100 rounded-xl p-4 bg-gray-50/50">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-3">Itens da Conta</label>
+                <div className="space-y-2 border border-gray-100 dark:border-zinc-800 rounded-xl p-4 bg-gray-50/50 dark:bg-zinc-900/50">
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-3">Itens da Conta</label>
                   {paymentDateModal.bill && (() => {
                     const cats = calculateBillCategories(paymentDateModal.bill);
                     const items = [
@@ -4455,7 +4483,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     ].filter(item => item.value > 0);
 
                     return items.map(item => (
-                      <label key={item.key} className="flex items-center justify-between p-2 hover:bg-white rounded-lg cursor-pointer transition-colors">
+                      <label key={item.key} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors">
                         <div className="flex items-center gap-3">
                           <input 
                             type="checkbox" 
@@ -4472,16 +4500,16 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             }}
                             className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
-                          <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                          <span className="text-sm font-medium text-gray-700 dark:text-zinc-200">{item.label}</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-900">R$ {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-zinc-100 tabular-nums">R$ {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </label>
                     ));
                   })()}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Valor Total Pago (R$)</label>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-2">Valor Total Pago (R$)</label>
                   <input 
                     type="number" 
                     step="0.01"
@@ -4489,25 +4517,25 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                     onChange={e => setPaymentDateModal({ ...paymentDateModal, amountPaid: Number(e.target.value) })}
                     disabled={!paymentDateModal.isDivergent}
                     className={cn(
-                      "w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold transition-all",
+                      "w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-gray-900 dark:text-zinc-100 transition-all",
                       !paymentDateModal.isDivergent && "opacity-50 cursor-not-allowed"
                     )}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Total da conta: R$ {paymentDateModal.bill?.total?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Total da conta: R$ {paymentDateModal.bill?.total?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}</p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-3">
                 <div className="flex gap-3">
                   <button 
-                    onClick={() => setPaymentDateModal({ isOpen: false, bill: null, date: '', amountPaid: 0, paidCategories: {} })}
-                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                    onClick={() => setPaymentDateModal({ isOpen: false, bill: null, date: '', amountPaid: 0, paidCategories: {}, isDivergent: false })}
+                    className="flex-1 py-3 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all"
                   >
                     Fechar
                   </button>
                   <button 
                     onClick={() => handleConfirmToggleStatus(paymentDateModal.bill!, 'paid', paymentDateModal.date, paymentDateModal.amountPaid, paymentDateModal.paidCategories, paymentDateModal.isDivergent)}
-                    className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-200"
+                    className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all shadow-sm"
                   >
                     Confirmar
                   </button>
@@ -4515,7 +4543,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 {paymentDateModal.bill?.status !== 'pending' && (
                   <button 
                     onClick={() => handleConfirmToggleStatus(paymentDateModal.bill!, 'pending', null, 0, {})}
-                    className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-all"
+                    className="w-full py-3 bg-red-50 dark:bg-rose-500/15 text-red-600 dark:text-rose-400 rounded-xl font-bold hover:bg-red-100 dark:hover:bg-rose-500/25 transition-all"
                   >
                     Cancelar Pagamento
                   </button>
@@ -4526,37 +4554,69 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
         )}
       </AnimatePresence>
 
+      {/* Receipt Preview Modal (avoids window.open popup blocking) */}
+      {receiptPreviewUrl && createPortal(
+        <div
+          className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setReceiptPreviewUrl(null)}
+        >
+          <div
+            className="bg-white dark:bg-[#141416] border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
+              <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">Comprovante Anexado</span>
+              <button
+                type="button"
+                onClick={() => setReceiptPreviewUrl(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 bg-slate-50 dark:bg-zinc-950 flex items-center justify-center min-h-[300px]">
+              {receiptPreviewUrl.startsWith('data:application/pdf') || receiptPreviewUrl.toLowerCase().includes('.pdf') ? (
+                <iframe src={receiptPreviewUrl} className="w-full h-[70vh] rounded-lg border border-slate-200 dark:border-zinc-800" title="Comprovante PDF" />
+              ) : (
+                <img src={receiptPreviewUrl} alt="Comprovante" className="max-w-full max-h-[75vh] object-contain rounded-lg" />
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {pendingDetailsModal.isOpen && pendingDetailsModal.user && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center md:p-4 bg-black/60 backdrop-blur-sm shadow-2xl">
           {isGeneratingPdf && (
             <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+              <div className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.1] p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
                 <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="font-bold text-gray-800 text-sm uppercase tracking-widest">Gerando PDF...</p>
+                <p className="font-bold text-gray-800 dark:text-[#f5f5f7] text-sm uppercase tracking-widest">Gerando PDF...</p>
               </div>
             </div>
           )}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white md:rounded-3xl shadow-2xl w-full h-full md:h-auto md:max-w-4xl md:max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
+            className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] md:rounded-3xl shadow-2xl w-full h-full md:h-auto md:max-w-4xl md:max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
           >
             <div ref={modalContentRef} className="flex-1 min-h-0 overflow-hidden flex flex-col">
-              <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] flex items-center justify-between">
                 <div>
-                  <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight flex items-center gap-3">
-                    <Eye className="text-indigo-600" size={24} />
+                  <h3 className="font-black text-gray-900 dark:text-[#f5f5f7] text-lg uppercase tracking-tight flex items-center gap-3">
+                    <Eye className="text-indigo-600 dark:text-indigo-400" size={24} />
                     Extrato de Pendências
                   </h3>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 font-bold uppercase tracking-widest mt-1">
                     {pendingDetailsModal.user.name}
                     {((pendingDetailsModal.user.street || pendingDetailsModal.user.rua) || (pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa)) && (
-                      <span className="font-normal text-gray-400 normal-case ml-2">
+                      <span className="font-normal text-gray-400 dark:text-zinc-500 normal-case ml-2">
                         • {[cleanAddressNumber(pendingDetailsModal.user.street || pendingDetailsModal.user.rua), cleanAddressNumber(pendingDetailsModal.user.house_number || pendingDetailsModal.user.casa)].filter(Boolean).join(' / ')}
                       </span>
                     )}
                     {pendingDetailsModal.user.cpf && (
-                      <span className="font-mono text-gray-400 normal-case ml-2">
+                      <span className="font-mono text-gray-400 dark:text-zinc-500 normal-case ml-2">
                         • CPF: {pendingDetailsModal.user.cpf}
                       </span>
                     )}
@@ -4565,7 +4625,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 <div className="flex items-center gap-2 no-export">
                   <button 
                     onClick={() => exportPendingDetailsToPDF(modalContentRef, `extrato-${pendingDetailsModal.user?.name.toLowerCase().replace(/\s+/g, '-')}`, 'save')}
-                    className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+                    className="flex items-center gap-2 bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-200 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-white/[0.1] hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all shadow-sm"
                   >
                     <FileDown size={14} />
                     PDF
@@ -4577,7 +4637,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       const shareText = user ? getPendingSummaryWhatsAppMessage(user, pendingBills, settings) : undefined;
                       exportPendingDetailsToPDF(modalContentRef, `extrato-${pendingDetailsModal.user?.name.toLowerCase().replace(/\s+/g, '-')}`, 'share', shareText);
                     }}
-                    className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm"
+                    className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100 dark:border-indigo-500/25 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all shadow-sm"
                     title="Compartilhar PDF"
                   >
                     <Share2 size={14} />
@@ -4585,14 +4645,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                   </button>
                   <button 
                     onClick={() => setPendingDetailsModal({ isOpen: false, user: null })}
-                    className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-white/[0.1] rounded-full transition-colors"
                   >
-                    <XCircle size={24} className="text-gray-400" />
+                    <XCircle size={24} className="text-gray-400 dark:text-zinc-500" />
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30 report-container">
+              <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30 dark:bg-[#0b0b0c]/40 report-container">
                 <div className="space-y-6">
                   {bills.filter(b => {
                     if (b.chacara_user_id !== pendingDetailsModal.user?.id || b.status === 'paid') return false;
@@ -4616,13 +4676,13 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       const pendingAmount = bill.total - (bill.amount_paid || 0);
 
                       return (
-                        <div key={bill.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden report-card">
-                          <div className="bg-indigo-50/50 px-5 py-3 border-b border-indigo-100 flex justify-between items-center report-section-header">
+                        <div key={bill.id} className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden report-card">
+                          <div className="bg-indigo-50/50 dark:bg-indigo-500/10 px-5 py-3 border-b border-indigo-100 dark:border-indigo-500/20 flex justify-between items-center report-section-header">
                             <div className="flex flex-col flex-shrink-0">
-                              <span className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-0.5">{pendingDetailsModal.user?.name}</span>
-                              <span className="font-black text-indigo-900 uppercase tracking-tighter whitespace-nowrap min-w-fit">{capitalizedMonth} / {year}</span>
+                              <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-0.5">{pendingDetailsModal.user?.name}</span>
+                              <span className="font-black text-indigo-900 dark:text-indigo-200 uppercase tracking-tighter whitespace-nowrap min-w-fit">{capitalizedMonth} / {year}</span>
                               {bill.due_date && (
-                                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                                <span className="text-[10px] font-bold text-indigo-400 dark:text-indigo-300/80 uppercase tracking-widest">
                                   Vencimento: {new Date(bill.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                 </span>
                               )}
@@ -4635,7 +4695,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                                 <Check size={14} />
                                 RECEBER
                               </button>
-                              <span className="text-xs font-bold px-3 py-1 bg-red-100 text-red-700 rounded-full uppercase">Pendente: R$ {pendingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <span className="text-xs font-bold px-3 py-1 bg-red-100 dark:bg-rose-500/20 text-red-700 dark:text-rose-300 rounded-full uppercase">Pendente: R$ {pendingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="hidden show-on-export">
                               <span className="text-sm font-black text-rose-600">PENDENTE: R$ {pendingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -4645,73 +4705,73 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                               <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <h4 className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                                   <Zap size={12} className="text-amber-500" /> Energia
                                 </h4>
                                 {energyReadings.length > 0 ? (
                                   <div className="space-y-2">
                                     {energyReadings.map((r, idx) => (
-                                      <div key={idx} className="bg-gray-50 p-2 rounded-lg text-xs">
-                                        <div className="flex justify-between text-gray-500">
+                                      <div key={idx} className="bg-gray-50 dark:bg-white/[0.04] p-2 rounded-lg text-xs">
+                                        <div className="flex justify-between text-gray-500 dark:text-zinc-400">
                                           <span>Padrão {idx + 1}:</span>
                                           <span className="font-mono">{r.prev.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} → {r.curr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
                                         </div>
-                                        <div className="flex justify-between font-bold text-gray-700 mt-1">
+                                        <div className="flex justify-between font-bold text-gray-700 dark:text-zinc-200 mt-1">
                                           <span>Consumo:</span>
                                           <span>{Number(r.curr - r.prev).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kWh</span>
                                         </div>
                                       </div>
                                     ))}
-                                    <div className="pt-2 border-t border-gray-100 flex justify-between text-xs font-bold text-gray-900">
+                                    <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex justify-between text-xs font-bold text-gray-900 dark:text-[#f5f5f7]">
                                       <span>Subtotal Energia:</span>
                                       <span>R$ {energyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                   </div>
-                                ) : <p className="text-xs text-gray-400 italic">Não aplicável</p>}
+                                ) : <p className="text-xs text-gray-400 dark:text-zinc-500 italic">Não aplicável</p>}
                               </div>
                             </div>
 
                             <div className="space-y-4">
                               <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <h4 className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                                   <Droplets size={12} className="text-blue-500" /> Água
                                 </h4>
                                 {waterReadings.length > 0 ? (
                                   <div className="space-y-2">
                                     {waterReadings.map((r, idx) => (
-                                      <div key={idx} className="bg-gray-50 p-2 rounded-lg text-xs">
-                                        <div className="flex justify-between text-gray-500">
+                                      <div key={idx} className="bg-gray-50 dark:bg-white/[0.04] p-2 rounded-lg text-xs">
+                                        <div className="flex justify-between text-gray-500 dark:text-zinc-400">
                                           <span>Mesa/Hidrômetro {idx + 1}:</span>
                                           <span className="font-mono">{r.prev.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} → {r.curr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
                                         </div>
-                                        <div className="flex justify-between font-bold text-gray-700 mt-1">
+                                        <div className="flex justify-between font-bold text-gray-700 dark:text-zinc-200 mt-1">
                                           <span>Consumo:</span>
                                           <span>{Number(r.curr - r.prev).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³</span>
                                         </div>
                                       </div>
                                     ))}
-                                    <div className="flex justify-between text-xs text-gray-600 mt-1">
+                                    <div className="flex justify-between text-xs text-gray-600 dark:text-zinc-400 mt-1">
                                         <span>Taxa Prestador:</span>
                                         <span>R$ {(bill.water_service_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                       </div>
-                                    <div className="pt-2 border-t border-gray-100 flex justify-between text-xs font-bold text-gray-900">
+                                    <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex justify-between text-xs font-bold text-gray-900 dark:text-[#f5f5f7]">
                                       <span>Subtotal Água:</span>
                                       <span>R$ {waterTotalDetail.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                   </div>
-                                ) : <p className="text-xs text-gray-400 italic">Não aplicável</p>}
+                                ) : <p className="text-xs text-gray-400 dark:text-zinc-500 italic">Não aplicável</p>}
                               </div>
                             </div>
                           </div>
 
-                          <div className="bg-gray-50/50 p-5 pt-0 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-indigo-50/30 p-3 rounded-xl border border-indigo-100/50">
-                              <span className="text-[10px] block font-bold text-indigo-400 uppercase">Fundo de Reserva</span>
-                              <span className="text-sm font-bold text-indigo-900">R$ {(bill.reserve_fund || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <div className="bg-gray-50/50 dark:bg-white/[0.02] p-5 pt-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-indigo-50/30 dark:bg-indigo-500/10 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
+                              <span className="text-[10px] block font-bold text-indigo-400 dark:text-indigo-300 uppercase">Fundo de Reserva</span>
+                              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200">R$ {(bill.reserve_fund || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div className="bg-indigo-50/30 p-3 rounded-xl border border-indigo-100/50">
-                              <span className="text-[10px] block font-bold text-indigo-400 uppercase">Rateio Adv/Cont</span>
-                              <span className="text-sm font-bold text-indigo-900">R$ {(bill.apportionment_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <div className="bg-indigo-50/30 dark:bg-indigo-500/10 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
+                              <span className="text-[10px] block font-bold text-indigo-400 dark:text-indigo-300 uppercase">Rateio Adv/Cont</span>
+                              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200">R$ {(bill.apportionment_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="bg-indigo-900 p-3 rounded-xl shadow-lg">
                               <span className="text-[10px] block font-bold text-indigo-200 uppercase">Total do Mês</span>
@@ -4721,7 +4781,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                           
                           {bill.amount_paid > 0 && (
                             <div className="px-5 pb-5 flex justify-end">
-                              <div className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                              <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-500/25">
                                 Pago: R$ {(bill.amount_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             </div>
@@ -4732,9 +4792,9 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 </div>
               </div>
 
-              <div className="px-6 py-5 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-4 justify-between items-center report-total-footer">
-                <div className="text-gray-500 text-xs font-bold">
-                  Total Pendente Geral: <span className="text-red-600 font-black text-lg ml-2">R$ {
+              <div className="px-6 py-5 bg-gray-50 dark:bg-white/[0.03] border-t border-gray-100 dark:border-white/[0.08] flex flex-wrap gap-4 justify-between items-center report-total-footer">
+                <div className="text-gray-500 dark:text-zinc-400 text-xs font-bold">
+                  Total Pendente Geral: <span className="text-red-600 dark:text-rose-400 font-black text-lg ml-2">R$ {
                     bills.filter(b => b.chacara_user_id === pendingDetailsModal.user?.id && b.status !== 'paid')
                       .reduce((acc, b) => acc + (b.total - (b.amount_paid || 0)), 0)
                       .toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -4742,8 +4802,8 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                 </div>
                 
                 {settings.whatsapp_observation && (
-                  <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-xs text-amber-800 italic show-on-export w-full">
-                    <p className="font-bold uppercase tracking-widest mb-1 not-italic text-amber-900">Observações:</p>
+                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-500/15 border border-amber-100 dark:border-amber-500/25 rounded-2xl text-xs text-amber-800 dark:text-amber-300 italic show-on-export w-full">
+                    <p className="font-bold uppercase tracking-widest mb-1 not-italic text-amber-900 dark:text-amber-200">Observações:</p>
                     <div className="whitespace-pre-wrap">{settings.whatsapp_observation}</div>
                   </div>
                 )}
@@ -4756,14 +4816,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       const shareText = user ? getPendingSummaryWhatsAppMessage(user, pendingBills, settings) : undefined;
                       exportPendingDetailsToPDF(modalContentRef, `extrato-${pendingDetailsModal.user?.name.toLowerCase().replace(/\s+/g, '-')}`, 'share', shareText);
                     }}
-                    className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-100 transition-all shadow-sm active:scale-95 no-export"
+                    className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all shadow-sm active:scale-95 no-export"
                   >
                     <Share2 size={16} />
                     Compartilhar PDF
                   </button>
                   <button 
                     onClick={() => setPendingDetailsModal({ isOpen: false, user: null })}
-                    className="bg-gray-200 text-gray-700 px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-300 transition-all shadow-md active:scale-95 no-export"
+                    className="bg-gray-200 dark:bg-white/[0.1] text-gray-700 dark:text-zinc-200 px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-300 dark:hover:bg-white/[0.16] transition-all shadow-md active:scale-95 no-export"
                   >
                     Fechar
                   </button>
@@ -4779,16 +4839,16 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
         <div className="fixed inset-0 z-[60] flex items-center justify-center md:p-4 bg-black/60 backdrop-blur-sm shadow-2xl">
           {isGeneratingPdf && (
             <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+              <div className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.1] p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
                 <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="font-bold text-gray-800 text-sm uppercase tracking-widest">Gerando PDF...</p>
+                <p className="font-bold text-gray-800 dark:text-[#f5f5f7] text-sm uppercase tracking-widest">Gerando PDF...</p>
               </div>
             </div>
           )}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white md:rounded-3xl shadow-2xl w-full h-full md:h-auto md:max-w-4xl md:max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
+            className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] md:rounded-3xl shadow-2xl w-full h-full md:h-auto md:max-w-4xl md:max-h-[90vh] flex flex-col overflow-hidden overscroll-contain"
           >
             <div ref={invoiceModalRef} className="flex-1 min-h-0 overflow-hidden flex flex-col">
               {(() => {
@@ -4807,21 +4867,21 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
 
                 return (
                   <>
-                    <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between">
+                    <div className="px-6 py-5 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] flex items-center justify-between">
                       <div>
-                        <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight flex items-center gap-3">
-                          <FileText className="text-indigo-600" size={24} />
+                        <h3 className="font-black text-gray-900 dark:text-[#f5f5f7] text-lg uppercase tracking-tight flex items-center gap-3">
+                          <FileText className="text-indigo-600 dark:text-indigo-400" size={24} />
                           Extrato Mensal - {capitalizedMonth} / {year}
                         </h3>
-                        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+                        <p className="text-xs text-gray-500 dark:text-zinc-400 font-bold uppercase tracking-widest mt-1">
                           {user?.name || 'Usuário'}
                           {user && ((user.street || user.rua) || (user.house_number || user.casa)) && (
-                            <span className="font-normal text-gray-400 normal-case ml-2">
+                            <span className="font-normal text-gray-400 dark:text-zinc-500 normal-case ml-2">
                               • {[cleanAddressNumber(user.street || user.rua), cleanAddressNumber(user.house_number || user.casa)].filter(Boolean).join(' / ')}
                             </span>
                           )}
                           {user?.cpf && (
-                            <span className="font-mono text-gray-400 normal-case ml-2">
+                            <span className="font-mono text-gray-400 dark:text-zinc-500 normal-case ml-2">
                               • CPF: {user.cpf}
                             </span>
                           )}
@@ -4830,7 +4890,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                       <div className="flex items-center gap-2 no-export">
                         <button 
                           onClick={() => exportPendingDetailsToPDF(invoiceModalRef, `extrato-${user?.name.toLowerCase().replace(/\s+/g, '-') || 'conta'}-${bill.month_reference}`, 'save')}
-                          className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+                          className="flex items-center gap-2 bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-200 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-white/[0.1] hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all shadow-sm"
                           title="Gerar PDF"
                         >
                           <FileDown size={14} />
@@ -4841,7 +4901,7 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             const shareText = user ? getBillWhatsAppMessage(bill, user, settings) : undefined;
                             exportPendingDetailsToPDF(invoiceModalRef, `extrato-${user?.name.toLowerCase().replace(/\s+/g, '-') || 'conta'}-${bill.month_reference}`, 'share', shareText);
                           }}
-                          className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm"
+                          className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100 dark:border-indigo-500/25 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all shadow-sm"
                           title="Compartilhar PDF"
                         >
                           <Share2 size={14} />
@@ -4868,26 +4928,26 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         </button>
                         <button 
                           onClick={() => setInvoiceDetailsModal({ isOpen: false, bill: null })}
-                          className="p-2 hover:bg-gray-200 rounded-full transition-colors ml-2"
+                          className="p-2 hover:bg-gray-200 dark:hover:bg-white/[0.1] rounded-full transition-colors ml-2"
                         >
-                          <XCircle size={24} className="text-gray-400" />
+                          <XCircle size={24} className="text-gray-400 dark:text-zinc-500" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30 report-container">
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden report-card">
-                        <div className="bg-indigo-50/50 px-5 py-3 border-b border-indigo-100 flex justify-between items-center report-section-header">
+                    <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30 dark:bg-[#0b0b0c]/40 report-container">
+                      <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden report-card">
+                        <div className="bg-indigo-50/50 dark:bg-indigo-500/10 px-5 py-3 border-b border-indigo-100 dark:border-indigo-500/20 flex justify-between items-center report-section-header">
                           <div className="flex flex-col flex-shrink-0">
-                            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-0.5">{user?.name}</span>
-                            <span className="font-black text-indigo-900 uppercase tracking-tighter whitespace-nowrap min-w-fit">{capitalizedMonth} / {year}</span>
+                            <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-0.5">{user?.name}</span>
+                            <span className="font-black text-indigo-900 dark:text-indigo-200 uppercase tracking-tighter whitespace-nowrap min-w-fit">{capitalizedMonth} / {year}</span>
                             {bill.due_date && (
-                              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                              <span className="text-[10px] font-bold text-indigo-400 dark:text-indigo-300/80 uppercase tracking-widest">
                                 Vencimento: {new Date(bill.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                               </span>
                             )}
                           </div>
-                          <span className="text-xs font-bold px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full uppercase no-export">
+                          <span className="text-xs font-bold px-3 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded-full uppercase no-export">
                             Resumo da Conta
                           </span>
                         </div>
@@ -4895,73 +4955,73 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-4">
                             <div>
-                              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                              <h4 className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                                 <Zap size={12} className="text-amber-500" /> Energia
                               </h4>
                               {energyReadings.length > 0 ? (
                                 <div className="space-y-2">
                                   {energyReadings.map((r, idx) => (
-                                    <div key={idx} className="bg-gray-50 p-2 rounded-lg text-xs">
-                                      <div className="flex justify-between text-gray-500">
+                                    <div key={idx} className="bg-gray-50 dark:bg-white/[0.04] p-2 rounded-lg text-xs">
+                                      <div className="flex justify-between text-gray-500 dark:text-zinc-400">
                                         <span>Padrão {idx + 1}:</span>
                                         <span className="font-mono">{r.prev.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} → {r.curr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
                                       </div>
-                                      <div className="flex justify-between font-bold text-gray-700 mt-1">
+                                      <div className="flex justify-between font-bold text-gray-700 dark:text-zinc-200 mt-1">
                                         <span>Consumo:</span>
                                         <span>{Number(r.curr - r.prev).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kWh</span>
                                       </div>
                                     </div>
                                   ))}
-                                  <div className="pt-2 border-t border-gray-100 flex justify-between text-xs font-bold text-gray-900">
+                                  <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex justify-between text-xs font-bold text-gray-900 dark:text-[#f5f5f7]">
                                     <span>Subtotal Energia:</span>
                                     <span>R$ {energyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </div>
                                 </div>
-                              ) : <p className="text-xs text-gray-400 italic">Não aplicável</p>}
+                              ) : <p className="text-xs text-gray-400 dark:text-zinc-500 italic">Não aplicável</p>}
                             </div>
                           </div>
 
                           <div className="space-y-4">
                             <div>
-                              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                              <h4 className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                                 <Briefcase size={12} className="text-blue-500" /> Água
                               </h4>
                               {waterReadings.length > 0 ? (
                                 <div className="space-y-2">
                                   {waterReadings.map((r, idx) => (
-                                    <div key={idx} className="bg-gray-50 p-2 rounded-lg text-xs">
-                                      <div className="flex justify-between text-gray-500">
+                                    <div key={idx} className="bg-gray-50 dark:bg-white/[0.04] p-2 rounded-lg text-xs">
+                                      <div className="flex justify-between text-gray-500 dark:text-zinc-400">
                                         <span>Mesa/Hidrômetro {idx + 1}:</span>
                                         <span className="font-mono">{r.prev.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} → {r.curr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
                                       </div>
-                                      <div className="flex justify-between font-bold text-gray-700 mt-1">
+                                      <div className="flex justify-between font-bold text-gray-700 dark:text-zinc-200 mt-1">
                                         <span>Consumo:</span>
                                         <span>{Number(r.curr - r.prev).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³</span>
                                       </div>
                                     </div>
                                   ))}
-                                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                                  <div className="flex justify-between text-xs text-gray-600 dark:text-zinc-400 mt-1">
                                     <span>Taxa Prestador:</span>
                                     <span>R$ {(bill.water_service_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </div>
-                                  <div className="pt-2 border-t border-gray-100 flex justify-between text-xs font-bold text-gray-900">
+                                  <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex justify-between text-xs font-bold text-gray-900 dark:text-[#f5f5f7]">
                                     <span>Subtotal Água:</span>
                                     <span>R$ {waterTotalDetail.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </div>
                                 </div>
-                              ) : <p className="text-xs text-gray-400 italic">Não aplicável</p>}
+                              ) : <p className="text-xs text-gray-400 dark:text-zinc-500 italic">Não aplicável</p>}
                             </div>
                           </div>
                         </div>
 
-                        <div className="bg-gray-50/50 p-5 pt-0 grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="bg-indigo-50/30 p-3 rounded-xl border border-indigo-100/50">
-                            <span className="text-[10px] block font-bold text-indigo-400 uppercase">Fundo de Reserva</span>
-                            <span className="text-sm font-bold text-indigo-900">R$ {(bill.reserve_fund || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="bg-gray-50/50 dark:bg-white/[0.02] p-5 pt-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-indigo-50/30 dark:bg-indigo-500/10 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
+                            <span className="text-[10px] block font-bold text-indigo-400 dark:text-indigo-300 uppercase">Fundo de Reserva</span>
+                            <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200">R$ {(bill.reserve_fund || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <div className="bg-indigo-50/30 p-3 rounded-xl border border-indigo-100/50">
-                            <span className="text-[10px] block font-bold text-indigo-400 uppercase">Rateio Adv/Cont</span>
-                            <span className="text-sm font-bold text-indigo-900">R$ {(bill.apportionment_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <div className="bg-indigo-50/30 dark:bg-indigo-500/10 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
+                            <span className="text-[10px] block font-bold text-indigo-400 dark:text-indigo-300 uppercase">Rateio Adv/Cont</span>
+                            <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200">R$ {(bill.apportionment_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                           <div className="bg-indigo-900 p-3 rounded-xl shadow-lg">
                             <span className="text-[10px] block font-bold text-indigo-200 uppercase">Total Geral</span>
@@ -4970,15 +5030,15 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                         </div>
                         
                         {settings.whatsapp_observation && (
-                          <div className="mx-5 mb-5 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-xs text-amber-800 italic show-on-export">
-                            <p className="font-bold uppercase tracking-widest mb-1 not-italic text-amber-900">Observações:</p>
+                          <div className="mx-5 mb-5 p-4 bg-amber-50 dark:bg-amber-500/15 border border-amber-100 dark:border-amber-500/25 rounded-2xl text-xs text-amber-800 dark:text-amber-300 italic show-on-export">
+                            <p className="font-bold uppercase tracking-widest mb-1 not-italic text-amber-900 dark:text-amber-200">Observações:</p>
                             <div className="whitespace-pre-wrap">{settings.whatsapp_observation}</div>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="px-6 py-5 bg-gray-50 border-t border-gray-100 flex flex-col gap-3 no-export">
+                    <div className="px-6 py-5 bg-gray-50 dark:bg-white/[0.03] border-t border-gray-100 dark:border-white/[0.08] flex flex-col gap-3 no-export">
                       <div className="flex flex-col sm:flex-row gap-3">
                         {bill.status !== 'paid' && (
                           <button
@@ -5006,14 +5066,14 @@ Verifiquei aqui que constam valores pendentes em seu nome acumulados.
                             const shareText = user ? getBillWhatsAppMessage(bill, user, settings) : undefined;
                             exportPendingDetailsToPDF(invoiceModalRef, `extrato-${user?.name.toLowerCase().replace(/\s+/g, '-') || 'conta'}-${bill.month_reference}`, 'share', shareText);
                           }}
-                          className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-100 transition-all shadow-sm active:scale-95"
+                          className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-all shadow-sm active:scale-95"
                         >
                           <Share2 size={16} />
                           Compartilhar PDF
                         </button>
                         <button 
                           onClick={() => setInvoiceDetailsModal({ isOpen: false, bill: null })}
-                          className="bg-gray-200 text-gray-700 px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-300 transition-all shadow-md active:scale-95"
+                          className="bg-gray-200 dark:bg-white/[0.1] text-gray-700 dark:text-zinc-200 px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-300 dark:hover:bg-white/[0.16] transition-all shadow-md active:scale-95"
                         >
                           Fechar
                         </button>

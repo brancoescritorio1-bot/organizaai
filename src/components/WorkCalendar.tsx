@@ -320,52 +320,52 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
       
       {/* Tab Header & Quick Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-rose-50 to-white border border-rose-100/80 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3 bg-rose-500 text-white rounded-xl shadow-rose-200 shadow-md">
+        <div className="bg-gradient-to-br from-rose-50 to-white dark:from-rose-500/10 dark:to-[#1c1c1e] border border-rose-100/80 dark:border-rose-500/20 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="p-3 bg-rose-500 text-white rounded-xl shadow-rose-200 dark:shadow-none shadow-md">
             <Gift size={22} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-rose-900/60 uppercase tracking-wider">Feriados e Datas</p>
-            <h4 className="text-2xl font-bold text-slate-800">{holidays.length}</h4>
+            <p className="text-xs font-semibold text-rose-900/60 dark:text-rose-300/80 uppercase tracking-wider">Feriados e Datas</p>
+            <h4 className="text-2xl font-bold text-slate-800 dark:text-zinc-100">{holidays.length}</h4>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/80 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3 bg-indigo-500 text-white rounded-xl shadow-indigo-200 shadow-md">
+        <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-[#1c1c1e] border border-indigo-100/80 dark:border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="p-3 bg-indigo-500 text-white rounded-xl shadow-indigo-200 dark:shadow-none shadow-md">
             <Megaphone size={22} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-indigo-900/60 uppercase tracking-wider">Posts Agendados</p>
-            <h4 className="text-2xl font-bold text-slate-800">{realPosts.length}</h4>
+            <p className="text-xs font-semibold text-indigo-900/60 dark:text-indigo-300/80 uppercase tracking-wider">Posts Agendados</p>
+            <h4 className="text-2xl font-bold text-slate-800 dark:text-zinc-100">{realPosts.length}</h4>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-100/80 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3 bg-emerald-500 text-white rounded-xl shadow-emerald-200 shadow-md">
+        <div className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-500/10 dark:to-[#1c1c1e] border border-emerald-100/80 dark:border-emerald-500/20 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="p-3 bg-emerald-500 text-white rounded-xl shadow-emerald-200 dark:shadow-none shadow-md">
             <Sparkles size={22} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-emerald-900/60 uppercase tracking-wider">Sugestões de Conteúdo</p>
-            <h4 className="text-2xl font-bold text-emerald-700">Ativas</h4>
+            <p className="text-xs font-semibold text-emerald-900/60 dark:text-emerald-300/80 uppercase tracking-wider">Sugestões de Conteúdo</p>
+            <h4 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">Ativas</h4>
           </div>
         </div>
       </div>
 
       {/* Control Bar: View Switches, Month navigation */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-slate-100 dark:border-white/[0.08] shadow-sm gap-4">
         
         {/* Navigation & view selection */}
         <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
-          <div className="flex bg-slate-100 p-1 rounded-xl">
+          <div className="flex bg-slate-100 dark:bg-white/[0.06] p-1 rounded-xl">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-white/[0.12] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'}`}
             >
               Grade Mensal
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white dark:bg-white/[0.12] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'}`}
             >
               Lista de Datas
             </button>
@@ -373,13 +373,13 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
           {viewMode === 'grid' && (
             <div className="flex items-center gap-2">
-              <button onClick={handlePrevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition">
+              <button onClick={handlePrevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] text-gray-600 dark:text-zinc-300 transition">
                 <ChevronLeft size={16} />
               </button>
-              <span className="font-extrabold text-sm text-gray-800 uppercase tracking-wide min-w-[120px] text-center">
+              <span className="font-extrabold text-sm text-gray-800 dark:text-zinc-100 uppercase tracking-wide min-w-[120px] text-center">
                 {getPortugueseMonthName(selectedMonth)} {selectedYear}
               </span>
-              <button onClick={handleNextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition">
+              <button onClick={handleNextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] text-gray-600 dark:text-zinc-300 transition">
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -390,19 +390,19 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {viewMode === 'list' && (
             <div className="relative flex-1 sm:flex-none">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+              <Search className="absolute left-3 top-2.5 text-slate-400 dark:text-zinc-500" size={14} />
               <input
                 type="text"
                 placeholder="Buscar data por nome..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-4 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="w-full pl-8 pr-4 py-1.5 border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </div>
           )}
           <button
             onClick={() => handleOpenHolidayModal()}
-            className="w-full sm:w-auto justify-center bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-100 transition active:scale-95"
+            className="w-full sm:w-auto justify-center bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-100 dark:shadow-none transition active:scale-95"
           >
             <Plus size={14} /> Adicionar Data
           </button>
@@ -411,15 +411,15 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 rounded-full border-4 border-rose-200 border-t-rose-600 animate-spin"></div>
+          <div className="w-8 h-8 rounded-full border-4 border-rose-200 dark:border-rose-500/20 border-t-rose-600 animate-spin"></div>
         </div>
       ) : (
         <>
           {viewMode === 'grid' ? (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-4 sm:p-6">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-3xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden p-4 sm:p-6">
               
               {/* Day Headers */}
-              <div className="grid grid-cols-7 border-b border-gray-100 text-center py-2 bg-gray-50/20 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              <div className="grid grid-cols-7 border-b border-gray-100 dark:border-white/[0.08] text-center py-2 bg-gray-50/20 dark:bg-white/[0.03] text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">
                 <span>Dom</span>
                 <span>Seg</span>
                 <span>Ter</span>
@@ -430,10 +430,10 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
               </div>
 
               {/* Monthly grid */}
-              <div className="grid grid-cols-7 bg-gray-100/30 gap-px">
+              <div className="grid grid-cols-7 bg-gray-100/30 dark:bg-white/[0.04] gap-px">
                 {/* Empty starting cells */}
                 {Array.from({ length: firstDayIndex }).map((_, idx) => (
-                  <div key={`empty-${idx}`} className="bg-gray-50/10 min-h-[90px] sm:min-h-[110px]"></div>
+                  <div key={`empty-${idx}`} className="bg-gray-50/10 dark:bg-[#151517] min-h-[90px] sm:min-h-[110px]"></div>
                 ))}
 
                 {/* Day cells */}
@@ -447,9 +447,9 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                     <div
                       key={`day-${day}`}
                       onClick={() => handleOpenHolidayModal(undefined, dateStr)}
-                      className="bg-white min-h-[95px] sm:min-h-[115px] p-2 border-b border-r border-gray-100 hover:bg-indigo-50/10 cursor-pointer transition-all flex flex-col justify-between"
+                      className="bg-white dark:bg-[#1c1c1e] min-h-[95px] sm:min-h-[115px] p-2 border-b border-r border-gray-100 dark:border-white/[0.06] hover:bg-indigo-50/10 dark:hover:bg-indigo-500/10 cursor-pointer transition-all flex flex-col justify-between"
                     >
-                      <span className="font-extrabold text-xs text-gray-400 self-start">{day}</span>
+                      <span className="font-extrabold text-xs text-gray-400 dark:text-zinc-500 self-start">{day}</span>
                       
                       <div className="space-y-1.5 mt-1 flex-1 overflow-y-auto max-h-[70px] sm:max-h-[90px] scrollbar-thin">
                         {/* Holidays */}
@@ -460,7 +460,7 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                               e.stopPropagation();
                               handleOpenHolidayModal(holiday);
                             }}
-                            className="p-1 rounded text-[9px] bg-rose-50 border border-rose-100 text-rose-800 font-extrabold flex flex-col hover:bg-rose-100 transition-all"
+                            className="p-1 rounded text-[9px] bg-rose-50 dark:bg-rose-500/15 border border-rose-100 dark:border-rose-500/25 text-rose-800 dark:text-rose-300 font-extrabold flex flex-col hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-all"
                             title={`Editar Data: ${holiday.title}`}
                           >
                             <div className="flex items-center justify-between gap-1">
@@ -472,7 +472,7 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                                   e.stopPropagation();
                                   handleOpenPostModal(holiday);
                                 }}
-                                className="text-[7px] bg-white text-indigo-700 px-1 rounded hover:bg-indigo-50 transition-all font-black border border-indigo-150 shrink-0"
+                                className="text-[7px] bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 px-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-500/20 transition-all font-black border border-indigo-150 dark:border-indigo-500/30 shrink-0"
                                 title="Agendar Post temático sugerido"
                               >
                                 +Post
@@ -485,7 +485,7 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                         {dayPosts.map(post => (
                           <div
                             key={post.id}
-                            className="p-1 rounded text-[8.5px] bg-indigo-50/50 border border-indigo-100/60 text-indigo-800 truncate"
+                            className="p-1 rounded text-[8.5px] bg-indigo-50/50 dark:bg-indigo-500/15 border border-indigo-100/60 dark:border-indigo-500/25 text-indigo-800 dark:text-indigo-300 truncate"
                             title={`Post agendado: ${post.title}`}
                           >
                             📝 {post.title}
@@ -499,45 +499,45 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
             </div>
           ) : (
             /* List View */
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-3xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08]">
+                <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">
                   Todas as Datas Cadastradas ({filteredHolidays.length})
                 </h3>
               </div>
 
               {filteredHolidays.length === 0 ? (
-                <div className="p-12 text-center text-gray-400">
+                <div className="p-12 text-center text-gray-400 dark:text-zinc-500">
                   <p className="text-xs font-semibold">Nenhuma data cadastrada correspondente.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
                   {filteredHolidays.map(holiday => {
                     // Check if there is any scheduled post on the same day
                     const isPostScheduled = postsByDateMap[holiday.scheduled_date.split('T')[0]]?.length > 0;
                     
                     return (
-                      <div key={holiday.id} className="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/40 transition">
+                      <div key={holiday.id} className="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/40 dark:hover:bg-white/[0.03] transition">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-lg">{holiday.caption === '[FERIADO]' ? '🚩' : '🎉'}</span>
-                            <h4 className="font-bold text-gray-800 text-sm">{holiday.title}</h4>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${holiday.caption === '[FERIADO]' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-pink-50 text-pink-600 border border-pink-100'}`}>
+                            <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-sm">{holiday.title}</h4>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${holiday.caption === '[FERIADO]' ? 'bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-300 border border-red-100 dark:border-red-500/25' : 'bg-pink-50 dark:bg-pink-500/15 text-pink-600 dark:text-pink-300 border border-pink-100 dark:border-pink-500/25'}`}>
                               {holiday.caption === '[FERIADO]' ? 'Feriado' : 'Data Comemorativa'}
                             </span>
                           </div>
                           
                           <div className="flex items-center gap-4 mt-1">
-                            <p className="text-xs text-gray-500 font-mono font-semibold">
+                            <p className="text-xs text-gray-500 dark:text-zinc-400 font-mono font-semibold">
                               Data: {new Date(holiday.scheduled_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                             </p>
                             
                             {isPostScheduled ? (
-                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-bold">
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-md font-bold">
                                 ✓ Tema com post agendado
                               </span>
                             ) : (
-                              <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md font-bold">
+                              <span className="text-[10px] text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 px-2 py-0.5 rounded-md font-bold">
                                 💡 Sem post agendado
                               </span>
                             )}
@@ -553,14 +553,14 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                           </button>
                           <button
                             onClick={() => handleOpenHolidayModal(holiday)}
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition"
+                            className="p-2 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition"
                             title="Editar Data"
                           >
                             <Edit2 size={14} />
                           </button>
                           <button
                             onClick={() => handleDeleteHoliday(holiday.id)}
-                            className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            className="p-2 text-gray-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition"
                             title="Excluir Data"
                           >
                             <Trash2 size={14} />
@@ -578,11 +578,11 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
       {/* MODAL: ADD/EDIT HOLIDAY */}
       {isHolidayModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+            className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
           >
             <div className="px-6 py-4 bg-rose-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold text-sm uppercase tracking-wider">
@@ -598,34 +598,34 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
             <form onSubmit={handleSaveHoliday} className="p-6 space-y-4 text-xs sm:text-sm">
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Título da Data Especial *</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Título da Data Especial *</label>
                 <input
                   type="text"
                   required
                   value={holidayForm.title}
                   onChange={(e) => setHolidayForm(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Ex: Dia das Mães, Tiradentes, Aniversário da Empresa"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none font-bold"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none font-bold text-gray-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data correspondente *</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data correspondente *</label>
                   <input
                     type="date"
                     required
                     value={holidayForm.scheduled_date}
                     onChange={(e) => setHolidayForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold focus:outline-none text-gray-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Classificação *</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Classificação *</label>
                   <select
                     value={holidayForm.type}
                     onChange={(e) => setHolidayForm(prev => ({ ...prev, type: e.target.value as any }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold focus:outline-none text-gray-900 dark:text-zinc-100"
                   >
                     <option value="[FERIADO]">🚩 Feriado Nacional/Local</option>
                     <option value="[DATA_COMEMORATIVA]">🎉 Data Comemorativa</option>
@@ -633,17 +633,17 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end gap-2">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsHolidayModalOpen(false)}
-                  className="px-4 py-2 text-gray-500 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition-all text-xs"
+                  className="px-4 py-2 text-gray-500 dark:text-zinc-300 font-bold bg-gray-100 dark:bg-white/[0.06] rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-all text-xs"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-rose-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-rose-700 transition-all shadow-md"
+                  className="px-5 py-2 bg-rose-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-rose-700 transition-all shadow-md dark:shadow-none"
                 >
                   Salvar Data
                 </button>
@@ -655,11 +655,11 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
       {/* MODAL: ADD TEMATIC POST FROM SUGGESTION */}
       {isPostModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+            className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
           >
             <div className="px-6 py-4 bg-indigo-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold text-sm uppercase tracking-wider">
@@ -675,24 +675,24 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
             <form onSubmit={handleSavePost} className="p-6 space-y-4 text-xs sm:text-sm">
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Título do Post / Tema *</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Título do Post / Tema *</label>
                 <input
                   type="text"
                   required
                   value={postForm.title}
                   onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Ex: Post de Feliz Dia das Mães"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none font-bold"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none font-bold text-gray-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Vinculado</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Vinculado</label>
                   <select
                     value={postForm.client_id}
                     onChange={(e) => setPostForm(prev => ({ ...prev, client_id: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold focus:outline-none text-gray-900 dark:text-zinc-100"
                   >
                     <option value="">-- Tema Livre (Sem Cliente) --</option>
                     {clients.map(c => (
@@ -701,11 +701,11 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Rede Social Principal</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Rede Social Principal</label>
                   <select
                     value={postForm.social_network}
                     onChange={(e) => setPostForm(prev => ({ ...prev, social_network: e.target.value as any }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold focus:outline-none text-gray-900 dark:text-zinc-100"
                   >
                     <option value="instagram">Instagram</option>
                     <option value="facebook">Facebook</option>
@@ -718,29 +718,29 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data Programada</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data Programada</label>
                   <input
                     type="date"
                     required
                     value={postForm.scheduled_date}
                     onChange={(e) => setPostForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold focus:outline-none"
+                    className="w-full p-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold focus:outline-none text-gray-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Horário</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Horário</label>
                   <input
                     type="text"
                     value={postForm.scheduled_time}
                     placeholder="12:00"
                     onChange={(e) => setPostForm(prev => ({ ...prev, scheduled_time: e.target.value }))}
-                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold focus:outline-none"
+                    className="w-full p-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold focus:outline-none text-gray-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">Fluxo de Aprovação / Status</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">Fluxo de Aprovação / Status</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: 'rascunho', label: 'Rascunho' },
@@ -753,7 +753,7 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
                       className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all border flex items-center justify-between ${
                         postForm.status === item.id 
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
-                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          : 'bg-gray-50 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-white/[0.08] hover:bg-gray-100 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       <span>{item.label}</span>
@@ -764,27 +764,27 @@ export const WorkCalendar: React.FC<WorkCalendarProps> = ({ fetchWithAuth }) => 
               </div>
 
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Legenda sugerida / Texto do Post</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Legenda sugerida / Texto do Post</label>
                 <textarea
                   rows={3}
                   value={postForm.caption}
                   onChange={(e) => setPostForm(prev => ({ ...prev, caption: e.target.value }))}
                   placeholder="Insira as hashtags, CTAs e texto do post..."
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-semibold focus:outline-none text-gray-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                 />
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end gap-2">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsPostModalOpen(false)}
-                  className="px-4 py-2 text-gray-500 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition-all text-xs"
+                  className="px-4 py-2 text-gray-500 dark:text-zinc-300 font-bold bg-gray-100 dark:bg-white/[0.06] rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-all text-xs"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-indigo-700 transition-all shadow-md"
+                  className="px-5 py-2 bg-indigo-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-indigo-700 transition-all shadow-md dark:shadow-none"
                 >
                   Agendar Post
                 </button>

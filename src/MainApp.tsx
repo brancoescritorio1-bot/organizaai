@@ -60,7 +60,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { Session, SupabaseClient } from '@supabase/supabase-js';
-import { Subject, Attendance, Activities, WebContent, DashboardData, Period, FinancialCategory, FinancialAccount, FinancialTransaction, Client, ClientSale, ClientInstallment, PersonalTask } from './types';
+import { Subject, Attendance, Activities, WebContent, DashboardData, Period, FinancialCategory, FinancialAccount, FinancialTransaction, Client, ClientSale, ClientInstallment, PersonalTask, PersonalHabit, PersonalHabitLog, PersonalDailyCheckin, DailyMood } from './types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toPng } from 'html-to-image';
@@ -72,6 +72,7 @@ import { WorkEscalas } from './components/WorkEscalas';
 import { FinancialMetricCard, FinancialHeader, FinancialStatusBadge } from './components/FinancialComponents';
 import { AppModule } from './components/Sidebar';
 import { HomePage, QuickNoteItem } from './components/HomePage';
+import { PersonalModule } from './components/PersonalModule';
 import { ModuleBottomNav } from './components/ModuleSubNav';
 import { FloatingDockNav } from './components/FloatingDockNav';
 
@@ -110,13 +111,13 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
     onClick={onClick}
     className={cn(
       "relative flex flex-col items-center justify-center py-2.5 px-1 transition-colors duration-150 flex-1 min-w-0 cursor-pointer",
-      active ? "text-[#0071e3]" : "text-[#86868b] hover:text-[#1d1d1f]"
+      active ? "text-[#0071e3] dark:text-[#0a84ff]" : "text-[#86868b] dark:text-zinc-400 hover:text-[#1d1d1f] dark:hover:text-white"
     )}
   >
     {active && (
       <motion.div
         layoutId="activeTabIndicator"
-        className="absolute inset-0 bg-black/[0.04] rounded-xl"
+        className="absolute inset-0 bg-black/[0.04] dark:bg-white/[0.08] rounded-xl"
         initial={false}
         transition={{ type: "spring", stiffness: 500, damping: 35 }}
       />
@@ -130,7 +131,7 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
       </motion.div>
       <span className={cn(
         "text-[10px] md:text-xs tracking-tight truncate w-full text-center transition-colors duration-150", 
-        active ? "text-[#0071e3] font-semibold" : "text-[#86868b] font-medium"
+        active ? "text-[#0071e3] dark:text-[#0a84ff] font-semibold" : "text-[#86868b] dark:text-zinc-400 font-medium"
       )}>
         {label}
       </span>
@@ -139,12 +140,12 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
 );
 
 const Card = ({ children, title, icon: Icon, className = "" }: { children: React.ReactNode, title?: string, icon?: any, key?: any, className?: string }) => (
-  <div className={cn("bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden mb-6 transition-all hover:border-black/[0.1]", className)}>
+  <div className={cn("bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-xs overflow-hidden mb-6 transition-all hover:border-black/[0.1] dark:hover:border-white/[0.14]", className)}>
     {title && (
-      <div className="px-5 md:px-6 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-white/70">
+      <div className="px-5 md:px-6 py-3.5 border-b border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between bg-white/70 dark:bg-white/[0.02]">
         <div className="flex items-center gap-2.5">
-          {Icon && <Icon size={17} className="text-[#1d1d1f]" />}
-          <h3 className="font-bold text-[#1d1d1f] text-sm sm:text-base tracking-tight">{title}</h3>
+          {Icon && <Icon size={17} className="text-[#1d1d1f] dark:text-[#f5f5f7]" />}
+          <h3 className="font-bold text-[#1d1d1f] dark:text-[#f5f5f7] text-sm sm:text-base tracking-tight">{title}</h3>
         </div>
       </div>
     )}
@@ -156,14 +157,14 @@ const Card = ({ children, title, icon: Icon, className = "" }: { children: React
 
 const Input = ({ label, type = "text", className = "", containerClassName = "", noMargin = false, ...props }: any) => (
   <div className={cn("w-full", !noMargin && "mb-4", containerClassName)}>
-    {label && <label className="block text-xs font-medium text-[#86868b] tracking-tight mb-1.5 ml-0.5">{label}</label>}
+    {label && <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">{label}</label>}
     <input
       type={type}
       autoComplete="off"
       spellCheck="false"
       {...props}
       className={cn(
-        "w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-black/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white transition-all text-xs sm:text-sm font-medium placeholder:text-[#86868b] text-[#1d1d1f]",
+        "w-full px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all text-xs sm:text-sm font-medium placeholder:text-[#86868b] dark:placeholder:text-zinc-500 text-[#1d1d1f] dark:text-[#f5f5f7]",
         className
       )}
     />
@@ -172,11 +173,11 @@ const Input = ({ label, type = "text", className = "", containerClassName = "", 
 
 const Select = ({ label, options, className = "", containerClassName = "", noMargin = false, ...props }: any) => (
   <div className={cn("w-full", !noMargin && "mb-4", containerClassName)}>
-    {label && <label className="block text-xs font-medium text-[#86868b] tracking-tight mb-1.5 ml-0.5">{label}</label>}
+    {label && <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">{label}</label>}
     <select
       {...props}
       className={cn(
-        "w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-black/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white transition-all text-xs sm:text-sm font-medium text-[#1d1d1f] appearance-none cursor-pointer",
+        "w-full px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] appearance-none cursor-pointer",
         className
       )}
     >
@@ -374,8 +375,11 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
   const [whatsappMessageTemplate, setWhatsappMessageTemplate] = useState('Olá {nome}, tudo bem?');
   const [sentMessages, setSentMessages] = useState<string[]>([]);
   
-  // Personal Tasks State
+  // Personal Tasks, Habits & Daily Check-ins State
   const [personalTasks, setPersonalTasks] = useState<PersonalTask[]>([]);
+  const [personalHabits, setPersonalHabits] = useState<PersonalHabit[]>([]);
+  const [personalHabitLogs, setPersonalHabitLogs] = useState<PersonalHabitLog[]>([]);
+  const [personalCheckins, setPersonalCheckins] = useState<PersonalDailyCheckin[]>([]);
   const [personalTaskForm, setPersonalTaskForm] = useState<Partial<PersonalTask>>({
     title: '',
     description: '',
@@ -665,6 +669,48 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
     }
   };
 
+  const fetchPersonalHabits = async () => {
+    try {
+      const res = await fetchWithAuth('/api/personal/habits');
+      if (res.ok) {
+        const data = await res.json();
+        setPersonalHabits(Array.isArray(data) ? data : []);
+      } else {
+        setPersonalHabits([]);
+      }
+    } catch (e) {
+      console.error("Error fetching personal habits:", e);
+    }
+  };
+
+  const fetchPersonalHabitLogs = async () => {
+    try {
+      const res = await fetchWithAuth('/api/personal/habit-logs');
+      if (res.ok) {
+        const data = await res.json();
+        setPersonalHabitLogs(Array.isArray(data) ? data : []);
+      } else {
+        setPersonalHabitLogs([]);
+      }
+    } catch (e) {
+      console.error("Error fetching personal habit logs:", e);
+    }
+  };
+
+  const fetchPersonalCheckins = async () => {
+    try {
+      const res = await fetchWithAuth('/api/personal/checkins');
+      if (res.ok) {
+        const data = await res.json();
+        setPersonalCheckins(Array.isArray(data) ? data : []);
+      } else {
+        setPersonalCheckins([]);
+      }
+    } catch (e) {
+      console.error("Error fetching personal checkins:", e);
+    }
+  };
+
   const fetchEscalas = async () => {
     try {
       const res = await fetchWithAuth('/api/work/escalas');
@@ -737,6 +783,9 @@ Escalas GMNL ${year}`;
     if (activeModule === 'home') {
       fetchFinancialData();
       fetchPersonalTasks();
+      fetchPersonalHabits();
+      fetchPersonalHabitLogs();
+      fetchPersonalCheckins();
       fetchChacaraBills();
       fetchClients();
       fetchClientSales();
@@ -754,6 +803,9 @@ Escalas GMNL ${year}`;
       if (activeModule === 'work') fetchEscalas();
     } else if (activeModule === 'personal') {
       fetchPersonalTasks();
+      fetchPersonalHabits();
+      fetchPersonalHabitLogs();
+      fetchPersonalCheckins();
     }
   }, [activeModule, activeTab, fetchFinancialData, finFilter]);
 
@@ -805,6 +857,9 @@ Escalas GMNL ${year}`;
   const handleQuickCreateTask = async (task: {
     title: string;
     due_date?: string;
+    due_time?: string;
+    category?: string;
+    item_type?: 'task' | 'note';
     priority: 'low' | 'medium' | 'high';
   }) => {
     try {
@@ -815,6 +870,9 @@ Escalas GMNL ${year}`;
           title: task.title,
           description: '',
           due_date: task.due_date || '',
+          due_time: task.due_time || '',
+          category: task.category || '',
+          item_type: task.item_type || 'task',
           priority: task.priority,
           status: 'pending',
           eisenhower_quadrant:
@@ -827,6 +885,179 @@ Escalas GMNL ${year}`;
     } catch (e) {
       console.error('Error quick-creating personal task:', e);
     }
+  };
+
+  const handleCreateOrUpdatePersonalTask = async (task: Partial<PersonalTask>) => {
+    const isEdit = Boolean(task.id);
+    const url = isEdit ? `/api/personal/tasks/${task.id}` : '/api/personal/tasks';
+    const method = isEdit ? 'PUT' : 'POST';
+    const res = await fetchWithAuth(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(task),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      dialogAlert(err?.error || 'Não foi possível salvar a tarefa.', 'Erro');
+      throw new Error(err?.error || 'Erro ao salvar tarefa');
+    }
+    await fetchPersonalTasks();
+  };
+
+  const handleReschedulePersonalTask = async (task: PersonalTask, newDate: string) => {
+    const res = await fetchWithAuth(`/api/personal/tasks/${task.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...task, due_date: newDate }),
+    });
+    if (res.ok) {
+      await fetchPersonalTasks();
+    }
+  };
+
+  const handleSaveHabit = async (habit: Partial<PersonalHabit>) => {
+    const isEdit = Boolean(habit.id);
+    const url = isEdit ? `/api/personal/habits/${habit.id}` : '/api/personal/habits';
+    const method = isEdit ? 'PUT' : 'POST';
+    const res = await fetchWithAuth(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(habit),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      dialogAlert(err?.error || 'Não foi possível salvar o hábito.', 'Erro');
+      throw new Error(err?.error || 'Erro ao salvar hábito');
+    }
+    await fetchPersonalHabits();
+  };
+
+  const handleDeleteHabit = async (id: string) => {
+    const res = await fetchWithAuth(`/api/personal/habits/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      await Promise.all([fetchPersonalHabits(), fetchPersonalHabitLogs()]);
+    }
+  };
+
+  const handleToggleHabitLog = async (
+    habitId: string | number,
+    dateStr: string,
+    completed?: boolean,
+    explicitCount?: number
+  ) => {
+    const cleanDate = String(dateStr).split('T')[0];
+    const hId = String(habitId);
+    const habitObj = personalHabits.find((h) => String(h.id) === hId);
+    const targetTimes = Math.max(1, Number(habitObj?.times_per_day || 1));
+
+    const existing = personalHabitLogs.find(
+      (l) => String(l.habit_id) === hId && String(l.date).split('T')[0] === cleanDate
+    );
+    const currentCount =
+      typeof existing?.count === 'number'
+        ? existing.count
+        : existing?.completed
+        ? targetTimes
+        : 0;
+
+    let nextCount: number;
+    let nextCompleted: boolean;
+    if (typeof explicitCount === 'number') {
+      nextCount = Math.max(0, Math.floor(explicitCount));
+      nextCompleted = nextCount >= targetTimes;
+    } else if (completed !== undefined) {
+      nextCompleted = completed;
+      nextCount = completed ? targetTimes : 0;
+    } else {
+      // Single-tap smart progression: increment 0 -> 1 -> ... -> targetTimes, then reset to 0 on next tap
+      if (targetTimes > 1) {
+        nextCount = currentCount >= targetTimes ? 0 : currentCount + 1;
+        nextCompleted = nextCount >= targetTimes;
+      } else {
+        nextCompleted = !(existing?.completed);
+        nextCount = nextCompleted ? 1 : 0;
+      }
+    }
+
+    setPersonalHabitLogs((prev) => {
+      const idx = prev.findIndex(
+        (l) => String(l.habit_id) === hId && String(l.date).split('T')[0] === cleanDate
+      );
+      const updatedEntry: PersonalHabitLog = {
+        ...(existing || {}),
+        habit_id: hId,
+        date: cleanDate,
+        completed: nextCompleted,
+        count: nextCount,
+        completed_at: nextCompleted ? new Date().toISOString() : null,
+      };
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = updatedEntry;
+        return copy;
+      }
+      return [updatedEntry, ...prev];
+    });
+
+    try {
+      const res = await fetchWithAuth('/api/personal/habit-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          habit_id: hId,
+          date: cleanDate,
+          completed: nextCompleted,
+          count: nextCount,
+        }),
+      });
+      if (!res.ok) {
+        await fetchPersonalHabitLogs();
+      }
+    } catch {
+      await fetchPersonalHabitLogs();
+    }
+  };
+
+  const handleSaveCheckin = async (payload: {
+    date: string;
+    mood: DailyMood;
+    energy: number;
+    note?: string;
+  }) => {
+    const cleanDate = String(payload.date).split('T')[0];
+    const res = await fetchWithAuth('/api/personal/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, date: cleanDate }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error || err?.message || 'Não foi possível salvar o registro do dia.';
+      throw new Error(msg);
+    }
+    const saved = await res.json().catch(() => null);
+    if (saved && saved.date) {
+      setPersonalCheckins((prev) => {
+        const filtered = prev.filter((c) => String(c.date).split('T')[0] !== cleanDate);
+        return [saved, ...filtered];
+      });
+    } else {
+      await fetchPersonalCheckins();
+    }
+  };
+
+  const handleDeleteCheckin = async (date: string) => {
+    const cleanDate = String(date).split('T')[0];
+    const res = await fetchWithAuth(`/api/personal/checkins/${encodeURIComponent(cleanDate)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error || 'Não foi possível excluir o registro.');
+    }
+    setPersonalCheckins((prev) =>
+      prev.filter((c) => String(c.date).split('T')[0] !== cleanDate)
+    );
   };
 
   const handleSaveFinCategory = async () => {
@@ -1585,19 +1816,19 @@ Escalas GMNL ${year}`;
     <div
       className={cn(
         "min-h-screen font-sans transition-colors duration-200",
-        activeModule === 'home' ? "bg-[#09090b] text-zinc-100" : "bg-[#f5f5f7] text-[#1d1d1f]"
+        activeModule === 'home' ? "bg-[#09090b] text-zinc-100" : "bg-[#f5f5f7] dark:bg-[#0b0b0c] text-[#1d1d1f] dark:text-[#f5f5f7]"
       )}
     >
       {/* Internal Modules Header & Sticky Sub-Navigation */}
       {activeModule !== 'home' && (
         <>
-          <header className="h-[53px] sm:h-[57px] bg-white/85 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-30 print:hidden">
+          <header className="h-[53px] sm:h-[57px] bg-white/85 dark:bg-[#1c1c1e]/85 backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08] sticky top-0 z-30 print:hidden">
             <div className="max-w-7xl mx-auto h-full px-4 md:px-6 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <button
                   type="button"
                   onClick={() => handleSelectModule('home')}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium transition-colors shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.08] hover:bg-[#e8e8ed] dark:hover:bg-white/[0.14] text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-medium transition-colors shrink-0 cursor-pointer"
                   title="Voltar para a Página Inicial"
                   aria-label="Voltar para a Página Inicial"
                 >
@@ -1605,17 +1836,17 @@ Escalas GMNL ${year}`;
                   <span className="hidden sm:inline">Início</span>
                 </button>
 
-                <div className="h-4 w-px bg-black/[0.08] shrink-0" aria-hidden="true" />
+                <div className="h-4 w-px bg-black/[0.08] dark:bg-white/[0.1] shrink-0" aria-hidden="true" />
 
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-[#1d1d1f] text-white flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-[#1d1d1f] dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center shrink-0">
                     {activeModule === 'academic' ? <GraduationCap size={14} /> :
                      activeModule === 'financial' ? <Wallet size={14} /> :
                      activeModule === 'chacara' ? <Trees size={14} /> :
                      activeModule === 'personal' ? <User size={14} /> :
                      <Briefcase size={14} />}
                   </div>
-                  <h1 className="font-semibold text-sm sm:text-[15px] leading-none text-[#1d1d1f] tracking-tight truncate">
+                  <h1 className="font-semibold text-sm sm:text-[15px] leading-none text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight truncate">
                     {activeModule === 'academic' ? 'Módulo Acadêmico' :
                      activeModule === 'financial' ? 'Módulo Financeiro' :
                      activeModule === 'chacara' ? 'Gestão da Chácara' :
@@ -1628,7 +1859,7 @@ Escalas GMNL ${year}`;
                 <button
                   type="button"
                   onClick={handleGlobalExport}
-                  className="p-2 text-[#515154] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-xl transition-colors cursor-pointer"
+                  className="p-2 text-[#515154] dark:text-zinc-400 hover:text-[#1d1d1f] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.08] rounded-xl transition-colors cursor-pointer"
                   title="Exportar Relatório PDF"
                   aria-label="Exportar Relatório PDF"
                 >
@@ -1637,7 +1868,7 @@ Escalas GMNL ${year}`;
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="p-2 text-[#86868b] hover:text-[#ff3b30] hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                  className="p-2 text-[#86868b] dark:text-zinc-400 hover:text-[#ff3b30] hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors cursor-pointer"
                   title="Encerrar Sessão (Sair)"
                   aria-label="Encerrar Sessão"
                 >
@@ -1662,7 +1893,7 @@ Escalas GMNL ${year}`;
         className={cn(
           activeModule === 'home'
             ? "w-full"
-            : "max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32 md:pb-28"
+            : "max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-24 md:pb-20"
         )}
       >
         <AnimatePresence mode="wait">
@@ -1684,6 +1915,12 @@ Escalas GMNL ${year}`;
                 personalTasks={personalTasks}
                 onTogglePersonalTask={handleTogglePersonalTask}
                 onQuickAddTask={handleQuickCreateTask}
+                habits={personalHabits}
+                habitLogs={personalHabitLogs}
+                onToggleHabitLog={handleToggleHabitLog}
+                checkins={personalCheckins}
+                onSaveCheckin={handleSaveCheckin}
+                onDeleteCheckin={handleDeleteCheckin}
                 quickNotes={quickNotes}
                 onAddQuickNote={handleAddQuickNote}
                 onDeleteQuickNote={handleDeleteQuickNote}
@@ -1749,24 +1986,24 @@ Escalas GMNL ${year}`;
               </Card>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Matérias Cadastradas</h3>
+                <h3 className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-2">Matérias Cadastradas</h3>
                 {subjects.map(s => (
-                  <div key={s.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group">
+                  <div key={s.id} className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex items-center justify-between group">
                     <div>
-                      <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">{s.month_year} • {periods.find(p => p.id === s.period_id)?.name}</p>
-                      <h4 className="font-bold text-gray-800">{s.subject_name}</h4>
-                      {s.professor && <p className="text-sm text-gray-500">Prof. {s.professor}</p>}
+                      <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{s.month_year} • {periods.find(p => p.id === s.period_id)?.name}</p>
+                      <h4 className="font-bold text-gray-800 dark:text-zinc-100">{s.subject_name}</h4>
+                      {s.professor && <p className="text-sm text-gray-500 dark:text-zinc-400">Prof. {s.professor}</p>}
                     </div>
                     <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => { setEditingSubject(s); setSubjectForm({ month_year: s.month_year, subject_name: s.subject_name, professor: s.professor || '', workload: s.workload?.toString() || '', period_id: s.period_id?.toString() || '' }); }}
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        className="p-2 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
                       >
                         <Edit2 size={18} />
                       </button>
                       <button 
                         onClick={() => handleDeleteSubject(s.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        className="p-2 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -1797,20 +2034,20 @@ Escalas GMNL ${year}`;
               </Card>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Períodos Cadastrados</h3>
+                <h3 className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-2">Períodos Cadastrados</h3>
                 {periods.map(p => (
-                  <div key={p.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group">
-                    <h4 className="font-bold text-gray-800">{p.name}</h4>
+                  <div key={p.id} className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex items-center justify-between group">
+                    <h4 className="font-bold text-gray-800 dark:text-zinc-100">{p.name}</h4>
                     <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => { setEditingPeriod(p); setPeriodForm({ name: p.name }); }}
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        className="p-2 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
                       >
                         <Edit2 size={18} />
                       </button>
                       <button 
                         onClick={() => handleDeletePeriod(p.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        className="p-2 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -1855,8 +2092,8 @@ Escalas GMNL ${year}`;
                               }}
                             />
                             <div>
-                              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">Status</label>
-                              <div className="flex bg-gray-100 p-1 rounded-xl">
+                              <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">Status</label>
+                              <div className="flex bg-gray-100 dark:bg-white/[0.06] p-1 rounded-xl">
                                 <button 
                                   onClick={() => {
                                     const newData = { ...attendanceForm, [`aula_${num}`]: true };
@@ -1864,7 +2101,7 @@ Escalas GMNL ${year}`;
                                   }}
                                   className={cn(
                                     "flex-1 py-2 rounded-lg text-sm font-semibold transition-all",
-                                    (attendanceForm as any)[`aula_${num}`] === true ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500"
+                                    (attendanceForm as any)[`aula_${num}`] === true ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-gray-500 dark:text-zinc-400"
                                   )}
                                 >
                                   Presente
@@ -1876,7 +2113,7 @@ Escalas GMNL ${year}`;
                                   }}
                                   className={cn(
                                     "flex-1 py-2 rounded-lg text-sm font-semibold transition-all",
-                                    (attendanceForm as any)[`aula_${num}`] === false ? "bg-white text-red-600 shadow-sm" : "text-gray-500"
+                                    (attendanceForm as any)[`aula_${num}`] === false ? "bg-white dark:bg-zinc-800 text-red-600 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-zinc-400"
                                   )}
                                 >
                                   Faltou
@@ -1885,7 +2122,7 @@ Escalas GMNL ${year}`;
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                        <div className="flex flex-col sm:flex-row justify-end gap-2 mt-2 pt-4 border-t border-gray-50 dark:border-white/[0.06]">
                           {!saved ? (
                             <>
                               <button 
@@ -1894,7 +2131,7 @@ Escalas GMNL ${year}`;
                                   setAttendanceForm(newData);
                                   handleAutoSave('attendance', newData);
                                 }}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} /> Excluir
                               </button>
@@ -1912,13 +2149,13 @@ Escalas GMNL ${year}`;
                             <>
                               <button 
                                 disabled
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                               >
                                 <Save size={14} /> Salvo
                               </button>
                               <button 
                                 onClick={() => toggleEdit(key)}
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                               >
                                 <Edit3 size={14} /> Editar
                               </button>
@@ -1930,7 +2167,7 @@ Escalas GMNL ${year}`;
                   })}
 
                   {/* Stats */}
-                  <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
+                  <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="font-bold">Resumo de Presença</h3>
                       <CheckCircle2 size={24} />
@@ -1982,13 +2219,13 @@ Escalas GMNL ${year}`;
                               label="Data" 
                               type="date" 
                               readOnly
-                              className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl focus:outline-none cursor-not-allowed"
+                              className="w-full px-4 py-2 bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none cursor-not-allowed"
                               value={(activitiesForm as any)[`atividade_${num}_prazo`] || ''}
                             />
                             <div className="mb-4">
-                              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+                              <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Status</label>
                               <select 
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                className="w-full px-4 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-gray-900 dark:text-zinc-100"
                                 value={(activitiesForm as any)[`atividade_${num}_status`] || 'Não iniciada'}
                                 onChange={(e: any) => {
                                   const newData = { ...activitiesForm, [`atividade_${num}_status`]: e.target.value };
@@ -2013,7 +2250,7 @@ Escalas GMNL ${year}`;
                             />
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50 dark:border-white/[0.06]">
                           {!saved ? (
                             <>
                               <button 
@@ -2022,7 +2259,7 @@ Escalas GMNL ${year}`;
                                   setActivitiesForm(newData);
                                   handleAutoSave('activities', newData);
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} /> Excluir
                               </button>
@@ -2040,13 +2277,13 @@ Escalas GMNL ${year}`;
                             <>
                               <button 
                                 disabled
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                               >
                                 <Save size={14} /> Salvo
                               </button>
                               <button 
                                 onClick={() => toggleEdit(key)}
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                               >
                                 <Edit3 size={14} /> Editar
                               </button>
@@ -2067,7 +2304,7 @@ Escalas GMNL ${year}`;
                           label="Data da Prova" 
                           type="date" 
                           readOnly
-                          className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl focus:outline-none cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none cursor-not-allowed"
                           value={activitiesForm.prova_data || ''}
                         />
                         <Input 
@@ -2083,7 +2320,7 @@ Escalas GMNL ${year}`;
                         />
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50 dark:border-white/[0.06]">
                       {isEditing['activity_prova'] || !(activitiesForm.prova_data || activitiesForm.prova_nota > 0) ? (
                         <>
                           <button 
@@ -2092,7 +2329,7 @@ Escalas GMNL ${year}`;
                               setActivitiesForm(newData);
                               handleAutoSave('activities', newData);
                             }}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                           >
                             <Trash2 size={14} /> Excluir
                           </button>
@@ -2110,13 +2347,13 @@ Escalas GMNL ${year}`;
                         <>
                           <button 
                             disabled
-                            className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                            className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                           >
                             <Save size={14} /> Salvo
                           </button>
                           <button 
                             onClick={() => toggleEdit('activity_prova')}
-                            className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                            className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                           >
                             <Edit3 size={14} /> Editar
                           </button>
@@ -2146,7 +2383,7 @@ Escalas GMNL ${year}`;
                     const saved = !editing;
 
                     return (
-                      <div key={num} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+                      <div key={num} className="bg-white dark:bg-[#1c1c1e] p-6 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col gap-4">
                         <div className={cn(
                           "transition-all duration-300",
                           saved ? "opacity-60 pointer-events-none" : "opacity-100"
@@ -2155,17 +2392,17 @@ Escalas GMNL ${year}`;
                             <div className="flex items-center gap-4 flex-1">
                               <div className={cn(
                                 "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shrink-0 shadow-sm",
-                                (webContentForm as any)[`conteudo_${num}_assistido`] ? "bg-emerald-100 text-emerald-600" : "bg-gray-50 text-gray-400"
+                                (webContentForm as any)[`conteudo_${num}_assistido`] ? "bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-gray-50 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500"
                               )}>
                                 <MonitorPlay size={24} />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h4 className="font-bold text-gray-800 truncate text-sm sm:text-base">Conteúdo Web {num}</h4>
-                                <div className="mt-1 flex items-center gap-2 bg-gray-50/80 px-3 py-1.5 rounded-xl border border-gray-100 w-fit">
-                                  <Calendar size={14} className="text-gray-400 shrink-0" />
+                                <h4 className="font-bold text-gray-800 dark:text-zinc-100 truncate text-sm sm:text-base">Conteúdo Web {num}</h4>
+                                <div className="mt-1 flex items-center gap-2 bg-gray-50/80 dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-white/[0.08] w-fit">
+                                  <Calendar size={14} className="text-gray-400 dark:text-zinc-500 shrink-0" />
                                   <input 
                                     type="date" 
-                                    className="text-[10px] sm:text-xs bg-transparent border-none p-0 focus:ring-0 font-bold text-gray-600 cursor-pointer min-w-0" 
+                                    className="text-[10px] sm:text-xs bg-transparent border-none p-0 focus:ring-0 font-bold text-gray-600 dark:text-zinc-300 cursor-pointer min-w-0" 
                                     value={(webContentForm as any)[`data_${num}`] || ''}
                                     onChange={(e: any) => {
                                       const newData = { ...webContentForm, [`data_${num}`]: e.target.value };
@@ -2175,8 +2412,8 @@ Escalas GMNL ${year}`;
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between sm:justify-end gap-3 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-50">
-                              <span className="sm:hidden text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            <div className="flex items-center justify-between sm:justify-end gap-3 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-50 dark:border-white/[0.06]">
+                              <span className="sm:hidden text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">
                                 {(webContentForm as any)[`conteudo_${num}_assistido`] ? 'Finalizado' : 'Marcar Visto'}
                               </span>
                               <button 
@@ -2187,8 +2424,8 @@ Escalas GMNL ${year}`;
                                 className={cn(
                                   "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all shrink-0 active:scale-95",
                                   (webContentForm as any)[`conteudo_${num}_assistido`] 
-                                    ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-100" 
-                                    : "border-gray-200 text-gray-300 hover:border-emerald-200 hover:text-emerald-400"
+                                    ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-100 dark:shadow-none" 
+                                    : "border-gray-200 dark:border-white/[0.15] text-gray-300 dark:text-zinc-600 hover:border-emerald-200 dark:hover:border-emerald-500/40 hover:text-emerald-400"
                                 )}
                               >
                                 <Check size={20} strokeWidth={3} />
@@ -2196,7 +2433,7 @@ Escalas GMNL ${year}`;
                             </div>
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-50 dark:border-white/[0.06]">
                           {!saved ? (
                             <>
                               <button 
@@ -2205,7 +2442,7 @@ Escalas GMNL ${year}`;
                                   setWebContentForm(newData);
                                   handleAutoSave('web_contents', newData);
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} /> Excluir
                               </button>
@@ -2223,13 +2460,13 @@ Escalas GMNL ${year}`;
                             <>
                               <button 
                                 disabled
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                               >
                                 <Save size={14} /> Salvo
                               </button>
                               <button 
                                 onClick={() => toggleEdit(key)}
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                               >
                                 <Edit3 size={14} /> Editar
                               </button>
@@ -2246,14 +2483,14 @@ Escalas GMNL ${year}`;
 
           {activeTab === 'dashboard' && (
             <motion.div key="dashboard" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold tracking-tight text-gray-800">Resumo Geral</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Acompanhamento de frequência, atividades e desempenho por período</p>
+                  <h2 className="text-base sm:text-lg font-bold tracking-tight text-gray-800 dark:text-zinc-100">Resumo Geral</h2>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Acompanhamento de frequência, atividades e desempenho por período</p>
                 </div>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                   <select 
-                    className="w-full sm:w-auto px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full sm:w-auto px-3.5 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-gray-800 dark:text-zinc-200 focus:ring-2 focus:ring-indigo-500/20"
                     value={selectedPeriodFilter}
                     onChange={(e) => {
                       setSelectedPeriodFilter(e.target.value);
@@ -2265,7 +2502,7 @@ Escalas GMNL ${year}`;
                   </select>
 
                   <select 
-                    className="w-full sm:w-auto px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full sm:w-auto px-3.5 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-gray-800 dark:text-zinc-200 focus:ring-2 focus:ring-indigo-500/20"
                     value={selectedSubjectDashboardFilter}
                     onChange={(e) => setSelectedSubjectDashboardFilter(e.target.value)}
                   >
@@ -2276,7 +2513,7 @@ Escalas GMNL ${year}`;
                     }
                   </select>
 
-                  <button onClick={exportExcel} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                  <button onClick={exportExcel} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition-colors whitespace-nowrap">
                     <Download size={16} /> Excel
                   </button>
                 </div>
@@ -2294,8 +2531,8 @@ Escalas GMNL ${year}`;
                     if (!item) return null;
 
                     const getCountdown = (dateStr?: string, status?: string) => {
-                      if (status === 'Concluída') return { text: "Concluída", color: "text-emerald-600 bg-emerald-50" };
-                      if (!dateStr) return { text: "Não definido", color: "text-gray-400 bg-gray-50" };
+                      if (status === 'Concluída') return { text: "Concluída", color: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15" };
+                      if (!dateStr) return { text: "Não definido", color: "text-gray-400 dark:text-zinc-400 bg-gray-50 dark:bg-white/[0.06]" };
                       
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
@@ -2308,9 +2545,9 @@ Escalas GMNL ${year}`;
                       const diffTime = deadline.getTime() - today.getTime();
                       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                      if (diffDays < 0) return { text: "Prazo expirado", color: "text-red-600 bg-red-50" };
-                      if (diffDays === 0) return { text: "Vence hoje", color: "text-orange-600 bg-orange-50" };
-                      return { text: `Faltam ${diffDays} dias`, color: "text-indigo-600 bg-indigo-50" };
+                      if (diffDays < 0) return { text: "Prazo expirado", color: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/15" };
+                      if (diffDays === 0) return { text: "Vence hoje", color: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/15" };
+                      return { text: `Faltam ${diffDays} dias`, color: "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15" };
                     };
 
                     return (
@@ -2322,26 +2559,26 @@ Escalas GMNL ${year}`;
                         ].map((d, i) => {
                           const countdown = getCountdown(d.date, d.status);
                           return (
-                            <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{d.label}</p>
+                            <div key={i} className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col items-center justify-center text-center">
+                              <p className="text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1.5">{d.label}</p>
                               <div className="flex flex-col gap-1 md:gap-2 items-center tabular-nums">
                                 <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap", countdown.color)}>
                                   {countdown.text}
                                 </span>
                                 {d.grade !== null && d.grade !== undefined && (
-                                  <span className="px-2.5 py-1 rounded-full text-xs font-bold text-emerald-600 bg-emerald-50 whitespace-nowrap">
+                                  <span className="px-2.5 py-1 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 whitespace-nowrap">
                                     Nota: {d.grade}
                                   </span>
                                 )}
                               </div>
                               <div className="mt-2.5 space-y-0.5 tabular-nums">
                                 {d.start && (
-                                  <p className="text-[11px] md:text-xs text-gray-500">
+                                  <p className="text-[11px] md:text-xs text-gray-500 dark:text-zinc-400">
                                     <span className="font-semibold">Início:</span> {formatDateString(d.start)}
                                   </p>
                                 )}
                                 {d.date && (
-                                  <p className="text-[11px] md:text-xs text-gray-500">
+                                  <p className="text-[11px] md:text-xs text-gray-500 dark:text-zinc-400">
                                     <span className="font-semibold">Fim:</span> {formatDateString(d.date)}
                                   </p>
                                 )}
@@ -2378,33 +2615,33 @@ Escalas GMNL ${year}`;
                   const maxPossible = 12000;
                   
                   let status = "Em dia";
-                  let statusColor = "text-emerald-600 bg-emerald-50";
+                  let statusColor = "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15";
                   
                   if (presencePct < 75 || finalScore < (maxPossible * 0.6)) {
                     status = "Em risco";
-                    statusColor = "text-red-600 bg-red-50";
+                    statusColor = "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/15";
                   } else if (!av1Concluded || !av2Concluded || webPct < 100) {
                     status = "Com pendências";
-                    statusColor = "text-amber-600 bg-amber-50";
+                    statusColor = "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15";
                   }
 
                   return (
                     <div 
                       key={item.id} 
                       className={cn(
-                        "bg-white rounded-2xl border transition-all duration-300",
+                        "bg-white dark:bg-[#1c1c1e] rounded-2xl border transition-all duration-300",
                         index === 0 
-                          ? "border-l-4 border-l-indigo-600 border-y-gray-200 border-r-gray-200 shadow-xl bg-indigo-50/20 relative z-10" 
-                          : "border-gray-100 shadow-sm overflow-hidden"
+                          ? "border-l-4 border-l-indigo-600 border-y-gray-200 dark:border-y-white/[0.08] border-r-gray-200 dark:border-r-white/[0.08] shadow-xl bg-indigo-50/20 dark:bg-indigo-500/[0.06] relative z-10" 
+                          : "border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden"
                       )}
                     >
                       <div className="p-4 md:p-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
                           <div>
-                            <p className="text-[10px] md:text-xs font-bold text-indigo-600 uppercase tracking-widest mb-1">
+                            <p className="text-[10px] md:text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">
                               {item.month_year} • {periods.find(p => p.id === item.period_id)?.name}
                             </p>
-                            <h3 className="text-base md:text-lg font-bold text-gray-800 leading-tight">{item.subject_name}</h3>
+                            <h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-zinc-100 leading-tight">{item.subject_name}</h3>
                           </div>
                           <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto justify-between sm:justify-start">
                             <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider", statusColor)}>
@@ -2433,16 +2670,16 @@ Escalas GMNL ${year}`;
                                 
                                 if (diffDays < 0) {
                                   alertText = 'Expirado';
-                                  alertColor = 'text-red-600 bg-red-50';
+                                  alertColor = 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/15';
                                 } else if (diffDays === 0) {
                                   alertText = 'Hoje';
-                                  alertColor = 'text-orange-600 bg-orange-50';
+                                  alertColor = 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/15';
                                 } else if (diffDays <= 7) {
                                   alertText = `${diffDays}d`;
-                                  alertColor = 'text-amber-600 bg-amber-50';
+                                  alertColor = 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15';
                                 } else {
                                   alertText = `${diffDays}d`;
-                                  alertColor = 'text-indigo-600 bg-indigo-50';
+                                  alertColor = 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15';
                                 }
 
                                 if (!alertText) return null;
@@ -2458,59 +2695,59 @@ Escalas GMNL ${year}`;
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 tabular-nums">
-                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
-                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Presença</p>
-                            <p className={cn("text-lg md:text-xl font-bold tracking-tight", presencePct < 75 ? "text-red-500" : "text-gray-800")}>{presencePct}%</p>
+                          <div className="text-center p-3 bg-gray-50/50 dark:bg-white/[0.04] rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Presença</p>
+                            <p className={cn("text-lg md:text-xl font-bold tracking-tight", presencePct < 75 ? "text-red-500" : "text-gray-800 dark:text-zinc-100")}>{presencePct}%</p>
                           </div>
-                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
-                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nota Final</p>
-                            <p className={cn("text-lg md:text-xl font-bold tracking-tight", finalScore < (maxPossible * 0.6) ? "text-red-500" : "text-gray-800")}>
-                              {finalScore.toLocaleString()} <span className="text-xs font-semibold text-gray-400">/ {maxPossible.toLocaleString()}</span>
+                          <div className="text-center p-3 bg-gray-50/50 dark:bg-white/[0.04] rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Nota Final</p>
+                            <p className={cn("text-lg md:text-xl font-bold tracking-tight", finalScore < (maxPossible * 0.6) ? "text-red-500" : "text-gray-800 dark:text-zinc-100")}>
+                              {finalScore.toLocaleString()} <span className="text-xs font-semibold text-gray-400 dark:text-zinc-500">/ {maxPossible.toLocaleString()}</span>
                             </p>
                           </div>
-                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
-                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Web</p>
-                            <p className="text-lg md:text-xl font-bold tracking-tight text-gray-800">{webPct}%</p>
+                          <div className="text-center p-3 bg-gray-50/50 dark:bg-white/[0.04] rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Web</p>
+                            <p className="text-lg md:text-xl font-bold tracking-tight text-gray-800 dark:text-zinc-100">{webPct}%</p>
                           </div>
-                          <div className="text-center p-3 bg-gray-50/50 rounded-xl">
-                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Atividades</p>
-                            <p className="text-lg md:text-xl font-bold tracking-tight text-gray-800">{avPct}%</p>
+                          <div className="text-center p-3 bg-gray-50/50 dark:bg-white/[0.04] rounded-xl">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Atividades</p>
+                            <p className="text-lg md:text-xl font-bold tracking-tight text-gray-800 dark:text-zinc-100">{avPct}%</p>
                           </div>
                         </div>
                         
                         {/* Deadlines Display */}
-                        <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-3 gap-2 text-center tabular-nums">
+                        <div className="mt-4 pt-4 border-t border-gray-50 dark:border-white/[0.06] grid grid-cols-3 gap-2 text-center tabular-nums">
                           <div>
-                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ativ. 1</p>
-                            <p className="text-xs font-semibold text-gray-600 mt-0.5">{formatDateString(item.act1_deadline) || '-'}</p>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Ativ. 1</p>
+                            <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300 mt-0.5">{formatDateString(item.act1_deadline) || '-'}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ativ. 2</p>
-                            <p className="text-xs font-semibold text-gray-600 mt-0.5">{formatDateString(item.act2_deadline) || '-'}</p>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Ativ. 2</p>
+                            <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300 mt-0.5">{formatDateString(item.act2_deadline) || '-'}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Prova</p>
-                            <p className="text-xs font-semibold text-gray-600 mt-0.5">{formatDateString(item.exam_date) || '-'}</p>
+                            <p className="text-[10px] md:text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Prova</p>
+                            <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300 mt-0.5">{formatDateString(item.exam_date) || '-'}</p>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-gray-50 px-4 md:px-6 py-2 md:py-3 flex justify-between items-center">
+                      <div className="bg-gray-50 dark:bg-white/[0.03] px-4 md:px-6 py-2 md:py-3 flex justify-between items-center border-t border-transparent dark:border-white/[0.05]">
                         <div className="flex gap-1">
                           {[1, 2, 3, 4].map(n => (
-                            <div key={n} className={cn("w-1.5 h-1.5 md:w-2 md:h-2 rounded-full", (item as any)[`aula${n}_present`] ? "bg-emerald-500" : "bg-gray-200")} />
+                            <div key={n} className={cn("w-1.5 h-1.5 md:w-2 md:h-2 rounded-full", (item as any)[`aula${n}_present`] ? "bg-emerald-500" : "bg-gray-200 dark:bg-zinc-700")} />
                           ))}
                         </div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aulas do Mês</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Aulas do Mês</p>
                       </div>
                     </div>
                   );
                 })}
 
                 {dashboardData.length === 0 && (
-                  <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                    <LayoutDashboard size={48} className="mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500 font-medium">Nenhum dado cadastrado ainda.</p>
-                    <button onClick={() => setActiveTab('subjects')} className="mt-4 text-indigo-600 font-bold text-sm uppercase tracking-wider">Começar Agora</button>
+                  <div className="text-center py-20 bg-white dark:bg-[#1c1c1e] rounded-3xl border-2 border-dashed border-gray-200 dark:border-white/[0.1]">
+                    <LayoutDashboard size={48} className="mx-auto text-gray-300 dark:text-zinc-600 mb-4" />
+                    <p className="text-gray-500 dark:text-zinc-400 font-medium">Nenhum dado cadastrado ainda.</p>
+                    <button onClick={() => setActiveTab('subjects')} className="mt-4 text-indigo-600 dark:text-indigo-400 font-bold text-sm uppercase tracking-wider">Começar Agora</button>
                   </div>
                 )}
               </div>
@@ -2522,8 +2759,8 @@ Escalas GMNL ${year}`;
                 {/* Section 1: Periods */}
                 <section>
                   <div className="flex items-center gap-2 mb-4">
-                    <Layers className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-gray-800">1. Cadastro de Períodos</h2>
+                    <Layers className="text-indigo-600 dark:text-indigo-400" size={20} />
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100">1. Cadastro de Períodos</h2>
                   </div>
                   <Card>
                     <Input 
@@ -2543,20 +2780,20 @@ Escalas GMNL ${year}`;
                   </Card>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {periods.map(p => (
-                      <div key={p.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
+                      <div key={p.id} className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
                         <div>
-                          <h4 className="font-bold text-gray-800">{p.name}</h4>
+                          <h4 className="font-bold text-gray-800 dark:text-zinc-100">{p.name}</h4>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto justify-end">
                           <button 
                             onClick={() => { setEditingPeriod(p); setPeriodForm({ name: p.name }); }}
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                            className="p-2 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button 
                             onClick={() => handleDeletePeriod(p.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            className="p-2 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -2569,15 +2806,15 @@ Escalas GMNL ${year}`;
                 {/* Section 2: Subjects */}
                 <section>
                   <div className="flex items-center gap-2 mb-4">
-                    <BookOpen className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-gray-800">2. Cadastro de Mês/Matéria</h2>
+                    <BookOpen className="text-indigo-600 dark:text-indigo-400" size={20} />
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100">2. Cadastro de Mês/Matéria</h2>
                   </div>
                   <Card>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Período *</label>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Período *</label>
                         <select
-                          className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                          className="w-full px-4 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 dark:text-zinc-100"
                           value={subjectForm.period_id}
                           onChange={(e: any) => {
                             const pId = e.target.value;
@@ -2627,10 +2864,10 @@ Escalas GMNL ${year}`;
                   </Card>
                   <div className="space-y-4">
                     {subjects.map(s => (
-                      <div key={s.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
+                      <div key={s.id} className="bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
                         <div>
-                          <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">{s.month_year} • {periods.find(p => p.id === s.period_id)?.name}</p>
-                          <h4 className="font-bold text-gray-800">{s.subject_name}</h4>
+                          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{s.month_year} • {periods.find(p => p.id === s.period_id)?.name}</p>
+                          <h4 className="font-bold text-gray-800 dark:text-zinc-100">{s.subject_name}</h4>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto justify-end">
                           <button 
@@ -2644,13 +2881,13 @@ Escalas GMNL ${year}`;
                                 period_id: s.period_id?.toString() || ''
                               }); 
                             }}
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                            className="p-2 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button 
                             onClick={() => handleDeleteSubject(s.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            className="p-2 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -2663,8 +2900,8 @@ Escalas GMNL ${year}`;
                 {/* Section 3: Deadlines */}
                 <section>
                   <div className="flex items-center gap-2 mb-4">
-                    <Calendar className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-gray-800">3. Configuração de Prazos</h2>
+                    <Calendar className="text-indigo-600 dark:text-indigo-400" size={20} />
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100">3. Configuração de Prazos</h2>
                   </div>
                   <Select 
                     label="Selecionar Matéria para Configurar Prazos" 
@@ -2727,7 +2964,7 @@ Escalas GMNL ${year}`;
                             />
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50 dark:border-white/[0.06]">
                           {isEditing['settings_act1'] ? (
                             <>
                               <button 
@@ -2736,7 +2973,7 @@ Escalas GMNL ${year}`;
                                   setSettingsForm(newData);
                                   handleSaveSettings(newData);
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} /> Excluir
                               </button>
@@ -2754,13 +2991,13 @@ Escalas GMNL ${year}`;
                             <>
                               <button 
                                 disabled
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                               >
                                 <Save size={14} /> Salvo
                               </button>
                               <button 
                                 onClick={() => toggleEdit('settings_act1')}
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                               >
                                 <Edit3 size={14} /> Editar
                               </button>
@@ -2791,7 +3028,7 @@ Escalas GMNL ${year}`;
                             />
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50 dark:border-white/[0.06]">
                           {isEditing['settings_act2'] ? (
                             <>
                               <button 
@@ -2800,7 +3037,7 @@ Escalas GMNL ${year}`;
                                   setSettingsForm(newData);
                                   handleSaveSettings(newData);
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} /> Excluir
                               </button>
@@ -2818,13 +3055,13 @@ Escalas GMNL ${year}`;
                             <>
                               <button 
                                 disabled
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                               >
                                 <Save size={14} /> Salvo
                               </button>
                               <button 
                                 onClick={() => toggleEdit('settings_act2')}
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                               >
                                 <Edit3 size={14} /> Editar
                               </button>
@@ -2855,7 +3092,7 @@ Escalas GMNL ${year}`;
                             />
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50 dark:border-white/[0.06]">
                           {isEditing['settings_exam'] ? (
                             <>
                               <button 
@@ -2864,7 +3101,7 @@ Escalas GMNL ${year}`;
                                   setSettingsForm(newData);
                                   handleSaveSettings(newData);
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} /> Excluir
                               </button>
@@ -2882,13 +3119,13 @@ Escalas GMNL ${year}`;
                             <>
                               <button 
                                 disabled
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 rounded-lg cursor-not-allowed opacity-50"
                               >
                                 <Save size={14} /> Salvo
                               </button>
                               <button 
                                 onClick={() => toggleEdit('settings_exam')}
-                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                                className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 dark:shadow-none"
                               >
                                 <Edit3 size={14} /> Editar
                               </button>
@@ -2903,12 +3140,12 @@ Escalas GMNL ${year}`;
                 {/* Section 4: Grade Configuration for 3rd Period onwards */}
                 <section className="mt-8">
                   <div className="flex items-center gap-2 mb-4">
-                    <FileText className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-gray-800">4. Configuração de Notas (A partir do 3° Período)</h2>
+                    <FileText className="text-indigo-600 dark:text-indigo-400" size={20} />
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100">4. Configuração de Notas (A partir do 3° Período)</h2>
                   </div>
                   <Card title="Critérios de Avaliação e Pontuação (3° Período+)">
                     <div className="space-y-4">
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
                         Defina as pontuações máximas e os critérios de notas aplicados a todas as matérias de turmas a partir do 3° período em diante.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2937,11 +3174,11 @@ Escalas GMNL ${year}`;
                           onChange={(e: any) => setGradeConfig3rd({ ...gradeConfig3rd, min_passing: e.target.value })}
                         />
                       </div>
-                      <div className="flex justify-end pt-3 border-t border-slate-100">
+                      <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-white/[0.06]">
                         <button
                           type="button"
                           onClick={handleSaveGradeConfig3rd}
-                          className="flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-indigo-100 cursor-pointer"
+                          className="flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-indigo-100 dark:shadow-none cursor-pointer"
                         >
                           <Save size={15} /> Salvar Configuração de Notas
                         </button>
@@ -2953,47 +3190,47 @@ Escalas GMNL ${year}`;
                 {/* Section 5: Server Config Guide */}
                 <section className="mt-8">
                   <div className="flex items-center gap-2 mb-4">
-                    <Shield className="text-indigo-600" size={20} />
-                    <h2 className="text-lg font-bold text-gray-800">5. Configuração de Variáveis do Servidor</h2>
+                    <Shield className="text-indigo-600 dark:text-indigo-400" size={20} />
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100">5. Configuração de Variáveis do Servidor</h2>
                   </div>
                   <Card>
                     <div className="space-y-4">
-                      <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-start gap-3">
-                        <Key className="text-indigo-600 shrink-0 mt-0.5" size={18} />
+                      <div className="p-4 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-start gap-3">
+                        <Key className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" size={18} />
                         <div>
-                          <h3 className="font-bold text-indigo-900 text-sm mb-1">
+                          <h3 className="font-bold text-indigo-900 dark:text-indigo-200 text-sm mb-1">
                             SUPABASE_SERVICE_ROLE_KEY
                           </h3>
-                          <p className="text-xs text-indigo-700 leading-relaxed">
+                          <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
                             Esta variável de ambiente é necessária no backend para realizar operações administrativas seguras que exigem privilégios elevados (como listar os usuários cadastrados da instância Supabase). Sem ela, a visualização da aba "Usuários" retornará o erro 500.
                           </p>
                         </div>
                       </div>
 
                       <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Guia de Configuração Segura</h4>
+                        <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Guia de Configuração Segura</h4>
                         
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4 text-xs text-gray-600">
+                        <div className="bg-gray-50 dark:bg-white/[0.04] p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] space-y-4 text-xs text-gray-600 dark:text-zinc-300">
                           <div>
-                            <span className="font-bold text-indigo-600 block mb-1">Passo 1: Obter a Chave de Serviço no Supabase</span>
-                            <p className="leading-relaxed">Acesse o painel do seu projeto no <strong className="text-gray-800">Supabase</strong> &gt; Vá em <strong className="text-gray-800">Project Settings</strong> (ícone de engrenagem) &gt; <strong className="text-gray-800">API</strong> &gt; Copie o valor da chave secreta rotulada como <strong className="text-gray-800">service_role</strong> (bypasses Row Level Security). <strong>Atenção:</strong> esta chave é extremamente confidencial e nunca deve ser compartilhada ou exposta no código frontend!</p>
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">Passo 1: Obter a Chave de Serviço no Supabase</span>
+                            <p className="leading-relaxed">Acesse o painel do seu projeto no <strong className="text-gray-800 dark:text-zinc-100">Supabase</strong> &gt; Vá em <strong className="text-gray-800 dark:text-zinc-100">Project Settings</strong> (ícone de engrenagem) &gt; <strong className="text-gray-800 dark:text-zinc-100">API</strong> &gt; Copie o valor da chave secreta rotulada como <strong className="text-gray-800 dark:text-zinc-100">service_role</strong> (bypasses Row Level Security). <strong>Atenção:</strong> esta chave é extremamente confidencial e nunca deve ser compartilhada ou exposta no código frontend!</p>
                           </div>
                           
-                          <div className="border-t border-gray-200/60 pt-4">
-                            <span className="font-bold text-indigo-600 block mb-1">Passo 2: Adicionar à Plataforma de Produção (Vercel)</span>
+                          <div className="border-t border-gray-200/60 dark:border-white/[0.06] pt-4">
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">Passo 2: Adicionar à Plataforma de Produção (Vercel)</span>
                             <ul className="list-disc list-inside space-y-2 pl-1 leading-relaxed">
-                              <li>Abra o painel do seu projeto no site da <strong className="text-gray-800">Vercel</strong>.</li>
-                              <li>Navegue até a aba <strong className="text-gray-800">Settings</strong> (Configurações) &gt; <strong className="text-gray-800">Environment Variables</strong> (Variáveis de Ambiente).</li>
-                              <li>Adicione uma nova variável de ambiente com o nome exato: <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs font-semibold text-gray-800">SUPABASE_SERVICE_ROLE_KEY</code></li>
-                              <li>Cole no campo de valor a chave <strong className="font-semibold text-gray-800">service_role</strong> copiada no Passo 1.</li>
-                              <li>Clique em <strong className="text-gray-800">Save</strong> para registrar.</li>
-                              <li><strong>Importante:</strong> Após salvar a nova variável, faça um novo Deploy (<strong className="text-gray-800">Redeploy</strong>) no painel da Vercel para que as funções do servidor carreguem a nova configuração.</li>
+                              <li>Abra o painel do seu projeto no site da <strong className="text-gray-800 dark:text-zinc-100">Vercel</strong>.</li>
+                              <li>Navegue até a aba <strong className="text-gray-800 dark:text-zinc-100">Settings</strong> (Configurações) &gt; <strong className="text-gray-800 dark:text-zinc-100">Environment Variables</strong> (Variáveis de Ambiente).</li>
+                              <li>Adicione uma nova variável de ambiente com o nome exato: <code className="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded font-mono text-xs font-semibold text-gray-800 dark:text-zinc-200">SUPABASE_SERVICE_ROLE_KEY</code></li>
+                              <li>Cole no campo de valor a chave <strong className="font-semibold text-gray-800 dark:text-zinc-100">service_role</strong> copiada no Passo 1.</li>
+                              <li>Clique em <strong className="text-gray-800 dark:text-zinc-100">Save</strong> para registrar.</li>
+                              <li><strong>Importante:</strong> Após salvar a nova variável, faça um novo Deploy (<strong className="text-gray-800 dark:text-zinc-100">Redeploy</strong>) no painel da Vercel para que as funções do servidor carreguem a nova configuração.</li>
                             </ul>
                           </div>
 
-                          <div className="border-t border-gray-200/60 pt-4">
-                            <span className="font-bold text-indigo-600 block mb-1">Passo 3: Adicionar ao Ambiente de Desenvolvimento Local</span>
-                            <p className="leading-relaxed">Se estiver rodando o projeto em sua máquina localmente, edite ou crie o arquivo <code className="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs font-semibold text-gray-800">.env</code> na raiz do projeto e declare a variável:</p>
+                          <div className="border-t border-gray-200/60 dark:border-white/[0.06] pt-4">
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">Passo 3: Adicionar ao Ambiente de Desenvolvimento Local</span>
+                            <p className="leading-relaxed">Se estiver rodando o projeto em sua máquina localmente, edite ou crie o arquivo <code className="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded font-mono text-xs font-semibold text-gray-800 dark:text-zinc-200">.env</code> na raiz do projeto e declare a variável:</p>
                             <pre className="mt-2 bg-gray-950 text-indigo-200 p-3 rounded-xl font-mono text-[11px] overflow-x-auto shadow-inner">
                               {"SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_aqui"}
                             </pre>
@@ -3011,42 +3248,42 @@ Escalas GMNL ${year}`;
               <Card title="Usuários Cadastrados" icon={Shield}>
                 {usersError ? (
                   <div className="space-y-6">
-                    <div className="text-center py-6 text-red-500 bg-red-50/50 rounded-2xl border border-red-100 p-4">
+                    <div className="text-center py-6 text-red-500 bg-red-50/50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20 p-4">
                       <AlertCircle className="mx-auto h-8 w-8 mb-2" />
                       <p className="font-semibold">Erro ao carregar usuários</p>
                       <p className="text-sm mt-1">{usersError}</p>
-                      <p className="text-xs mt-3 text-gray-500 max-w-md mx-auto leading-relaxed">
-                        O backend necessita da variável de ambiente <code className="bg-red-50 px-1 py-0.5 rounded font-mono font-semibold text-red-600">SUPABASE_SERVICE_ROLE_KEY</code> para listar os usuários do Supabase de forma segura.
+                      <p className="text-xs mt-3 text-gray-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
+                        O backend necessita da variável de ambiente <code className="bg-red-50 dark:bg-red-500/15 px-1 py-0.5 rounded font-mono font-semibold text-red-600 dark:text-red-300">SUPABASE_SERVICE_ROLE_KEY</code> para listar os usuários do Supabase de forma segura.
                       </p>
                     </div>
 
-                    <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-4">
-                      <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                        <Key className="text-indigo-600" size={16} />
+                    <div className="bg-gray-50 dark:bg-white/[0.04] p-5 rounded-2xl border border-gray-100 dark:border-white/[0.06] space-y-4">
+                      <h3 className="font-bold text-gray-800 dark:text-zinc-100 text-sm flex items-center gap-2">
+                        <Key className="text-indigo-600 dark:text-indigo-400" size={16} />
                         Como corrigir este erro passo a passo:
                       </h3>
                       
-                      <div className="space-y-3 text-xs text-gray-600 leading-relaxed">
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100">
-                          <span className="font-bold text-indigo-600 block mb-1">1. Obtenha a chave correta no Supabase</span>
+                      <div className="space-y-3 text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
+                        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.06]">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">1. Obtenha a chave correta no Supabase</span>
                           <p>Acesse o painel do seu projeto no <strong>Supabase</strong> &gt; <strong>Project Settings</strong> (ícone de engrenagem) &gt; <strong>API</strong> &gt; Copie o valor da chave <strong>service_role</strong> (ela possui o rótulo "secret").</p>
-                          <p className="mt-1.5 text-amber-600 font-medium">Atenção: NÃO use a chave "anon" (public). Somente a chave "service_role" possui permissão para gerenciar e listar usuários.</p>
+                          <p className="mt-1.5 text-amber-600 dark:text-amber-400 font-medium">Atenção: NÃO use a chave "anon" (public). Somente a chave "service_role" possui permissão para gerenciar e listar usuários.</p>
                         </div>
                         
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100">
-                          <span className="font-bold text-indigo-600 block mb-1">2. Configure na Vercel (Produção)</span>
+                        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.06]">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">2. Configure na Vercel (Produção)</span>
                           <ul className="list-disc list-inside space-y-1 pl-1">
                             <li>Vá no painel da <strong>Vercel</strong> e abra a página do seu projeto.</li>
                             <li>Acesse a aba <strong>Settings</strong> &gt; <strong>Environment Variables</strong>.</li>
-                            <li>Adicione uma nova variável chamada <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono font-semibold text-gray-800">SUPABASE_SERVICE_ROLE_KEY</code></li>
+                            <li>Adicione uma nova variável chamada <code className="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded font-mono font-semibold text-gray-800 dark:text-zinc-200">SUPABASE_SERVICE_ROLE_KEY</code></li>
                             <li>Cole a chave de serviço que você copiou do Supabase.</li>
                             <li><strong>Crucial:</strong> Após salvar a variável, você precisa fazer um novo Deploy (Redeploy) no painel da Vercel para que as alterações entrem em vigor.</li>
                           </ul>
                         </div>
 
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100">
-                          <span className="font-bold text-indigo-600 block mb-1">3. Configuração Local (Desenvolvimento)</span>
-                          <p>Caso esteja executando o projeto localmente em seu computador, crie/edite o arquivo <code className="bg-gray-100 px-1 py-0.5 rounded font-mono font-semibold text-gray-800">.env</code> na raiz do projeto e insira a linha:</p>
+                        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.06]">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">3. Configuração Local (Desenvolvimento)</span>
+                          <p>Caso esteja executando o projeto localmente em seu computador, crie/edite o arquivo <code className="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded font-mono font-semibold text-gray-800 dark:text-zinc-200">.env</code> na raiz do projeto e insira a linha:</p>
                           <pre className="mt-1.5 bg-gray-950 text-indigo-200 p-2.5 rounded-lg font-mono text-[10px] overflow-x-auto">
                             {"SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_aqui"}
                           </pre>
@@ -3055,25 +3292,25 @@ Escalas GMNL ${year}`;
                     </div>
                   </div>
                 ) : usersList.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-500 dark:text-zinc-400">
                     <p>Nenhum usuário encontrado.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                      <thead className="bg-gray-50 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 font-bold uppercase text-xs">
                         <tr>
                           <th className="px-4 py-3 rounded-tl-xl">Email</th>
                           <th className="px-4 py-3">Criado em</th>
                           <th className="px-4 py-3 rounded-tr-xl">Último Acesso</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06]">
                         {usersList.map((u: any) => (
-                          <tr key={u.id} className="hover:bg-gray-50 transition-colors tabular-nums">
-                            <td className="px-4 py-3 font-medium text-gray-900">{u.email}</td>
-                            <td className="px-4 py-3 text-gray-500">{new Date(u.created_at).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 text-gray-500">
+                          <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors tabular-nums">
+                            <td className="px-4 py-3 font-medium text-gray-900 dark:text-zinc-100">{u.email}</td>
+                            <td className="px-4 py-3 text-gray-500 dark:text-zinc-400">{new Date(u.created_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-gray-500 dark:text-zinc-400">
                               {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Nunca'}
                             </td>
                           </tr>
@@ -3115,12 +3352,12 @@ Escalas GMNL ${year}`;
               rightContent={
                 <>
                   {['fin_dashboard', 'fin_extract', 'fin_credit'].includes(activeTab) && (
-                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-200">
-                      <div className="flex items-center gap-1.5 pl-2 text-gray-400">
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-zinc-900 p-1 rounded-xl border border-gray-200 dark:border-white/[0.08]">
+                      <div className="flex items-center gap-1.5 pl-2 text-gray-400 dark:text-zinc-500">
                         <Calendar size={14} />
                       </div>
                       <select 
-                        className="bg-transparent border-0 py-1.5 pr-2 pl-1 text-xs md:text-sm font-bold text-gray-700 focus:outline-none cursor-pointer"
+                        className="bg-transparent border-0 py-1.5 pr-2 pl-1 text-xs md:text-sm font-bold text-gray-700 dark:text-zinc-200 focus:outline-none cursor-pointer"
                         value={finFilter.month}
                         onChange={(e) => setFinFilter({ ...finFilter, month: Number(e.target.value) })}
                       >
@@ -3128,9 +3365,9 @@ Escalas GMNL ${year}`;
                           <option key={i} value={i}>{m}</option>
                         ))}
                       </select>
-                      <span className="text-gray-300">/</span>
+                      <span className="text-gray-300 dark:text-zinc-600">/</span>
                       <select 
-                        className="bg-transparent border-0 py-1.5 pr-2 pl-1 text-xs md:text-sm font-bold text-gray-700 focus:outline-none cursor-pointer"
+                        className="bg-transparent border-0 py-1.5 pr-2 pl-1 text-xs md:text-sm font-bold text-gray-700 dark:text-zinc-200 focus:outline-none cursor-pointer"
                         value={finFilter.year}
                         onChange={(e) => setFinFilter({ ...finFilter, year: Number(e.target.value) })}
                       >
@@ -3144,7 +3381,7 @@ Escalas GMNL ${year}`;
                   {activeTab === 'fin_dashboard' && (
                     <button
                       onClick={exportFinancialDashboardPDF}
-                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors text-xs font-bold shadow-sm"
+                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/20 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-colors text-xs font-bold shadow-sm"
                       title="Exportar Relatório PDF"
                     >
                       <Download size={15} />
@@ -3158,7 +3395,7 @@ Escalas GMNL ${year}`;
                         setEditingFinTransaction(null);
                         setActiveTab('fin_transactions');
                       }}
-                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs font-bold shadow-sm shadow-emerald-200"
+                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs font-bold shadow-sm shadow-emerald-200 dark:shadow-none"
                     >
                       <Plus size={15} />
                       <span className="hidden sm:inline">Novo Lançamento</span>
@@ -3168,7 +3405,7 @@ Escalas GMNL ${year}`;
                   {activeTab === 'fin_transactions' && (
                     <button
                       onClick={() => setActiveTab('fin_extract')}
-                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-xs font-bold"
+                      className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.14] transition-colors text-xs font-bold"
                     >
                       <Search size={15} />
                       <span>Ver Extrato</span>
@@ -3227,13 +3464,13 @@ Escalas GMNL ${year}`;
 
               {/* Alerts */}
               {(finDashboard?.month_expense > finDashboard?.month_income) && (
-                <div className="mb-6 bg-red-50/80 border border-red-200/80 p-4 rounded-2xl flex items-center gap-3 text-red-800 text-sm shadow-sm">
-                  <div className="p-2 bg-red-100 rounded-xl shrink-0">
-                    <AlertTriangle size={18} className="text-red-600" />
+                <div className="mb-6 bg-red-50/80 dark:bg-red-500/15 border border-red-200/80 dark:border-red-500/25 p-4 rounded-2xl flex items-center gap-3 text-red-800 dark:text-red-200 text-sm shadow-sm">
+                  <div className="p-2 bg-red-100 dark:bg-red-500/20 rounded-xl shrink-0">
+                    <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-red-900 text-sm">Atenção ao Déficit Mensal</p>
-                    <p className="text-xs text-red-700">
+                    <p className="font-bold text-red-900 dark:text-red-200 text-sm">Atenção ao Déficit Mensal</p>
+                    <p className="text-xs text-red-700 dark:text-red-300">
                       As despesas superam as receitas deste mês em R$ {(finDashboard.month_expense - finDashboard.month_income).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.
                     </p>
                   </div>
@@ -3266,13 +3503,13 @@ Escalas GMNL ${year}`;
                 const totalExp = chartData.reduce((sum, item) => sum + item.value, 0);
 
                 return (
-                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                  <div className="bg-white dark:bg-[#1c1c1e] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6">
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
                       <div className="flex items-center gap-2">
-                        <PieChart size={18} className="text-indigo-600" />
-                        <h3 className="text-sm sm:text-base font-bold text-gray-800 tracking-tight">Distribuição das Despesas por Categoria</h3>
+                        <PieChart size={18} className="text-indigo-600 dark:text-indigo-400" />
+                        <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-zinc-100 tracking-tight">Distribuição das Despesas por Categoria</h3>
                       </div>
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider tabular-nums">
+                      <span className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider tabular-nums">
                         Total: R$ {totalExp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -3295,7 +3532,8 @@ Escalas GMNL ${year}`;
                               ))}
                             </Pie>
                             <Tooltip 
-                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                              contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#18181b', color: '#f4f4f5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)' }}
+                              itemStyle={{ color: '#f4f4f5' }}
                               formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
                             />
                           </RechartsPieChart>
@@ -3306,14 +3544,14 @@ Escalas GMNL ${year}`;
                         {chartData.map((entry, index) => {
                           const pct = totalExp > 0 ? ((entry.value / totalExp) * 100).toFixed(0) : '0';
                           return (
-                            <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                            <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] text-xs">
                               <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                <span className="text-gray-700 font-medium truncate">{entry.name}</span>
+                                <span className="text-gray-700 dark:text-zinc-300 font-medium truncate">{entry.name}</span>
                               </div>
                               <div className="text-right shrink-0 ml-2 tabular-nums">
-                                <span className="font-bold text-gray-900 block">R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                <span className="text-[10px] text-gray-400 font-semibold">{pct}%</span>
+                                <span className="font-bold text-gray-900 dark:text-zinc-100 block">R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-semibold">{pct}%</span>
                               </div>
                             </div>
                           );
@@ -3333,24 +3571,24 @@ Escalas GMNL ${year}`;
                         <div 
                           key={index} 
                           onClick={() => setSelectedAccountForDetails(acc)}
-                          className="flex justify-between items-center p-3.5 bg-gray-50/70 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
+                          className="flex justify-between items-center p-3.5 bg-gray-50/70 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 shadow-sm border border-gray-100 dark:border-white/[0.08] flex items-center justify-center text-gray-500 dark:text-zinc-300 shrink-0">
                               {acc.type === 'dinheiro' ? <Banknote size={16} /> : <CreditCard size={16} />}
                             </div>
                             <div className="min-w-0">
-                              <span className="font-bold text-gray-800 text-sm block truncate">{acc.name}</span>
-                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{acc.type}</span>
+                              <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm block truncate">{acc.name}</span>
+                              <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-wider">{acc.type}</span>
                             </div>
                           </div>
-                          <span className={cn("font-bold text-sm shrink-0 ml-2 tabular-nums", acc.balance < 0 ? "text-red-600" : "text-emerald-600")}>
+                          <span className={cn("font-bold text-sm shrink-0 ml-2 tabular-nums", acc.balance < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
                             R$ {Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-400">
+                      <div className="text-center py-8 text-gray-400 dark:text-zinc-500">
                         <CreditCard size={32} className="mx-auto mb-2 opacity-20" />
                         <p className="text-sm">Nenhuma conta cadastrada.</p>
                       </div>
@@ -3362,20 +3600,20 @@ Escalas GMNL ${year}`;
                   <div className="space-y-3">
                     {finDashboard?.responsibility_summary && Object.entries(finDashboard.responsibility_summary).length > 0 ? (
                       Object.entries(finDashboard.responsibility_summary).map(([name, amount]: [string, any]) => (
-                        <div key={name} className="flex justify-between items-center p-3.5 bg-indigo-50/30 rounded-xl border border-indigo-100/50">
+                        <div key={name} className="flex justify-between items-center p-3.5 bg-indigo-50/30 dark:bg-indigo-500/10 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xs shrink-0">
                               {name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="font-bold text-gray-800 text-sm truncate">{name}</span>
+                            <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm truncate">{name}</span>
                           </div>
-                          <span className="font-bold text-indigo-600 text-sm shrink-0 ml-2 tabular-nums">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-sm shrink-0 ml-2 tabular-nums">
                             R$ {Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-400">
+                      <div className="text-center py-8 text-gray-400 dark:text-zinc-500">
                         <Users size={32} className="mx-auto mb-2 opacity-20" />
                         <p className="text-sm">Nenhuma divisão registrada para este mês.</p>
                       </div>
@@ -3386,16 +3624,16 @@ Escalas GMNL ${year}`;
 
               {/* Modal for Account Details */}
               {selectedAccountForDetails && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedAccountForDetails(null)}>
-                  <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedAccountForDetails(null)}>
+                  <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-xl border border-transparent dark:border-white/[0.08] w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="p-6 border-b border-gray-100 dark:border-white/[0.06] flex justify-between items-center">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-zinc-100">
                           {selectedAccountForDetails.name}
                         </h3>
-                        <p className="text-sm text-gray-500 mt-1">Adesão / Responsabilidade no Mês</p>
+                        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Adesão / Responsabilidade no Mês</p>
                       </div>
-                      <button onClick={() => setSelectedAccountForDetails(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                      <button onClick={() => setSelectedAccountForDetails(null)} className="p-2 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-full transition-colors">
                         <X size={24} />
                       </button>
                     </div>
@@ -3403,21 +3641,21 @@ Escalas GMNL ${year}`;
                       {selectedAccountForDetails.responsibles && Object.keys(selectedAccountForDetails.responsibles).length > 0 ? (
                         <div className="space-y-3">
                           {Object.entries(selectedAccountForDetails.responsibles).map(([name, amount]: [string, any]) => (
-                            <div key={name} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div key={name} className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06]">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs">
                                   {name.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="font-bold text-gray-700">{name}</span>
+                                <span className="font-bold text-gray-700 dark:text-zinc-200">{name}</span>
                               </div>
-                              <span className="font-bold text-indigo-600 tabular-nums">
+                              <span className="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
                                 R$ {Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-gray-500 dark:text-zinc-400">
                           Nenhuma responsabilidade registrada para esta conta neste mês.
                         </div>
                       )}
@@ -3433,11 +3671,11 @@ Escalas GMNL ${year}`;
           {activeTab === 'fin_extract' && (
             <motion.div key="fin_extract" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }}>
               {/* Standardized Filters */}
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6">
                 <div className="flex items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-2">
-                    <Filter size={18} className="text-indigo-600" />
-                    <h3 className="text-sm font-bold text-gray-800">Filtros de Movimentação</h3>
+                    <Filter size={18} className="text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-zinc-100">Filtros de Movimentação</h3>
                   </div>
                   <button 
                     onClick={() => setFinExtractFilter({
@@ -3450,7 +3688,7 @@ Escalas GMNL ${year}`;
                       showAllMonths: false,
                       sortBy: 'date'
                     })}
-                    className="text-xs font-bold text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-xl transition-all"
+                    className="text-xs font-bold text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 px-3 py-1.5 rounded-xl transition-all"
                   >
                     Limpar Filtros
                   </button>
@@ -3459,9 +3697,9 @@ Escalas GMNL ${year}`;
                 {/* Row 1: Primary Filters */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tipo</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Tipo</label>
                     <select 
-                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="w-full h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-200 cursor-pointer"
                       value={finExtractFilter.type}
                       onChange={(e) => setFinExtractFilter({ ...finExtractFilter, type: e.target.value })}
                     >
@@ -3472,9 +3710,9 @@ Escalas GMNL ${year}`;
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Status</label>
                     <select 
-                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="w-full h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-200 cursor-pointer"
                       value={finExtractFilter.status}
                       onChange={(e) => setFinExtractFilter({ ...finExtractFilter, status: e.target.value })}
                     >
@@ -3485,9 +3723,9 @@ Escalas GMNL ${year}`;
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Ordenação</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Ordenação</label>
                     <select 
-                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="w-full h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-200 cursor-pointer"
                       value={finExtractFilter.sortBy}
                       onChange={(e) => setFinExtractFilter({ ...finExtractFilter, sortBy: e.target.value })}
                     >
@@ -3497,15 +3735,15 @@ Escalas GMNL ${year}`;
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Período</label>
-                    <label className="flex items-center gap-2 h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Período</label>
+                    <label className="flex items-center gap-2 h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
                       <input 
                         type="checkbox" 
                         checked={finExtractFilter.showAllMonths}
                         onChange={(e) => setFinExtractFilter({ ...finExtractFilter, showAllMonths: e.target.checked })}
-                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-zinc-600 focus:ring-indigo-500"
                       />
-                      <span className="text-xs font-bold text-gray-700 truncate">Ver Todos os Meses</span>
+                      <span className="text-xs font-bold text-gray-700 dark:text-zinc-200 truncate">Ver Todos os Meses</span>
                     </label>
                   </div>
                 </div>
@@ -3513,9 +3751,9 @@ Escalas GMNL ${year}`;
                 {/* Row 2: Secondary Refinements */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Categoria</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Categoria</label>
                     <select 
-                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="w-full h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-200 cursor-pointer"
                       value={finExtractFilter.category_id}
                       onChange={(e) => setFinExtractFilter({ ...finExtractFilter, category_id: e.target.value })}
                     >
@@ -3525,9 +3763,9 @@ Escalas GMNL ${year}`;
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Conta / Cartão</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Conta / Cartão</label>
                     <select 
-                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="w-full h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-200 cursor-pointer"
                       value={finExtractFilter.account_id}
                       onChange={(e) => setFinExtractFilter({ ...finExtractFilter, account_id: e.target.value })}
                     >
@@ -3537,9 +3775,9 @@ Escalas GMNL ${year}`;
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Responsável</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Responsável</label>
                     <select 
-                      className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 cursor-pointer"
+                      className="w-full h-10 px-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-semibold text-gray-700 dark:text-zinc-200 cursor-pointer"
                       value={finExtractFilter.responsible}
                       onChange={(e) => setFinExtractFilter({ ...finExtractFilter, responsible: e.target.value })}
                     >
@@ -3549,13 +3787,13 @@ Escalas GMNL ${year}`;
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Busca</label>
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Busca</label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" size={15} />
                       <input 
                         type="text"
                         placeholder="Buscar por descrição..."
-                        className="w-full h-10 pl-9 pr-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-medium text-gray-700"
+                        className="w-full h-10 pl-9 pr-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xs font-medium text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                         value={finExtractFilter.search}
                         onChange={(e) => setFinExtractFilter({ ...finExtractFilter, search: e.target.value })}
                       />
@@ -3601,10 +3839,10 @@ Escalas GMNL ${year}`;
                 if (chartData.length === 0) return null;
 
                 return (
-                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6" id="expenses-pie-chart-container">
+                  <div className="bg-white dark:bg-[#1c1c1e] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6" id="expenses-pie-chart-container">
                     <div className="flex items-center gap-2 mb-5">
-                      <PieChart size={18} className="text-indigo-600" />
-                      <h3 className="text-sm sm:text-base font-bold text-gray-800 tracking-tight">Despesas por Categoria (Filtradas)</h3>
+                      <PieChart size={18} className="text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-zinc-100 tracking-tight">Despesas por Categoria (Filtradas)</h3>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
                       <div className="lg:col-span-5 h-60 w-full">
@@ -3624,7 +3862,8 @@ Escalas GMNL ${year}`;
                               ))}
                             </Pie>
                             <Tooltip 
-                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                              contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#18181b', color: '#f4f4f5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)' }}
+                              itemStyle={{ color: '#f4f4f5' }}
                               formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
                             />
                           </RechartsPieChart>
@@ -3632,12 +3871,12 @@ Escalas GMNL ${year}`;
                       </div>
                       <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-56 pr-1">
                         {chartData.map((entry, index) => (
-                          <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                          <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] text-xs">
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                              <span className="text-gray-700 font-medium truncate">{entry.name}</span>
+                              <span className="text-gray-700 dark:text-zinc-300 font-medium truncate">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-gray-900 shrink-0 ml-2 tabular-nums">
+                            <span className="font-bold text-gray-900 dark:text-zinc-100 shrink-0 ml-2 tabular-nums">
                               R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -3686,25 +3925,25 @@ Escalas GMNL ${year}`;
                   <div className="space-y-4">
                     {/* Header List Summary */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider tabular-nums">
+                      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider tabular-nums">
                         {filteredTransactions.length} {filteredTransactions.length === 1 ? 'Lançamento Encontrado' : 'Lançamentos Encontrados'}
                       </span>
                       <div className="flex flex-wrap items-center gap-3 text-xs font-bold tabular-nums">
-                        <span className="text-emerald-600">+ R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span className="text-red-600">- R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span className={cn(totalIncome - totalExpense >= 0 ? "text-indigo-600" : "text-amber-600")}>
+                        <span className="text-emerald-600 dark:text-emerald-400">+ R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-red-600 dark:text-red-400">- R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className={cn(totalIncome - totalExpense >= 0 ? "text-indigo-600 dark:text-indigo-400" : "text-amber-600 dark:text-amber-400")}>
                           Saldo: R$ {(totalIncome - totalExpense).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
 
                     {filteredTransactions.length === 0 ? (
-                      <div className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center">
-                        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3 text-gray-400">
+                      <div className="bg-white dark:bg-[#1c1c1e] p-12 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm text-center">
+                        <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-3 text-gray-400 dark:text-zinc-500">
                           <Search size={24} />
                         </div>
-                        <h4 className="font-bold text-gray-800 text-base mb-1">Nenhum lançamento encontrado</h4>
-                        <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
+                        <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-base mb-1">Nenhum lançamento encontrado</h4>
+                        <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-sm mx-auto mb-4">
                           Não foram encontrados registros para os filtros selecionados ou no período consultado.
                         </p>
                         <button
@@ -3727,36 +3966,36 @@ Escalas GMNL ${year}`;
                         const account = finAccounts.find(a => a.id === t.account_id);
                         
                         return (
-                          <div key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:border-indigo-200 transition-all">
+                          <div key={t.id} className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden group hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all">
                             <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                               <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
                                 <div className={cn(
                                   "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0",
-                                  t.type === 'receita' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                                  t.type === 'receita' ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400"
                                 )}>
                                   {t.type === 'receita' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className="font-bold text-gray-800 text-sm truncate max-w-full">{displayDescription}</h4>
+                                    <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-sm truncate max-w-full">{displayDescription}</h4>
                                     {isLongDescription && (
-                                      <button onClick={() => toggleTransaction(t.id)} className="text-indigo-600 hover:text-indigo-800 shrink-0">
+                                      <button onClick={() => toggleTransaction(t.id)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 shrink-0">
                                         {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                       </button>
                                     )}
                                     {t.is_installment && (
-                                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+                                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2 py-0.5 rounded-full shrink-0">
                                         Parcela {t.installment_number}/{t.total_installments}
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-[11px] text-gray-500 font-medium mt-0.5 truncate">
+                                  <p className="text-[11px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
                                     {category?.name || 'Sem Categoria'} • {account?.name || 'Sem Conta'} • Venc: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
-                                <p className={cn("font-bold tracking-tight tabular-nums text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-3 sm:pt-0">
+                                <p className={cn("font-bold tracking-tight tabular-nums text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
                                   {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                                 <div className="flex items-center justify-end gap-2 sm:mt-1">
@@ -3779,35 +4018,35 @@ Escalas GMNL ${year}`;
                                         splits: t.splits || []
                                       });
                                       setActiveTab('fin_transactions');
-                                    }} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar"><Edit2 size={15} /></button>
-                                    <button onClick={() => handleDeleteFinTransaction(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={15} /></button>
+                                    }} className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-colors" title="Editar"><Edit2 size={15} /></button>
+                                    <button onClick={() => handleDeleteFinTransaction(t.id)} className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-colors" title="Excluir"><Trash2 size={15} /></button>
                                   </div>
                                 </div>
                               </div>
                             </div>
                             {t.splits && t.splits.length > 0 && (
-                              <div className="px-4 pb-3 pt-2 bg-gray-50/50 border-t border-gray-50 flex flex-wrap gap-2">
+                              <div className="px-4 pb-3 pt-2 bg-gray-50/50 dark:bg-white/[0.03] border-t border-gray-50 dark:border-white/[0.06] flex flex-wrap gap-2">
                                 {t.splits.map((s, i) => (
                                   <button 
                                     key={i} 
                                     onClick={() => handleToggleSplitStatus(t, i)}
                                     className={cn(
                                       "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-xs transition-all",
-                                      s.status === 'pago' ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-white border-gray-200 text-gray-700"
+                                      s.status === 'pago' ? "bg-emerald-50 dark:bg-emerald-500/15 border-emerald-100 dark:border-emerald-500/25 text-emerald-800 dark:text-emerald-300" : "bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200"
                                     )}
                                     title="Clique para alternar status deste responsável"
                                   >
                                     <div className={cn(
                                       "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold",
-                                      s.status === 'pago' ? "bg-emerald-200 text-emerald-800" : "bg-indigo-100 text-indigo-700"
+                                      s.status === 'pago' ? "bg-emerald-200 dark:bg-emerald-500/30 text-emerald-800 dark:text-emerald-200" : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300"
                                     )}>
                                       {s.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <span className={cn("text-[10px] font-bold", s.status === 'pago' ? "line-through text-emerald-700" : "text-gray-700")}>{s.name}:</span>
-                                    <span className={cn("text-[10px] font-bold tabular-nums", s.status === 'pago' ? "text-emerald-700" : "text-indigo-600")}>
+                                    <span className={cn("text-[10px] font-bold", s.status === 'pago' ? "line-through text-emerald-700 dark:text-emerald-300" : "text-gray-700 dark:text-zinc-200")}>{s.name}:</span>
+                                    <span className={cn("text-[10px] font-bold tabular-nums", s.status === 'pago' ? "text-emerald-700 dark:text-emerald-300" : "text-indigo-600 dark:text-indigo-400")}>
                                       R$ {Number(s.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>
-                                    {s.status === 'pago' && <Check size={10} className="text-emerald-600" />}
+                                    {s.status === 'pago' && <Check size={10} className="text-emerald-600 dark:text-emerald-400" />}
                                   </button>
                                 ))}
                               </div>
@@ -3826,9 +4065,9 @@ Escalas GMNL ${year}`;
             <motion.div key="fin_credit" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }}>
               <Card title="Gestão de Crédito" icon={CreditCard}>
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Selecione o Cartão</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Selecione o Cartão</label>
                   <select
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     value={selectedCreditCardId}
                     onChange={(e) => setSelectedCreditCardId(e.target.value)}
                   >
@@ -3947,14 +4186,14 @@ Escalas GMNL ${year}`;
 
                       return (
                         <div className="space-y-6">
-                          <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex flex-col gap-4">
+                          <div className="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/20 flex flex-col gap-4">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                               <div className="flex flex-col gap-1 tabular-nums">
-                                <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Período da Fatura</p>
-                                <p className="text-base md:text-lg font-bold tracking-tight text-indigo-900">
+                                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">Período da Fatura</p>
+                                <p className="text-base md:text-lg font-bold tracking-tight text-indigo-900 dark:text-indigo-200">
                                   {invoiceStart?.toLocaleDateString()} até {invoiceEnd?.toLocaleDateString()}
                                 </p>
-                                <p className="text-xs text-indigo-500 font-medium">
+                                <p className="text-xs text-indigo-500 dark:text-indigo-300/80 font-medium">
                                   Vencimento: {selectedCreditCardId === 'all' ? 'Vários' : new Date(currentYear, currentMonth, Number(dueDayDisplay)).toLocaleDateString()}
                                 </p>
                               </div>
@@ -4149,7 +4388,7 @@ Escalas GMNL ${year}`;
                                     
                                     doc.save(`fatura_${cardName}_${finFilter.month + 1}_${finFilter.year}.pdf`);
                                   }}
-                                  className="h-10 px-4 bg-white text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                                  className="h-10 px-4 bg-white dark:bg-[#1c1c1e] text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-500/15 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                                 >
                                   <Download size={15} />
                                   <span>Exportar PDF</span>
@@ -4158,7 +4397,7 @@ Escalas GMNL ${year}`;
                                 <select
                                   value={selectedPersonFilter}
                                   onChange={(e) => setSelectedPersonFilter(e.target.value)}
-                                  className="h-10 px-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 font-bold text-xs transition-colors focus:outline-none cursor-pointer"
+                                  className="h-10 px-3 bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 rounded-xl hover:bg-indigo-50 dark:hover:bg-white/[0.06] font-bold text-xs transition-colors focus:outline-none cursor-pointer"
                                 >
                                   <option value="all">Todos os Responsáveis</option>
                                   {availablePeople.map(p => (
@@ -4167,7 +4406,7 @@ Escalas GMNL ${year}`;
                                 </select>
                               </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-indigo-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-indigo-100 dark:border-indigo-500/20">
                               <FinancialMetricCard
                                 title="Total da Fatura"
                                 value={totalInvoice}
@@ -4194,28 +4433,28 @@ Escalas GMNL ${year}`;
 
                           <div className="space-y-2">
                             {invoiceItems.length === 0 ? (
-                              <p className="text-center text-gray-500 py-8">Nenhuma compra nesta fatura.</p>
+                              <p className="text-center text-gray-500 dark:text-zinc-400 py-8">Nenhuma compra nesta fatura.</p>
                             ) : (
                               invoiceItems.map(t => (
-                                  <div key={t.id} className="bg-white border border-gray-100 rounded-xl hover:shadow-sm transition-shadow overflow-hidden">
+                                  <div key={t.id} className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/[0.08] rounded-xl hover:shadow-sm transition-shadow overflow-hidden">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-3">
                                       <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                                        <div className={cn("p-2 rounded-lg shrink-0 mt-1 sm:mt-0", t.type === 'receita' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                                        <div className={cn("p-2 rounded-lg shrink-0 mt-1 sm:mt-0", t.type === 'receita' ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400")}>
                                           {t.type === 'receita' ? <TrendingUp size={18} /> : <ShoppingCart size={18} />}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-gray-900 truncate">{t.description}</p>
-                                          <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap mt-1 sm:mt-0 tabular-nums">
+                                          <p className="font-medium text-gray-900 dark:text-zinc-100 truncate">{t.description}</p>
+                                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-400 flex-wrap mt-1 sm:mt-0 tabular-nums">
                                             <span>Vencimento: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString() : 'N/A'}</span>
                                             {t.is_installment && (
-                                              <span className="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">
+                                              <span className="bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">
                                                 {t.installment_number}/{t.total_installments}
                                               </span>
                                             )}
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 flex-shrink-0 border-t sm:border-t-0 border-gray-50 pt-2 sm:pt-0">
+                                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 flex-shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-2 sm:pt-0">
                                         {(() => {
                                           const personSplit = selectedPersonFilter !== 'all' 
                                             ? t.splits?.find((s: any) => s.name.toLowerCase() === selectedPersonFilter.toLowerCase())
@@ -4226,7 +4465,7 @@ Escalas GMNL ${year}`;
 
                                           return (
                                             <>
-                                              <span className={cn("font-bold text-sm sm:text-base whitespace-nowrap tabular-nums", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                                              <span className={cn("font-bold text-sm sm:text-base whitespace-nowrap tabular-nums", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
                                                 {t.type === 'despesa' ? '-' : '+'} R$ {Number(displayAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                               </span>
                                               <button
@@ -4256,8 +4495,8 @@ Escalas GMNL ${year}`;
                                                 className={cn(
                                                   "px-3 py-1 rounded-lg text-xs font-semibold transition-colors border",
                                                   displayStatus === 'pago' 
-                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100" 
-                                                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                                                    ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/25" 
+                                                    : "bg-gray-50 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 border-gray-200 dark:border-white/[0.08] hover:bg-gray-100 dark:hover:bg-white/[0.08]"
                                                 )}
                                               >
                                                 {displayStatus === 'pago' ? 'Pago' : 'Pendente'}
@@ -4267,7 +4506,7 @@ Escalas GMNL ${year}`;
                                         })()}
                                         <button 
                                           onClick={() => handleDeleteFinTransaction(t.id)}
-                                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                          className="p-2 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                                           title="Excluir lançamento"
                                         >
                                           <Trash2 size={16} />
@@ -4275,19 +4514,19 @@ Escalas GMNL ${year}`;
                                       </div>
                                     </div>
                                     {t.splits && t.splits.length > 0 && (
-                                      <div className="px-3 pb-3 pt-1 bg-gray-50/30 border-t border-gray-50 flex flex-wrap gap-1.5">
+                                      <div className="px-3 pb-3 pt-1 bg-gray-50/30 dark:bg-white/[0.02] border-t border-gray-50 dark:border-white/[0.06] flex flex-wrap gap-1.5">
                                         {t.splits.map((s: any, i: number) => (
                                           <button 
                                             key={i} 
                                             onClick={() => handleToggleSplitStatus(t, i)}
                                             className={cn(
                                               "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-bold transition-all",
-                                              s.status === 'pago' ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-white border-gray-100 text-gray-500"
+                                              s.status === 'pago' ? "bg-emerald-50 dark:bg-emerald-500/15 border-emerald-100 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-white dark:bg-zinc-900 border-gray-100 dark:border-white/[0.08] text-gray-500 dark:text-zinc-400"
                                             )}
                                           >
                                             <div className={cn(
                                               "w-3 h-3 rounded-full flex items-center justify-center text-[7px]",
-                                              s.status === 'pago' ? "bg-emerald-200" : "bg-indigo-100 text-indigo-600"
+                                              s.status === 'pago' ? "bg-emerald-200 dark:bg-emerald-500/30" : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300"
                                             )}>
                                               {s.name.charAt(0).toUpperCase()}
                                             </div>
@@ -4314,10 +4553,10 @@ Escalas GMNL ${year}`;
             <motion.div key="fin_transactions" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }} className="space-y-6">
               <Card title={editingFinTransaction ? "Editar Lançamento" : "Novo Lançamento"} icon={editingFinTransaction ? Edit2 : Plus}>
                 {editingFinTransaction && (
-                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
+                  <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-xl flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 min-w-0">
-                      <AlertCircle size={16} className="text-amber-600 shrink-0" />
-                      <span className="font-bold text-amber-900 truncate">
+                      <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span className="font-bold text-amber-900 dark:text-amber-200 truncate">
                         Editando lançamento #{editingFinTransaction.id}: "{editingFinTransaction.description}"
                       </span>
                     </div>
@@ -4339,21 +4578,23 @@ Escalas GMNL ${year}`;
                           splits: []
                         });
                       }}
-                      className="text-xs font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer shrink-0 ml-2"
+                      className="text-xs font-bold text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-amber-100 underline cursor-pointer shrink-0 ml-2"
                     >
                       Cancelar
                     </button>
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                   <Input 
                     label="Descrição" 
+                    noMargin
                     value={finTransactionForm.description} 
                     onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, description: e.target.value })} 
                   />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input 
                       label="Valor Bruto (R$)" 
+                      noMargin
                       type="number" 
                       step="0.01"
                       value={finTransactionForm.amount} 
@@ -4361,6 +4602,7 @@ Escalas GMNL ${year}`;
                     />
                     <Input 
                       label="Desconto (R$)" 
+                      noMargin
                       type="number" 
                       step="0.01"
                       placeholder="0.00"
@@ -4369,17 +4611,17 @@ Escalas GMNL ${year}`;
                     />
                   </div>
                   {Number(finTransactionForm.discount) > 0 && (
-                    <div className="md:col-span-2 -mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
-                      <span className="font-semibold text-emerald-800">Valor Líquido com Desconto:</span>
-                      <span className="font-bold text-emerald-700 text-sm tabular-nums">
+                    <div className="md:col-span-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-semibold text-emerald-800 dark:text-emerald-200">Valor Líquido com Desconto:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 text-sm tabular-nums">
                         R$ {Math.max(0, (Number(finTransactionForm.amount) || 0) - (Number(finTransactionForm.discount) || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
-                  <div className="mb-4">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Tipo</label>
+                  <div className="w-full">
+                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Tipo</label>
                     <select
-                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
                       value={finTransactionForm.type}
                       onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, type: e.target.value })}
                     >
@@ -4387,10 +4629,10 @@ Escalas GMNL ${year}`;
                       <option value="receita">Receita</option>
                     </select>
                   </div>
-                  <div className="mb-4">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Categoria</label>
+                  <div className="w-full">
+                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Categoria</label>
                     <select
-                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
                       value={finTransactionForm.category_id}
                       onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, category_id: e.target.value })}
                     >
@@ -4400,10 +4642,10 @@ Escalas GMNL ${year}`;
                       ))}
                     </select>
                   </div>
-                  <div className="mb-4">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Conta</label>
+                  <div className="w-full">
+                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Conta</label>
                     <select
-                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
                       value={finTransactionForm.account_id}
                       onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, account_id: e.target.value })}
                     >
@@ -4415,14 +4657,16 @@ Escalas GMNL ${year}`;
                   </div>
                   <Input 
                     label="Data" 
+                    noMargin
+                    className="h-[42px]"
                     type="date" 
                     value={finTransactionForm.date} 
                     onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, date: e.target.value })} 
                   />
-                  <div className="mb-4">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+                  <div className="w-full">
+                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Status</label>
                     <select
-                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
                       value={finTransactionForm.status}
                       onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, status: e.target.value })}
                     >
@@ -4433,7 +4677,7 @@ Escalas GMNL ${year}`;
                 </div>
 
                 {/* Installment Options */}
-                <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-white/[0.04] rounded-2xl border border-gray-100 dark:border-white/[0.08]">
                   <div className="flex items-center gap-2 mb-4">
                     <input 
                       type="checkbox" 
@@ -4442,7 +4686,7 @@ Escalas GMNL ${year}`;
                       onChange={(e) => setFinTransactionForm({ ...finTransactionForm, is_installment: e.target.checked })}
                       className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
                     />
-                    <label htmlFor="is_installment" className="text-sm font-semibold text-gray-700">Compra Parcelada</label>
+                    <label htmlFor="is_installment" className="text-sm font-semibold text-gray-700 dark:text-zinc-200">Compra Parcelada</label>
                   </div>
                   
                   {finTransactionForm.is_installment && (
@@ -4454,7 +4698,7 @@ Escalas GMNL ${year}`;
                         value={finTransactionForm.total_installments} 
                         onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, total_installments: e.target.value })} 
                       />
-                      <p className="text-xs text-gray-500 mt-6 italic">
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-6 italic">
                         * Serão criados {finTransactionForm.total_installments} lançamentos mensais automáticos.
                       </p>
                     </div>
@@ -4462,18 +4706,18 @@ Escalas GMNL ${year}`;
                 </div>
 
                 {/* Split Responsibility */}
-                <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                <div className="mt-4 p-4 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <Users size={18} className="text-indigo-600" />
-                      <h4 className="text-sm font-bold text-gray-800">Divisão de Responsabilidade</h4>
+                      <Users size={18} className="text-indigo-600 dark:text-indigo-400" />
+                      <h4 className="text-sm font-bold text-gray-800 dark:text-zinc-100">Divisão de Responsabilidade</h4>
                     </div>
                     <button 
                       onClick={() => {
                         const newSplits = [...finTransactionForm.splits, { name: '', amount: 0 }];
                         setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
                       }}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1"
                     >
                       <Plus size={14} /> Adicionar Pessoa
                     </button>
@@ -4481,11 +4725,11 @@ Escalas GMNL ${year}`;
 
                   <div className="space-y-4 sm:space-y-3">
                     {finTransactionForm.splits.map((split, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-indigo-100 shadow-sm sm:shadow-none">
+                      <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end bg-white dark:bg-[#1c1c1e] sm:bg-transparent dark:sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-indigo-100 dark:border-indigo-500/20 shadow-sm sm:shadow-none">
                         <div className="flex-1">
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Responsável</label>
+                          <label className="block text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-2 ml-1">Responsável</label>
                           <select
-                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                            className="w-full px-5 py-3 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
                             value={split.name}
                             onChange={async (e) => {
                               if (e.target.value === 'ADD_NEW') {
@@ -4538,9 +4782,9 @@ Escalas GMNL ${year}`;
                           />
                         </div>
                         <div className="w-full sm:w-36">
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Status</label>
+                          <label className="block text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-2 ml-1">Status</label>
                           <select
-                            className="w-full px-5 py-3 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                            className="w-full px-5 py-3 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
                             value={split.status || 'pendente'}
                             onChange={(e: any) => {
                               const newSplits = [...finTransactionForm.splits];
@@ -4558,7 +4802,7 @@ Escalas GMNL ${year}`;
                               const newSplits = finTransactionForm.splits.filter((_, i) => i !== index);
                               setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
                             }}
-                            className="p-3 text-red-500 hover:bg-red-50 rounded-xl flex items-center justify-center transition-colors"
+                            className="p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-xl flex items-center justify-center transition-colors"
                             title="Remover responsável"
                           >
                             <Trash2 size={18} />
@@ -4567,12 +4811,12 @@ Escalas GMNL ${year}`;
                       </div>
                     ))}
                     {finTransactionForm.splits.length > 0 && (
-                      <div className="pt-2 border-t border-indigo-100 flex justify-between items-center">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Total Dividido:</span>
+                      <div className="pt-2 border-t border-indigo-100 dark:border-indigo-500/20 flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">Total Dividido:</span>
                         <span className={cn("font-bold tabular-nums", 
                           finTransactionForm.splits.reduce((sum, s) => sum + s.amount, 0) === Number(finTransactionForm.amount) 
-                            ? "text-emerald-600" 
-                            : "text-amber-600"
+                            ? "text-emerald-600 dark:text-emerald-400" 
+                            : "text-amber-600 dark:text-amber-400"
                         )}>
                           R$ {finTransactionForm.splits.reduce((sum, s) => sum + s.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
@@ -4600,7 +4844,7 @@ Escalas GMNL ${year}`;
                           splits: []
                         });
                       }}
-                      className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+                      className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors cursor-pointer"
                     >
                       Cancelar
                     </button>
@@ -4608,7 +4852,7 @@ Escalas GMNL ${year}`;
                   <button 
                     onClick={handleSaveFinTransaction}
                     disabled={!finTransactionForm.description || !finTransactionForm.amount || !finTransactionForm.category_id || !finTransactionForm.account_id}
-                    className="flex-1 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 dark:shadow-none disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Save size={16} />
                     {editingFinTransaction ? 'Atualizar Lançamento' : 'Salvar Lançamento'}
@@ -4618,7 +4862,7 @@ Escalas GMNL ${year}`;
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
                     Lançamentos do Mês ({finTransactions.filter(t => {
                       const [year, month] = t.date.split('-');
                       return Number(year) === finFilter.year && Number(month) - 1 === finFilter.month;
@@ -4626,7 +4870,7 @@ Escalas GMNL ${year}`;
                   </h3>
                   <button
                     onClick={() => setActiveTab('fin_extract')}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
                   >
                     <span>Ver Extrato Completo</span>
                     <ArrowRight size={14} />
@@ -4643,16 +4887,16 @@ Escalas GMNL ${year}`;
                   const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
 
                   return (
-                    <div key={t.id} className={cn("bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 group transition-all", t.status === 'pendente' ? 'opacity-70' : '')}>
+                    <div key={t.id} className={cn("bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col gap-3 group transition-all", t.status === 'pendente' ? 'opacity-70' : '')}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
-                          <div className={cn("p-3 rounded-xl shrink-0 mt-1 sm:mt-0", t.type === 'receita' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                          <div className={cn("p-3 rounded-xl shrink-0 mt-1 sm:mt-0", t.type === 'receita' ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400")}>
                             {t.type === 'receita' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h4 
-                                className={cn("font-bold text-gray-800 cursor-pointer truncate max-w-full", isLongDescription ? "hover:text-indigo-600" : "")}
+                                className={cn("font-bold text-gray-800 dark:text-zinc-100 cursor-pointer truncate max-w-full", isLongDescription ? "hover:text-indigo-600 dark:hover:text-indigo-400" : "")}
                                 onClick={() => isLongDescription && toggleTransaction(t.id)}
                               >
                                 {displayDescription}
@@ -4660,24 +4904,24 @@ Escalas GMNL ${year}`;
                               {isLongDescription && (
                                 <button 
                                   onClick={() => toggleTransaction(t.id)}
-                                  className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors shrink-0"
+                                  className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 px-3 py-1 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-colors shrink-0"
                                 >
                                   {isExpanded ? 'Ver menos' : 'Ver mais'}
                                 </button>
                               )}
                               {t.is_installment && (
-                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2 py-0.5 rounded-full shrink-0">
                                   Parcela {t.installment_number}/{t.total_installments}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5 truncate">
+                            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 truncate">
                               {formatDateString(t.date)} • {finCategories.find(c => c.id === t.category_id)?.name} • {finAccounts.find(a => a.id === t.account_id)?.name}
                             </p>
                             {t.splits && t.splits.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {t.splits.map((s, idx) => (
-                                  <span key={idx} className="text-[9px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                  <span key={idx} className="text-[9px] font-medium text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
                                     {s.name}: R$ {Number(s.amount).toFixed(2)}
                                   </span>
                                 ))}
@@ -4688,8 +4932,8 @@ Escalas GMNL ${year}`;
                             </div>
                           </div>
                         </div>
-                          <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
-                            <span className={cn("font-bold text-sm md:text-base tabular-nums", t.type === 'receita' ? "text-emerald-600" : "text-red-600")}>
+                          <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-3 sm:pt-0">
+                            <span className={cn("font-bold text-sm md:text-base tabular-nums", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
                               {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                             <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -4711,13 +4955,13 @@ Escalas GMNL ${year}`;
                                   }); 
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
-                                className="p-2 text-gray-400 hover:text-indigo-600 bg-gray-50 md:bg-transparent rounded-lg transition-all"
+                                className="p-2 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-50 dark:bg-white/[0.06] md:bg-transparent dark:md:bg-transparent rounded-lg transition-all"
                               >
                                 <Edit2 size={18} />
                               </button>
                               <button 
                                 onClick={() => handleDeleteFinTransaction(t.id)}
-                                className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 md:bg-transparent rounded-lg transition-all"
+                                className="p-2 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-white/[0.06] md:bg-transparent dark:md:bg-transparent rounded-lg transition-all"
                               >
                                 <Trash2 size={18} />
                               </button>
@@ -4734,10 +4978,10 @@ Escalas GMNL ${year}`;
           {activeTab === 'fin_settings' && (
             <motion.div key="fin_settings" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }} className="space-y-6">
               {/* Maintenance Tools Toolbar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-800">Ferramentas de Manutenção</h3>
-                  <p className="text-xs text-gray-500">Recálculo de vencimentos de cartões e diagnóstico</p>
+                  <h3 className="text-sm font-bold text-gray-800 dark:text-zinc-100">Ferramentas de Manutenção</h3>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">Recálculo de vencimentos de cartões e diagnóstico</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <button 
@@ -4770,7 +5014,7 @@ Escalas GMNL ${year}`;
                       }
                     }}
                     disabled={isUpdatingDueDates}
-                    className="h-10 px-3.5 bg-amber-50 border border-amber-200/80 text-amber-700 hover:text-amber-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                    className="h-10 px-3.5 bg-amber-50 dark:bg-amber-500/15 border border-amber-200/80 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs dark:shadow-none"
                   >
                     <Clock size={15} className={isUpdatingDueDates ? "animate-spin" : ""} /> 
                     {isUpdatingDueDates ? "Atualizando..." : "Recalcular Vencimentos"}
@@ -4793,7 +5037,7 @@ Escalas GMNL ${year}`;
                         }
                       }
                     }}
-                    className="h-10 px-3.5 bg-indigo-50 border border-indigo-200/80 text-indigo-700 hover:text-indigo-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    className="h-10 px-3.5 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-200/80 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs dark:shadow-none"
                   >
                     <Shield size={15} /> 
                     <span>Verificar Banco de Dados</span>
@@ -4828,21 +5072,21 @@ Escalas GMNL ${year}`;
                     <button 
                       onClick={handleSaveFinCategory}
                       disabled={!finCategoryForm.name}
-                      className="px-6 h-[48px] bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200 flex items-center justify-center shrink-0 cursor-pointer"
+                      className="px-6 h-[48px] bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center shrink-0 cursor-pointer"
                     >
                       <Plus size={20} />
                     </button>
                   </div>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {finCategories.map(c => (
-                      <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                      <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] group">
                         <div className="flex items-center gap-2">
                           <div className={cn("w-2 h-2 rounded-full", c.type === 'receita' ? "bg-emerald-500" : "bg-red-500")} />
-                          <span className="font-medium text-gray-700 text-sm">{c.name}</span>
+                          <span className="font-medium text-gray-700 dark:text-zinc-200 text-sm">{c.name}</span>
                         </div>
                         <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setEditingFinCategory(c); setFinCategoryForm({ name: c.name, type: c.type }); }} className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-white" title="Editar"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDeleteFinCategory(c.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-white" title="Excluir"><Trash2 size={14} /></button>
+                          <button onClick={() => { setEditingFinCategory(c); setFinCategoryForm({ name: c.name, type: c.type }); }} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Editar"><Edit2 size={14} /></button>
+                          <button onClick={() => handleDeleteFinCategory(c.id)} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Excluir"><Trash2 size={14} /></button>
                         </div>
                       </div>
                     ))}
@@ -4896,17 +5140,17 @@ Escalas GMNL ${year}`;
                     <button 
                       onClick={handleSaveFinAccount}
                       disabled={!finAccountForm.name}
-                      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-indigo-200"
+                      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-indigo-200 dark:shadow-none"
                     >
                       {editingFinAccount ? 'Atualizar Conta' : 'Adicionar Conta'}
                     </button>
                   </div>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {finAccounts.map(a => (
-                      <div key={a.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                      <div key={a.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] group">
                         <div>
-                          <span className="font-bold text-gray-800 text-sm block">{a.name}</span>
-                          <span className="text-xs text-gray-500 uppercase">{a.type} • Inicial: R$ {Number(a.initial_balance).toFixed(2)}</span>
+                          <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm block">{a.name}</span>
+                          <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase">{a.type} • Inicial: R$ {Number(a.initial_balance).toFixed(2)}</span>
                         </div>
                         <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <button onClick={() => { 
@@ -4918,8 +5162,8 @@ Escalas GMNL ${year}`;
                               closing_day: a.closing_day?.toString() || '',
                               due_day: a.due_day?.toString() || ''
                             }); 
-                          }} className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-white" title="Editar"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDeleteFinAccount(a.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-white" title="Excluir"><Trash2 size={14} /></button>
+                          }} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Editar"><Edit2 size={14} /></button>
+                          <button onClick={() => handleDeleteFinAccount(a.id)} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Excluir"><Trash2 size={14} /></button>
                         </div>
                       </div>
                     ))}
@@ -4928,7 +5172,7 @@ Escalas GMNL ${year}`;
               </div>
 
               {/* Responsible Manager as balanced full-width section */}
-              <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div></div>}>
+              <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 dark:border-indigo-500/30 border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div></div>}>
                 <ResponsibleManager fetchWithAuth={fetchWithAuth} onUpdate={fetchResponsibles} />
               </Suspense>
             </motion.div>
@@ -4936,7 +5180,7 @@ Escalas GMNL ${year}`;
 
           {activeModule === 'chacara' && (
             <motion.div key="chacara" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div></div>}>
+              <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-emerald-200 dark:border-emerald-500/30 border-t-emerald-600 dark:border-t-emerald-400 animate-spin"></div></div>}>
                 <ChacaraManager fetchWithAuth={fetchWithAuth} activeTab={activeTab} onDataUpdate={fetchChacaraBills} setActiveTab={setActiveTab} />
               </Suspense>
             </motion.div>
@@ -4944,351 +5188,36 @@ Escalas GMNL ${year}`;
 
           {activeModule === 'personal' && (
             <motion.div key="personal" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              {activeTab === 'personal_tasks' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Column: Add Task */}
-                  <div className="lg:col-span-1 space-y-6">
-                    <Card title="Nova Tarefa" icon={PlusCircle}>
-                      <div className="space-y-4">
-                        <Input 
-                          label="Título" 
-                          value={personalTaskForm.title || ''} 
-                          onChange={(e: any) => setPersonalTaskForm({ ...personalTaskForm, title: e.target.value })} 
-                        />
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">Descrição</label>
-                          <textarea
-                            value={personalTaskForm.description || ''}
-                            onChange={(e) => setPersonalTaskForm({ ...personalTaskForm, description: e.target.value })}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm resize-y min-h-[80px]"
-                            placeholder="Opcional"
-                          />
-                        </div>
-                        <Input 
-                          label="Data de Vencimento" 
-                          type="date"
-                          value={personalTaskForm.due_date || ''} 
-                          onChange={(e: any) => setPersonalTaskForm({ ...personalTaskForm, due_date: e.target.value })} 
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700">Prioridade</label>
-                            <select
-                              value={personalTaskForm.priority || 'medium'}
-                              onChange={(e: any) => setPersonalTaskForm({ ...personalTaskForm, priority: e.target.value })}
-                              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                            >
-                              <option value="low">Baixa</option>
-                              <option value="medium">Média</option>
-                              <option value="high">Alta</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700">Status</label>
-                            <select
-                              value={personalTaskForm.status || 'pending'}
-                              onChange={(e: any) => setPersonalTaskForm({ ...personalTaskForm, status: e.target.value })}
-                              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                            >
-                              <option value="pending">Pendente</option>
-                              <option value="completed">Concluída</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">Matriz de Eisenhower</label>
-                          <select
-                            value={personalTaskForm.eisenhower_quadrant || 'not_urgent_not_important'}
-                            onChange={(e: any) => setPersonalTaskForm({ ...personalTaskForm, eisenhower_quadrant: e.target.value })}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                          >
-                            <option value="urgent_important">Urgente e Importante (Fazer agora)</option>
-                            <option value="not_urgent_important">Não Urgente, mas Importante (Agendar)</option>
-                            <option value="urgent_not_important">Urgente, mas Não Importante (Delegar)</option>
-                            <option value="not_urgent_not_important">Não Urgente e Não Importante (Eliminar)</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                          {personalTaskForm.id && (
-                            <button 
-                              onClick={() => setPersonalTaskForm({ title: '', description: '', due_date: '', priority: 'medium', status: 'pending', eisenhower_quadrant: 'not_urgent_not_important' })}
-                              className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors"
-                            >
-                              Cancelar
-                            </button>
-                          )}
-                          <button 
-                            onClick={async () => {
-                              if (!personalTaskForm.title) {
-                                dialogAlert('Preencha o título da tarefa.');
-                                return;
-                              }
-                              await handleSavePersonalTask();
-                            }}
-                            className="flex-1 py-2.5 bg-slate-900 text-white font-medium text-sm rounded-xl hover:bg-slate-800 transition-all shadow-xs active:scale-[0.99]"
-                          >
-                            {personalTaskForm.id ? 'Atualizar Tarefa' : 'Adicionar Tarefa'}
-                          </button>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* Right Column: Task List */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <Card title="Minhas Tarefas" icon={ListTodo}>
-                      <div className="space-y-3">
-                        {personalTasks.length > 0 ? (
-                          personalTasks.map(task => (
-                            <div key={task.id} className={cn("flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border gap-4 transition-all", task.status === 'completed' ? "bg-slate-50/70 border-slate-200/60 opacity-60" : "bg-white border-slate-200/80 shadow-xs hover:border-slate-300")}>
-                              <div className="flex items-start gap-3">
-                                <button 
-                                  onClick={() => handleTogglePersonalTask(task)}
-                                  className={cn(
-                                    "mt-1 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all", 
-                                    task.status === 'completed' 
-                                      ? "bg-slate-900 border-slate-900 text-white" 
-                                      : "border-slate-300 bg-white text-transparent hover:border-slate-700"
-                                  )}
-                                >
-                                  <Check size={13} strokeWidth={3} />
-                                </button>
-                                <div>
-                                  <h5 className={cn("font-medium text-sm text-slate-900", task.status === 'completed' && "line-through text-slate-400")}>{task.title}</h5>
-                                  {task.description && (
-                                    <p className="text-xs text-slate-500 mt-1">{task.description}</p>
-                                  )}
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    {task.due_date && (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
-                                        <Calendar size={12} />
-                                        {new Date(task.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                      </span>
-                                    )}
-                                    <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium", 
-                                      task.priority === 'high' ? "bg-rose-50 text-rose-700 border border-rose-100" : 
-                                      task.priority === 'medium' ? "bg-amber-50 text-amber-700 border border-amber-100" : 
-                                      "bg-slate-100 text-slate-700 border border-slate-200"
-                                    )}>
-                                      {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'} Prioridade
-                                    </span>
-                                    {task.eisenhower_quadrant && (
-                                      <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium", 
-                                        task.eisenhower_quadrant === 'urgent_important' ? "bg-rose-50 text-rose-700 border border-rose-200/70" : 
-                                        task.eisenhower_quadrant === 'not_urgent_important' ? "bg-sky-50 text-sky-700 border border-sky-200/70" : 
-                                        task.eisenhower_quadrant === 'urgent_not_important' ? "bg-amber-50 text-amber-700 border border-amber-200/70" : 
-                                        "bg-slate-100 text-slate-600 border border-slate-200"
-                                      )}>
-                                        {task.eisenhower_quadrant === 'urgent_important' ? 'Fazer Agora' : 
-                                         task.eisenhower_quadrant === 'not_urgent_important' ? 'Agendar' : 
-                                         task.eisenhower_quadrant === 'urgent_not_important' ? 'Delegar' : 'Eliminar'}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 sm:self-center self-end">
-                                <button onClick={() => setPersonalTaskForm(task)} className="p-2 text-slate-400 hover:text-slate-800 transition-colors bg-white rounded-lg border border-slate-200 shadow-xs hover:bg-slate-50" title="Editar">
-                                  <Edit2 size={15} />
-                                </button>
-                                <button onClick={() => handleDeletePersonalTask(task.id)} className="p-2 text-slate-400 hover:text-rose-600 transition-colors bg-white rounded-lg border border-slate-200 shadow-xs hover:bg-rose-50" title="Excluir">
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-12 text-slate-400">
-                            <ListTodo size={40} className="mx-auto mb-3 opacity-25" />
-                            <p className="text-sm">Nenhuma tarefa cadastrada.</p>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'personal_eisenhower' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Quadrant 1: Urgent & Important */}
-                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                      <div className="bg-rose-50/80 border-b border-rose-100/80 px-4 py-3.5 flex items-center justify-between">
-                        <h3 className="text-rose-950 font-semibold text-sm flex items-center gap-2">
-                          <AlertCircle size={17} className="text-rose-600" />
-                          Fazer Agora (Urgente e Importante)
-                        </h3>
-                        <span className="bg-rose-100/80 text-rose-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                          {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_important' && t.status === 'pending').length}
-                        </span>
-                      </div>
-                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
-                        {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_important' && t.status === 'pending').length > 0 ? (
-                          personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-rose-200 transition-all">
-                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
-                              <div className="flex items-center gap-1.5">
-                                <button 
-                                  onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
-                                  title="Concluir"
-                                >
-                                  <Check size={15} />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-center py-6 text-slate-400 text-xs">Nada para agora.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quadrant 2: Not Urgent & Important */}
-                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                      <div className="bg-sky-50/80 border-b border-sky-100/80 px-4 py-3.5 flex items-center justify-between">
-                        <h3 className="text-sky-950 font-semibold text-sm flex items-center gap-2">
-                          <Calendar size={17} className="text-sky-600" />
-                          Agendar (Importante, não Urgente)
-                        </h3>
-                        <span className="bg-sky-100/80 text-sky-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                          {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_important' && t.status === 'pending').length}
-                        </span>
-                      </div>
-                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
-                        {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_important' && t.status === 'pending').length > 0 ? (
-                          personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-sky-200 transition-all">
-                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
-                              <div className="flex items-center gap-1.5">
-                                <button 
-                                  onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
-                                  title="Concluir"
-                                >
-                                  <Check size={15} />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-center py-6 text-slate-400 text-xs">Nada agendado.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quadrant 3: Urgent & Not Important */}
-                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                      <div className="bg-amber-50/80 border-b border-amber-100/80 px-4 py-3.5 flex items-center justify-between">
-                        <h3 className="text-amber-950 font-semibold text-sm flex items-center gap-2">
-                          <Users size={17} className="text-amber-600" />
-                          Delegar (Urgente, não Importante)
-                        </h3>
-                        <span className="bg-amber-100/80 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                          {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_not_important' && t.status === 'pending').length}
-                        </span>
-                      </div>
-                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
-                        {personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_not_important' && t.status === 'pending').length > 0 ? (
-                          personalTasks.filter(t => t.eisenhower_quadrant === 'urgent_not_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-amber-200 transition-all">
-                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
-                              <div className="flex items-center gap-1.5">
-                                <button 
-                                  onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
-                                  title="Concluir"
-                                >
-                                  <Check size={15} />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-center py-6 text-slate-400 text-xs">Nada para delegar.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quadrant 4: Not Urgent & Not Important */}
-                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                      <div className="bg-slate-100/80 border-b border-slate-200/80 px-4 py-3.5 flex items-center justify-between">
-                        <h3 className="text-slate-900 font-semibold text-sm flex items-center gap-2">
-                          <Trash2 size={17} className="text-slate-500" />
-                          Eliminar (Não Urgente, não Importante)
-                        </h3>
-                        <span className="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                          {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_not_important' && t.status === 'pending').length}
-                        </span>
-                      </div>
-                      <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
-                        {personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_not_important' && t.status === 'pending').length > 0 ? (
-                          personalTasks.filter(t => t.eisenhower_quadrant === 'not_urgent_not_important' && t.status === 'pending').map(task => (
-                            <div key={task.id} className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-slate-300 transition-all">
-                              <span className="text-sm font-medium text-slate-800">{task.title}</span>
-                              <div className="flex items-center gap-1.5">
-                                <button 
-                                  onClick={() => handleTogglePersonalTask(task)} 
-                                  className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-emerald-50"
-                                  title="Concluir"
-                                >
-                                  <Check size={15} />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePersonalTask(task.id)} 
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 rounded-lg bg-white hover:bg-rose-50"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-center py-6 text-slate-400 text-xs">Nada para eliminar.</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <PersonalModule
+                activeTab={activeTab}
+                tasks={personalTasks}
+                onCreateOrUpdateTask={handleCreateOrUpdatePersonalTask}
+                onToggleTask={handleTogglePersonalTask}
+                onDeleteTask={async (id) => handleDeletePersonalTask(id)}
+                onRescheduleTask={handleReschedulePersonalTask}
+                habits={personalHabits}
+                habitLogs={personalHabitLogs}
+                onSaveHabit={handleSaveHabit}
+                onDeleteHabit={handleDeleteHabit}
+                onToggleHabitLog={async (habitId, date, completed, count) => handleToggleHabitLog(habitId, date, completed, count)}
+                checkins={personalCheckins}
+                onDeleteCheckin={handleDeleteCheckin}
+              />
             </motion.div>
           )}
 
           {activeModule === 'work' && (
             <motion.div key="work" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15, ease: "easeOut" }}>
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 md:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1c1c1e] p-3.5 md:p-4 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs dark:shadow-none">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-slate-700 dark:text-zinc-200">
                     <Calendar size={16} />
                   </div>
-                  <h2 className="font-semibold text-slate-900 text-sm md:text-base">Filtro Mensal</h2>
+                  <h2 className="font-semibold text-slate-900 dark:text-zinc-100 text-sm md:text-base">Filtro Mensal</h2>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <select 
-                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-xs md:text-sm font-medium text-slate-800"
+                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 focus:border-slate-900 dark:focus:border-white/25 transition-all text-xs md:text-sm font-medium text-slate-800 dark:text-zinc-100"
                     value={finFilter.month}
                     onChange={(e) => setFinFilter({ ...finFilter, month: Number(e.target.value) })}
                   >
@@ -5297,7 +5226,7 @@ Escalas GMNL ${year}`;
                     ))}
                   </select>
                   <select 
-                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-xs md:text-sm font-medium text-slate-800"
+                    className="flex-1 sm:flex-none px-3 md:px-4 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 focus:border-slate-900 dark:focus:border-white/25 transition-all text-xs md:text-sm font-medium text-slate-800 dark:text-zinc-100"
                     value={finFilter.year}
                     onChange={(e) => setFinFilter({ ...finFilter, year: Number(e.target.value) })}
                   >
@@ -5312,36 +5241,36 @@ Escalas GMNL ${year}`;
                 <>
                   {/* Clients Dashboard */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl shadow-xs dark:shadow-none border border-slate-200/80 dark:border-white/[0.08]">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="p-2.5 bg-slate-100 text-slate-700 rounded-xl">
+                        <div className="p-2.5 bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200 rounded-xl">
                           <Wallet className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">A Receber (Mês)</span>
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">A Receber (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100 tabular-nums">
                         R$ {clientInstallments.reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl shadow-xs dark:shadow-none border border-slate-200/80 dark:border-white/[0.08]">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                           <TrendingUp className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Recebido (Mês)</span>
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">Recebido (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight text-emerald-700 tabular-nums">
+                      <h3 className="text-xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400 tabular-nums">
                         R$ {clientInstallments.filter(i => i.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl shadow-xs dark:shadow-none border border-slate-200/80 dark:border-white/[0.08]">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                        <div className="p-2.5 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl">
                           <Clock className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pendente (Mês)</span>
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">Pendente (Mês)</span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight text-amber-700 tabular-nums">
+                      <h3 className="text-xl font-bold tracking-tight text-amber-700 dark:text-amber-400 tabular-nums">
                         R$ {clientInstallments.filter(i => i.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </h3>
                     </div>
@@ -5399,13 +5328,13 @@ Escalas GMNL ${year}`;
                       {/* Client List */}
                       <Card title="Meus Clientes" icon={Users}>
                         <div className="mb-4 relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" size={16} />
                           <input 
                             type="text"
                             placeholder="Buscar por nome ou telefone..."
                             value={clientSearch}
                             onChange={(e) => setClientSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
+                            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                           />
                         </div>
                         <div className="max-h-[400px] overflow-y-auto space-y-2">
@@ -5419,23 +5348,23 @@ Escalas GMNL ${year}`;
                             const isInactive = lastPurchaseDate && (new Date().getTime() - lastPurchaseDate.getTime()) > (60 * 24 * 60 * 60 * 1000);
                             
                             return (
-                              <div key={client.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                              <div key={client.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] group">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-gray-800">{client.name}</span>
+                                    <span className="font-bold text-gray-800 dark:text-zinc-100">{client.name}</span>
                                     {isInactive && (
-                                      <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-bold rounded uppercase">Inativo</span>
+                                      <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[9px] font-bold rounded uppercase">Inativo</span>
                                     )}
                                   </div>
                                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                                     {client.phone && (
-                                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                                      <span className="text-xs text-gray-500 dark:text-zinc-400 flex items-center gap-1">
                                         <WhatsAppIcon size={12} className="text-emerald-500" /> {client.phone}
                                       </span>
                                     )}
                                     <span className={cn(
                                       "text-[10px] flex items-center gap-1 font-medium",
-                                      client.last_purchase ? "text-indigo-600" : "text-gray-400"
+                                      client.last_purchase ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-zinc-500"
                                     )}>
                                       <ShoppingBag size={10} /> 
                                       {client.last_purchase 
@@ -5448,13 +5377,13 @@ Escalas GMNL ${year}`;
                                   <button onClick={() => {
                                     setEditingClient(client);
                                     setClientForm({ name: client.name, phone: client.phone || '' });
-                                  }} className="p-1 text-gray-400 hover:text-indigo-600"><Edit2 size={14} /></button>
+                                  }} className="p-1 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400"><Edit2 size={14} /></button>
                                   <button onClick={async () => {
                                     if (await dialogConfirm('Excluir cliente?')) {
                                       await fetchWithAuth(`/api/clients/${client.id}`, { method: 'DELETE' });
                                       fetchClients();
                                     }
-                                  }} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                                  }} className="p-1 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"><Trash2 size={14} /></button>
                                 </div>
                               </div>
                             );
@@ -5470,9 +5399,9 @@ Escalas GMNL ${year}`;
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cliente</label>
+                              <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Cliente</label>
                               <select
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[42px]"
+                                className="w-full px-4 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[42px] text-gray-900 dark:text-zinc-100"
                                 value={clientSaleForm.client_id}
                                 onChange={(e: any) => setClientSaleForm({ ...clientSaleForm, client_id: e.target.value })}
                               >
@@ -5549,7 +5478,7 @@ Escalas GMNL ${year}`;
                         <div className="flex justify-end mb-4">
                           <button
                             onClick={exportClientReport}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-colors"
                           >
                             <Download size={14} /> Exportar PDF
                           </button>
@@ -5557,23 +5486,23 @@ Escalas GMNL ${year}`;
                         <div className="space-y-3">
                           {clientInstallments.length > 0 ? (
                             clientInstallments.map(inst => (
-                              <div key={inst.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                              <div key={inst.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/[0.08] rounded-xl shadow-sm dark:shadow-none hover:shadow-md transition-shadow gap-4">
                                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                                  <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-[10px] md:text-xs tabular-nums", inst.status === 'pago' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
+                                  <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-[10px] md:text-xs tabular-nums", inst.status === 'pago' ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300" : "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300")}>
                                     {String(inst.installment_number).padStart(2, '0')}/{String(inst.client_sales?.installment_count || 1).padStart(2, '0')}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <h4 className="font-bold text-gray-800 text-sm md:text-base truncate">{inst.client_sales?.clients?.name}</h4>
-                                    <p className="text-[10px] md:text-xs text-gray-500 truncate">{inst.client_sales?.description}</p>
-                                    <p className="text-[10px] md:text-xs font-semibold text-indigo-600 tabular-nums">Venc: {formatDateString(inst.due_date)}</p>
+                                    <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-sm md:text-base truncate">{inst.client_sales?.clients?.name}</h4>
+                                    <p className="text-[10px] md:text-xs text-gray-500 dark:text-zinc-400 truncate">{inst.client_sales?.description}</p>
+                                    <p className="text-[10px] md:text-xs font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums">Venc: {formatDateString(inst.due_date)}</p>
                                   </div>
                                   <div className="text-right sm:hidden flex-shrink-0">
-                                    <span className="block font-bold text-gray-900 text-sm tabular-nums">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    <span className="block font-bold text-gray-900 dark:text-zinc-100 text-sm tabular-nums">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                   </div>
                                 </div>
-                                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 flex-shrink-0">
+                                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto gap-2 border-t dark:border-white/[0.06] sm:border-t-0 pt-3 sm:pt-0 flex-shrink-0">
                                   <div className="hidden sm:block text-right">
-                                    <span className="block font-bold text-gray-900 tabular-nums">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    <span className="block font-bold text-gray-900 dark:text-zinc-100 tabular-nums">R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <button 
@@ -5585,14 +5514,14 @@ Escalas GMNL ${year}`;
                                           status: inst.status
                                         });
                                       }}
-                                      className="p-2 text-gray-400 hover:text-indigo-600 bg-gray-50 rounded-lg"
+                                      className="p-2 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-50 dark:bg-white/[0.06] rounded-lg"
                                       title="Editar"
                                     >
                                       <Edit2 size={16} />
                                     </button>
                                     <button 
                                       onClick={() => handleDeleteClientInstallment(inst.id)}
-                                      className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 rounded-lg"
+                                      className="p-2 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-white/[0.06] rounded-lg"
                                       title="Apagar"
                                     >
                                       <Trash2 size={16} />
@@ -5609,7 +5538,7 @@ Escalas GMNL ${year}`;
                                         });
                                         fetchClientInstallments();
                                       }}
-                                      className={cn("text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors", inst.status === 'pago' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200")}
+                                      className={cn("text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors", inst.status === 'pago' ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-500/30" : "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-500/30")}
                                     >
                                       {inst.status === 'pago' ? 'Recebido' : 'Receber'}
                                     </button>
@@ -5629,7 +5558,7 @@ Escalas GMNL ${year}`;
                               </div>
                             ))
                           ) : (
-                            <div className="text-center py-10 text-gray-400">
+                            <div className="text-center py-10 text-gray-400 dark:text-zinc-500">
                               <p>Nenhuma parcela para este mês.</p>
                             </div>
                           )}
@@ -5647,27 +5576,27 @@ Escalas GMNL ${year}`;
                 <div className="space-y-6">
                   <Card title="Mensagem em Massa (WhatsApp)" icon={WhatsAppIcon}>
                     <div className="space-y-4">
-                      <p className="text-sm text-gray-500">
-                        Crie uma mensagem padrão para enviar aos seus clientes. Use <span className="font-bold text-indigo-600">{'{nome}'}</span> para inserir o nome do cliente automaticamente.
+                      <p className="text-sm text-gray-500 dark:text-zinc-400">
+                        Crie uma mensagem padrão para enviar aos seus clientes. Use <span className="font-bold text-indigo-600 dark:text-indigo-400">{'{nome}'}</span> para inserir o nome do cliente automaticamente.
                       </p>
                       
                       <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-700">Mensagem</label>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-zinc-300">Mensagem</label>
                         <textarea
                           value={whatsappMessageTemplate}
                           onChange={(e) => setWhatsappMessageTemplate(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm resize-y min-h-[120px]"
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 resize-y min-h-[120px]"
                           placeholder="Olá {nome}, tudo bem?"
                         />
                       </div>
 
-                      <div className="pt-4 border-t border-gray-100">
+                      <div className="pt-4 border-t border-gray-100 dark:border-white/[0.06]">
                         <div className="flex justify-between items-center mb-4">
-                          <h4 className="font-bold text-gray-800">Selecione os clientes para enviar:</h4>
+                          <h4 className="font-bold text-gray-800 dark:text-zinc-100">Selecione os clientes para enviar:</h4>
                           {sentMessages.length > 0 && (
                             <button
                               onClick={() => setSentMessages([])}
-                              className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
+                              className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold"
                             >
                               Reiniciar Envios
                             </button>
@@ -5681,10 +5610,10 @@ Escalas GMNL ${year}`;
                               const hasSent = sentMessages.includes(client.id);
                               
                               return (
-                                <div key={client.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
+                                <div key={client.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] gap-4">
                                   <div>
-                                    <h5 className="font-bold text-gray-800">{client.name}</h5>
-                                    <p className="text-xs text-gray-500">{client.phone || 'Sem telefone'}</p>
+                                    <h5 className="font-bold text-gray-800 dark:text-zinc-100">{client.name}</h5>
+                                    <p className="text-xs text-gray-500 dark:text-zinc-400">{client.phone || 'Sem telefone'}</p>
                                   </div>
                                   <div className="flex-shrink-0">
                                     <a
@@ -5699,9 +5628,9 @@ Escalas GMNL ${year}`;
                                       className={cn(
                                         "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors",
                                         !client.phone 
-                                          ? "bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none"
+                                          ? "bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-500 cursor-not-allowed pointer-events-none"
                                           : hasSent
-                                            ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                            ? "bg-gray-200 dark:bg-white/[0.1] text-gray-600 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-white/[0.15]"
                                             : "bg-green-500 text-white hover:bg-green-600 shadow-sm"
                                       )}
                                     >
@@ -5713,7 +5642,7 @@ Escalas GMNL ${year}`;
                               );
                             })
                           ) : (
-                            <div className="text-center py-6 text-gray-400">
+                            <div className="text-center py-6 text-gray-400 dark:text-zinc-500">
                               <p>Nenhum cliente cadastrado.</p>
                             </div>
                           )}
@@ -5725,13 +5654,13 @@ Escalas GMNL ${year}`;
               )}
 
               {activeTab === 'work_safety' && (
-                <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div></div>}>
+                <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-emerald-200 dark:border-emerald-500/30 border-t-emerald-600 dark:border-t-emerald-400 animate-spin"></div></div>}>
                   <SafetyReportGenerator fetchWithAuth={fetchWithAuth} />
                 </Suspense>
               )}
 
               {activeTab === 'work_marketing' && (
-                <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div></div>}>
+                <Suspense fallback={<div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 dark:border-indigo-500/30 border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div></div>}>
                   <MarketingManager fetchWithAuth={fetchWithAuth} />
                 </Suspense>
               )}
@@ -5743,9 +5672,9 @@ Escalas GMNL ${year}`;
 
       {editingClientInstallment && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[85vh]">
-            <div className="p-5 md:p-6 border-b border-gray-100 shrink-0">
-              <h3 className="text-lg font-bold">Editar Parcela</h3>
+          <div className="bg-white dark:bg-[#1c1c1e] border border-transparent dark:border-white/[0.08] rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[85vh]">
+            <div className="p-5 md:p-6 border-b border-gray-100 dark:border-white/[0.08] shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">Editar Parcela</h3>
             </div>
             <div className="p-5 md:p-6 space-y-4 overflow-y-auto flex-1">
               <Input 
@@ -5761,21 +5690,21 @@ Escalas GMNL ${year}`;
                 onChange={(e: any) => setClientInstallmentForm({...clientInstallmentForm, due_date: e.target.value})} 
               />
               <div className="mb-4">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Status</label>
                 <select
                   value={clientInstallmentForm.status}
                   onChange={(e: any) => setClientInstallmentForm({...clientInstallmentForm, status: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-gray-900 dark:text-zinc-100"
                 >
                   <option value="pendente">Pendente</option>
                   <option value="pago">Pago</option>
                 </select>
               </div>
             </div>
-            <div className="p-5 md:p-6 flex flex-col sm:flex-row gap-3 border-t border-gray-100 shrink-0">
+            <div className="p-5 md:p-6 flex flex-col sm:flex-row gap-3 border-t border-gray-100 dark:border-white/[0.08] shrink-0">
               <button 
                 onClick={() => setEditingClientInstallment(null)}
-                className="flex-1 py-2 bg-gray-100 text-gray-600 font-bold rounded-xl"
+                className="flex-1 py-2 bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300 font-bold rounded-xl"
               >
                 Cancelar
               </button>

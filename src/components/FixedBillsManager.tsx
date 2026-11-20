@@ -535,11 +535,11 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pago': return 'bg-[#34c759]/10 text-[#247c3b] border-[#34c759]/20';
-      case 'Pendente': return 'bg-[#ff9500]/10 text-[#b26a00] border-[#ff9500]/20';
-      case 'Vencida': return 'bg-[#ff3b30]/10 text-[#c92a24] border-[#ff3b30]/20';
-      case 'Retida': return 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20';
-      default: return 'bg-[#f5f5f7] text-[#515154] border-black/[0.08]';
+      case 'Pago': return 'bg-[#34c759]/10 dark:bg-emerald-500/15 text-[#247c3b] dark:text-emerald-300 border-[#34c759]/20 dark:border-emerald-500/25';
+      case 'Pendente': return 'bg-[#ff9500]/10 dark:bg-amber-500/15 text-[#b26a00] dark:text-amber-300 border-[#ff9500]/20 dark:border-amber-500/25';
+      case 'Vencida': return 'bg-[#ff3b30]/10 dark:bg-red-500/15 text-[#c92a24] dark:text-red-300 border-[#ff3b30]/20 dark:border-red-500/25';
+      case 'Retida': return 'bg-[#0071e3]/10 dark:bg-blue-500/15 text-[#0071e3] dark:text-blue-300 border-[#0071e3]/20 dark:border-blue-500/25';
+      default: return 'bg-[#f5f5f7] dark:bg-white/[0.06] text-[#515154] dark:text-zinc-300 border-black/[0.08] dark:border-white/[0.08]';
     }
   };
 
@@ -548,7 +548,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       case 'Energia': return <Zap size={20} className="text-amber-500" />;
       case 'Água': return <Droplets size={20} className="text-blue-500" />;
       case 'Telefonia': return <Smartphone size={20} className="text-indigo-500" />;
-      default: return <Home size={20} className="text-gray-500" />;
+      default: return <Home size={20} className="text-gray-500 dark:text-zinc-400" />;
     }
   };
 
@@ -682,28 +682,28 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
   return (
     <div className="flex flex-col gap-4 md:gap-6 max-w-full overflow-hidden">
       {/* Sub-navigation views - Dash, Histórico, Contas */}
-      <div className="bg-white p-3 md:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div className="bg-white dark:bg-[#1c1c1e] p-3 md:p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
         <div className="flex items-center gap-2">
-          <History className="text-indigo-600" size={18} />
-          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Modo de Visualização:</span>
+          <History className="text-indigo-600 dark:text-indigo-400" size={18} />
+          <span className="text-xs font-bold text-gray-700 dark:text-zinc-200 uppercase tracking-wider">Modo de Visualização:</span>
         </div>
 
-        <div className="flex bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
+        <div className="flex bg-gray-100 dark:bg-white/[0.06] p-1 rounded-xl w-full sm:w-auto">
           <button 
             onClick={() => setView('dashboard')}
-            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'dashboard' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'dashboard' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200")}
           >
             Dashboard
           </button>
           <button 
             onClick={() => setView('history')}
-            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'history' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'history' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200")}
           >
             Histórico
           </button>
           <button 
             onClick={() => setView('register')}
-            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'register' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+            className={cn("flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all", view === 'register' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200")}
           >
             Contas Cadastradas
           </button>
@@ -712,19 +712,19 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
       {/* Advanced Filters */}
       {(view === 'dashboard' || view === 'history') && (
-        <div className="bg-white p-3 md:p-4 rounded-[1.5rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="bg-white dark:bg-[#1c1c1e] p-3 md:p-4 rounded-[1.5rem] border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-hide">
             
-            <div className="flex items-center bg-gray-50 p-1 rounded-xl shrink-0">
+            <div className="flex items-center bg-gray-50 dark:bg-white/[0.06] p-1 rounded-xl shrink-0">
               <button 
                 onClick={() => setFilterMode('month')}
-                className={cn("px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all uppercase tracking-wider", filterMode === 'month' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+                className={cn("px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all uppercase tracking-wider", filterMode === 'month' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200")}
               >
                 Mês
               </button>
               <button 
                 onClick={() => setFilterMode('year')}
-                className={cn("px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all uppercase tracking-wider", filterMode === 'year' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+                className={cn("px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all uppercase tracking-wider", filterMode === 'year' ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200")}
               >
                 Ano
               </button>
@@ -735,13 +735,13 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                 type="month" 
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
-                className="shrink-0 px-3 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-black focus:outline-none focus:ring-2 ring-indigo-500/20"
+                className="shrink-0 px-3 py-2 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100 dark:border-indigo-500/25 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-black focus:outline-none focus:ring-2 ring-indigo-500/20"
               />
             ) : (
               <select 
                 value={filterYear}
                 onChange={(e) => setFilterYear(e.target.value)}
-                className="shrink-0 px-3 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-black focus:outline-none focus:ring-2 ring-indigo-500/20"
+                className="shrink-0 px-3 py-2 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100 dark:border-indigo-500/25 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-black focus:outline-none focus:ring-2 ring-indigo-500/20"
               >
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
@@ -753,7 +753,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
             <select 
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="shrink-0 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 ring-indigo-500/20"
+              className="shrink-0 px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 ring-indigo-500/20"
             >
               <option value="all">Todas as Categorias</option>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -762,7 +762,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
             <select 
               value={filterProperty}
               onChange={(e) => setFilterProperty(e.target.value)}
-              className="shrink-0 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 ring-indigo-500/20"
+              className="shrink-0 px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 ring-indigo-500/20"
             >
               <option value="all">Todos os Imóveis</option>
               {Array.from(new Set(bills.map(b => b.property))).sort().map(p => (
@@ -773,7 +773,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
             <select 
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="shrink-0 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 ring-indigo-500/20"
+              className="shrink-0 px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 ring-indigo-500/20"
             >
               <option value="all">Todos os Status</option>
               {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -783,14 +783,14 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
           <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap md:flex-nowrap">
             <button 
                onClick={generateWhatsAppMessage}
-               className="flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+               className="flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 dark:shadow-none active:scale-95"
             >
                <WhatsAppIcon size={14} />
                <span>Compartilhar</span>
             </button>
             <button 
                onClick={handleGeneratePDF}
-               className="flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
+               className="flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95"
             >
                <FileText size={14} />
                <span>PDF</span>
@@ -846,9 +846,9 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
           {/* Payments Multi-View List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-3">
-              <div className="flex items-center justify-between bg-white/50 px-3 py-1 rounded-full border border-gray-100/50 mb-3">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">A Lançar</h3>
-                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              <div className="flex items-center justify-between bg-white/50 dark:bg-[#1c1c1e]/80 px-3 py-1 rounded-full border border-gray-100/50 dark:border-white/[0.08] mb-3">
+                <h3 className="text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest">A Lançar</h3>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-300 bg-gray-100 dark:bg-white/[0.08] px-2 py-0.5 rounded-full">
                   {bills.filter(b => {
                     if (filterCategory !== 'all' && b.category !== filterCategory) return false;
                     if (filterProperty !== 'all' && b.property !== filterProperty) return false;
@@ -865,15 +865,15 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                   // For now, we compare against ALL payments shown. A bill is "A Lançar" if NO payments exist for it in the period.
                   return !payments.find(p => p.bill_id === b.id);
                 }).map(bill => (
-                  <div key={bill.id} className="bg-white p-3 md:p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group active:bg-gray-50 transition-colors">
+                  <div key={bill.id} className="bg-white dark:bg-[#1c1c1e] p-3 md:p-4 rounded-3xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex items-center justify-between group active:bg-gray-50 dark:active:bg-white/[0.04] transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 bg-gray-50 rounded-xl shrink-0">
+                      <div className="p-2 bg-gray-50 dark:bg-white/[0.05] rounded-xl shrink-0">
                         {getCategoryIcon(bill.category)}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-xs md:text-sm font-black text-gray-800 truncate">{bill.name}</h4>
-                        <div className="flex items-center gap-2 text-[9px] text-gray-400 font-bold uppercase tracking-wider truncate">
-                          <span className="text-indigo-500">{bill.property}</span>
+                        <h4 className="text-xs md:text-sm font-black text-gray-800 dark:text-zinc-100 truncate">{bill.name}</h4>
+                        <div className="flex items-center gap-2 text-[9px] text-gray-400 dark:text-zinc-400 font-bold uppercase tracking-wider truncate">
+                          <span className="text-indigo-500 dark:text-indigo-400">{bill.property}</span>
                           <span className="opacity-30">•</span>
                           <span>Dia {bill.due_day}</span>
                         </div>
@@ -881,7 +881,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                     </div>
                     <button 
                       onClick={() => handleLaunchPayment(bill)}
-                      className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90"
+                      className="p-2.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm dark:shadow-none active:scale-90"
                     >
                       <Plus size={18} />
                     </button>
@@ -892,31 +892,31 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                   if (filterProperty !== 'all' && b.property !== filterProperty) return false;
                   return !payments.find(p => p.bill_id === b.id);
                 }).length === 0 && (
-                  <div className="bg-gray-50/50 p-6 rounded-3xl border border-dashed border-gray-200 text-center">
-                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Concluído</p>
+                  <div className="bg-gray-50/50 dark:bg-white/[0.03] p-6 rounded-3xl border border-dashed border-gray-200 dark:border-white/[0.1] text-center">
+                    <p className="text-gray-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Concluído</p>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between bg-white/50 px-3 py-1 rounded-full border border-gray-100/50">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lançados</h3>
-                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              <div className="flex items-center justify-between bg-white/50 dark:bg-[#1c1c1e]/80 px-3 py-1 rounded-full border border-gray-100/50 dark:border-white/[0.08]">
+                <h3 className="text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest">Lançados</h3>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-300 bg-gray-100 dark:bg-white/[0.08] px-2 py-0.5 rounded-full">
                   {payments.length}
                 </span>
               </div>
               <div className="grid gap-2">
                 {payments.map(payment => (
-                  <div key={payment.id} className="bg-white p-3 md:p-4 rounded-3xl border border-gray-100 shadow-sm space-y-3">
+                  <div key={payment.id} className="bg-white dark:bg-[#1c1c1e] p-3 md:p-4 rounded-3xl border border-gray-100 dark:border-white/[0.08] shadow-sm space-y-3">
                     <div className="flex items-center justify-between gap-2 min-w-0">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 bg-gray-50 rounded-xl shrink-0">
+                        <div className="p-2 bg-gray-50 dark:bg-white/[0.05] rounded-xl shrink-0">
                           {getCategoryIcon(payment.bill?.category || '')}
                         </div>
                         <div className="min-w-0">
-                          <h4 className="text-xs md:text-sm font-black text-gray-800 truncate">{payment.bill?.name}</h4>
-                          <p className="text-[9px] text-gray-400 font-bold uppercase truncate">{payment.bill?.property}</p>
+                          <h4 className="text-xs md:text-sm font-black text-gray-800 dark:text-zinc-100 truncate">{payment.bill?.name}</h4>
+                          <p className="text-[9px] text-gray-400 dark:text-zinc-400 font-bold uppercase truncate">{payment.bill?.property}</p>
                         </div>
                       </div>
                       <div className={cn("shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border", getStatusColor(payment.status))}>
@@ -924,12 +924,12 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-50">
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-50 dark:border-white/[0.06]">
                       <div>
-                        <div className="text-base font-bold text-gray-900 leading-none tabular-nums">
+                        <div className="text-base font-bold text-gray-900 dark:text-zinc-100 leading-none tabular-nums">
                           R$ {Number(payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-semibold uppercase mt-1 tabular-nums">
+                        <div className="text-[10px] text-gray-400 dark:text-zinc-400 font-semibold uppercase mt-1 tabular-nums">
                           Venc: {formatDate(payment.due_date)}
                         </div>
                       </div>
@@ -946,20 +946,20 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                               reference_month: payment.reference_month
                             });
                           }}
-                          className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-100 active:scale-95 transition-all"
+                          className="p-2 bg-gray-50 dark:bg-white/[0.06] text-gray-400 dark:text-zinc-400 rounded-xl hover:bg-gray-100 dark:hover:bg-white/[0.1] active:scale-95 transition-all"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button 
                           onClick={() => handleDeletePayment(payment.id)}
-                          className="p-2 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white active:scale-95 transition-all"
+                          className="p-2 bg-red-50 dark:bg-red-500/15 text-red-400 rounded-xl hover:bg-red-500 hover:text-white active:scale-95 transition-all"
                           title="Excluir lançamento"
                         >
                           <Trash2 size={14} />
                         </button>
                         <button 
                           onClick={() => handleUpdatePaymentStatus(payment.id, payment.status === 'Pago' ? 'Pendente' : 'Pago')}
-                          className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all active:scale-95", payment.status === 'Pago' ? "bg-indigo-50 text-indigo-600" : "bg-emerald-600 text-white shadow-md shadow-emerald-100")}
+                          className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all active:scale-95", payment.status === 'Pago' ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300" : "bg-emerald-600 text-white shadow-md shadow-emerald-100 dark:shadow-none")}
                         >
                           {payment.status === 'Pago' ? 'Aberto' : 'Pago'}
                         </button>
@@ -975,9 +975,9 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
       {view === 'history' && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
-              <History size={20} className="text-indigo-600" />
+          <div className="bg-white dark:bg-[#1c1c1e] p-6 rounded-[2rem] border border-gray-100 dark:border-white/[0.08] shadow-sm">
+            <h3 className="text-lg font-black text-gray-900 dark:text-zinc-100 mb-6 flex items-center gap-2">
+              <History size={20} className="text-indigo-600 dark:text-indigo-400" />
               Histórico Anual {filterMode === 'year' ? filterYear : filterMonth.split('-')[0]}
             </h3>
             
@@ -986,12 +986,14 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
             <div className="h-64 mb-8">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={historyByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" fontSize={10} />
-                  <YAxis fontSize={10} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis dataKey="name" fontSize={10} tick={{ fill: '#94a3b8' }} />
+                  <YAxis fontSize={10} tick={{ fill: '#94a3b8' }} />
                   <Tooltip 
                     formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Total']}
-                    cursor={{fill: '#f3f4f6'}}
+                    cursor={{fill: 'rgba(148, 163, 184, 0.12)'}}
+                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#18181b', color: '#f4f4f5', boxShadow: '0 4px 12px rgba(0,0,0,0.25)' }}
+                    itemStyle={{ color: '#f4f4f5' }}
                   />
                   <Bar dataKey="total" fill="#e0e7ff" radius={[4, 4, 0, 0]}>
                     {historyByMonth.map((entry, index) => (
@@ -1004,15 +1006,15 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                {historyByMonth.filter(m => m.total > 0).map((m, idx) => (
-                 <div key={idx} className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 flex flex-col gap-2">
+                 <div key={idx} className="bg-gray-50/50 dark:bg-white/[0.04] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] flex flex-col gap-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{m.name}</span>
-                      <span className="text-xs font-bold text-indigo-600 tabular-nums">R$ {m.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">{m.name}</span>
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">R$ {m.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white rounded-full overflow-hidden flex">
+                    <div className="h-1.5 w-full bg-white dark:bg-white/[0.08] rounded-full overflow-hidden flex">
                        <div className="h-full bg-emerald-500" style={{ width: `${(m.paid / m.total) * 100}%` }} />
                     </div>
-                    <div className="flex justify-between text-[10px] font-semibold uppercase text-gray-400 tabular-nums">
+                    <div className="flex justify-between text-[10px] font-semibold uppercase text-gray-400 dark:text-zinc-500 tabular-nums">
                       <span>Pago: R$ {m.paid.toLocaleString('pt-BR')}</span>
                       <span>Total: {((m.paid/m.total)*100).toFixed(0)}%</span>
                     </div>
@@ -1021,29 +1023,29 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Conta</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mês</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">Valor</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                <tr className="bg-gray-50 dark:bg-white/[0.04]">
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Conta</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Mês</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider text-right">Valor</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-white/[0.06]">
                 {filteredHistoryPayments.map((p, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-800">{p.bill?.name}</span>
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase">{p.bill?.property}</span>
+                        <span className="text-xs font-bold text-gray-800 dark:text-zinc-100">{p.bill?.name}</span>
+                        <span className="text-[10px] font-semibold text-gray-400 dark:text-zinc-400 uppercase">{p.bill?.property}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-gray-500">
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-zinc-400">
                       {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][Number(p.due_date.split('-')[1]) - 1]}
                     </td>
-                    <td className="px-6 py-4 text-right text-xs font-bold text-gray-900 tabular-nums whitespace-nowrap">
+                    <td className="px-6 py-4 text-right text-xs font-bold text-gray-900 dark:text-zinc-100 tabular-nums whitespace-nowrap">
                       R$ {Number(p.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4">
@@ -1063,14 +1065,14 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       {view === 'register' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-black text-gray-900">Configuração de Contas</h3>
+            <h3 className="text-lg font-black text-gray-900 dark:text-zinc-100">Configuração de Contas</h3>
             <button 
               onClick={() => {
                 setBillForm({ name: '', property: '', category: 'Energia', due_day: 1, default_amount: 0 });
                 setEditingBill(null);
                 setShowForm(true);
               }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all"
             >
               <Plus size={18} />
               <span>Nova Conta</span>
@@ -1079,15 +1081,15 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {bills.map(bill => (
-              <div key={bill.id} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-4 group">
+              <div key={bill.id} className="bg-white dark:bg-[#1c1c1e] p-5 rounded-3xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col gap-4 group">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gray-50 rounded-2xl">
+                    <div className="p-3 bg-gray-50 dark:bg-white/[0.05] rounded-2xl">
                       {getCategoryIcon(bill.category)}
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800">{bill.name}</h4>
-                      <p className="text-xs text-gray-500 font-medium">{bill.property}</p>
+                      <h4 className="font-bold text-gray-800 dark:text-zinc-100">{bill.name}</h4>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium">{bill.property}</p>
                     </div>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1097,26 +1099,26 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                         setBillForm(bill);
                         setShowForm(true);
                       }}
-                      className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100"
+                      className="p-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/25"
                     >
                       <Edit2 size={14} />
                     </button>
                     <button 
                       onClick={() => handleDeleteBill(bill.id)}
-                      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                      className="p-2 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/25"
                     >
                       <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 mt-auto">
-                  <div className="bg-gray-50/50 p-2.5 rounded-xl">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Vencimento</p>
-                    <p className="text-xs font-bold text-indigo-600 tabular-nums">Dia {bill.due_day}</p>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 dark:border-white/[0.06] mt-auto">
+                  <div className="bg-gray-50/50 dark:bg-white/[0.04] p-2.5 rounded-xl">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Vencimento</p>
+                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">Dia {bill.due_day}</p>
                   </div>
-                  <div className="bg-gray-50/50 p-2.5 rounded-xl">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Valor Padrão</p>
-                    <p className="text-xs font-bold text-indigo-600 tabular-nums">R$ {Number(bill.default_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  <div className="bg-gray-50/50 dark:bg-white/[0.04] p-2.5 rounded-xl">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Valor Padrão</p>
+                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">R$ {Number(bill.default_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
               </div>
@@ -1128,73 +1130,73 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       {/* Bill Form Modal */}
       <AnimatePresence>
         {showForm && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.15, ease: "easeOut" }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
+              className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50 shrink-0">
-                <h3 className="font-black text-gray-900 tracking-tight">{editingBill ? 'Editar Conta' : 'Nova Conta Fixa'}</h3>
-                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} className="text-gray-400" /></button>
+              <div className="p-6 border-b border-gray-50 dark:border-white/[0.08] flex justify-between items-center bg-gray-50/50 dark:bg-white/[0.03] shrink-0">
+                <h3 className="font-black text-gray-900 dark:text-zinc-100 tracking-tight">{editingBill ? 'Editar Conta' : 'Nova Conta Fixa'}</h3>
+                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-full transition-colors"><X size={20} className="text-gray-400 dark:text-zinc-400" /></button>
               </div>
               <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nome da Conta</label>
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Nome da Conta</label>
                   <input 
                     type="text" 
                     value={billForm.name} 
                     onChange={(e) => setBillForm({...billForm, name: e.target.value})}
                     placeholder="Ex: CEMIG, VIVO, COPASA..."
-                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800"
+                    className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Imóvel / Local</label>
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Imóvel / Local</label>
                   <input 
                     type="text" 
                     value={billForm.property} 
                     onChange={(e) => setBillForm({...billForm, property: e.target.value})}
                     placeholder="Ex: Apto 101, Chácara..."
-                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800"
+                    className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Categoria</label>
+                    <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Categoria</label>
                     <select 
                       value={billForm.category} 
                       onChange={(e) => setBillForm({...billForm, category: e.target.value})}
-                      className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800"
+                      className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800 dark:text-zinc-100"
                     >
                       {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Dia Vencimento</label>
+                    <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Dia Vencimento</label>
                     <input 
                       type="number" 
                       min="1" max="31"
                       value={billForm.due_day} 
                       onChange={(e) => setBillForm({...billForm, due_day: Number(e.target.value)})}
-                      className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800"
+                      className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800 dark:text-zinc-100"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Valor Padrão (Opcional)</label>
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Valor Padrão (Opcional)</label>
                   <input 
                     type="number" 
                     value={billForm.default_amount} 
                     onChange={(e) => setBillForm({...billForm, default_amount: Number(e.target.value)})}
-                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800"
+                    className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-gray-800 dark:text-zinc-100"
                   />
                 </div>
               </div>
-              <div className="p-6 bg-gray-50 flex gap-3 shrink-0">
-                <button onClick={() => setShowForm(false)} className="flex-1 px-6 py-3 bg-white border border-gray-200 rounded-2xl font-black text-[11px] uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all">Cancelar</button>
-                <button onClick={handleSaveBill} className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Savar Conta</button>
+              <div className="p-6 bg-gray-50 dark:bg-white/[0.03] border-t border-transparent dark:border-white/[0.08] flex gap-3 shrink-0">
+                <button onClick={() => setShowForm(false)} className="flex-1 px-6 py-3 bg-white dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-2xl font-black text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/[0.1] transition-all">Cancelar</button>
+                <button onClick={handleSaveBill} className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all">Savar Conta</button>
               </div>
             </motion.div>
           </div>
@@ -1204,36 +1206,36 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       {/* Payment Entry Modal */}
       <AnimatePresence>
         {paymentForm && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.15, ease: "easeOut" }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
+              className="bg-white dark:bg-[#1c1c1e] dark:border dark:border-white/[0.08] rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50 shrink-0">
+              <div className="p-6 border-b border-gray-50 dark:border-white/[0.08] flex justify-between items-center bg-gray-50/50 dark:bg-white/[0.03] shrink-0">
                 <div className="flex flex-col">
-                  <h3 className="font-black text-gray-900 tracking-tight">{paymentForm.id ? 'Editar Lançamento' : 'Lançar Pagamento'}</h3>
+                  <h3 className="font-black text-gray-900 dark:text-zinc-100 tracking-tight">{paymentForm.id ? 'Editar Lançamento' : 'Lançar Pagamento'}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
+                    <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">
                       {bills.find(b => b.id === paymentForm.bill_id)?.name}
                     </span>
-                    <span className="text-[10px] text-gray-300">•</span>
-                    <span className="text-[10px] font-bold text-gray-400">
+                    <span className="text-[10px] text-gray-300 dark:text-zinc-600">•</span>
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-400">
                       {bills.find(b => b.id === paymentForm.bill_id)?.property}
                     </span>
                   </div>
                 </div>
-                <button onClick={() => setPaymentForm(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} className="text-gray-400" /></button>
+                <button onClick={() => setPaymentForm(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-full transition-colors"><X size={20} className="text-gray-400 dark:text-zinc-400" /></button>
               </div>
 
               <div className="flex-1 overflow-y-auto">
                 {/* Date Information Row */}
-                <div className="bg-white p-4 border-b border-gray-100">
-                <span className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Ref. Mensal</span>
+                <div className="bg-white dark:bg-white/[0.02] p-4 border-b border-gray-100 dark:border-white/[0.08]">
+                <span className="block text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1">Ref. Mensal</span>
                 <div className="flex items-center gap-2">
                   <History size={14} className="text-amber-500" />
-                  <span className="text-xs font-black text-gray-800">
+                  <span className="text-xs font-black text-gray-800 dark:text-zinc-100">
                     {paymentForm.reference_month}
                   </span>
                 </div>
@@ -1241,21 +1243,21 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
 
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Valor do Mês</label>
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Valor do Mês</label>
                   <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-gray-400 dark:text-zinc-500">R$</span>
                     <input 
                       type="number" 
                       step="0.01"
                       autoFocus
                       value={paymentForm.amount} 
                       onChange={(e) => setPaymentForm({...paymentForm, amount: Number(e.target.value)})}
-                      className="w-full pl-12 pr-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-black text-lg text-indigo-600"
+                      className="w-full pl-12 pr-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-black text-lg text-indigo-600 dark:text-indigo-400"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</label>
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Status</label>
                   <div className="grid grid-cols-2 gap-2">
                     {STATUSES.map(st => (
                       <button
@@ -1265,7 +1267,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                           "px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tighter border transition-all",
                           paymentForm.status === st 
                             ? getStatusColor(st) + " ring-2 ring-indigo-500/20 shadow-sm" 
-                            : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50"
+                            : "bg-white dark:bg-white/[0.04] text-gray-400 dark:text-zinc-400 border-gray-100 dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.08]"
                         )}
                       >
                         {st}
@@ -1274,19 +1276,19 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Observação</label>
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-1.5 ml-1">Observação</label>
                   <textarea 
                     value={paymentForm.notes} 
                     onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
                     placeholder="Alguma nota importante?"
-                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-sm text-gray-800 resize-none h-24"
+                    className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-sm text-gray-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 resize-none h-24"
                   />
                 </div>
               </div>
               </div>
-              <div className="p-6 bg-gray-50 flex gap-3 shrink-0">
-                <button onClick={() => setPaymentForm(null)} className="flex-1 px-6 py-3 bg-white border border-gray-200 rounded-2xl font-black text-[11px] uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all">Cancelar</button>
-                <button onClick={handleSavePayment} className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Salvar Pagamento</button>
+              <div className="p-6 bg-gray-50 dark:bg-white/[0.03] border-t border-transparent dark:border-white/[0.08] flex gap-3 shrink-0">
+                <button onClick={() => setPaymentForm(null)} className="flex-1 px-6 py-3 bg-white dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-2xl font-black text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/[0.1] transition-all">Cancelar</button>
+                <button onClick={handleSavePayment} className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all">Salvar Pagamento</button>
               </div>
             </motion.div>
           </div>

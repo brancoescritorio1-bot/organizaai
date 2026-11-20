@@ -208,21 +208,21 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
   return (
     <div className="space-y-6">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1c1c1e] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Dashboard Financeiro da Chácara</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Visão consolidada de receitas, despesas e recebimentos por categoria</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">Dashboard Financeiro da Chácara</h2>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Visão consolidada de receitas, despesas e recebimentos por categoria</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <input
             type="month"
             value={filterMonth}
             onChange={(e) => setFilterMonth(e.target.value)}
-            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none cursor-pointer"
+            className="px-3.5 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-200 outline-none cursor-pointer"
           />
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 transition-all shadow-xs"
+            className="flex items-center gap-1.5 bg-slate-900 dark:bg-white text-white dark:text-zinc-950 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 dark:hover:bg-zinc-200 transition-all shadow-xs"
           >
             <Download size={15} />
             <span>Exportar PDF</span>
@@ -233,43 +233,43 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
       <div ref={dashboardRef} className="space-y-6">
         {/* Top Summary KPI Cards (No 'Saldo em Caixa') */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Receitas Recebidas</span>
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Receitas Recebidas</span>
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                 <TrendingUp size={16} />
               </div>
             </div>
-            <p className="text-2xl font-bold text-emerald-700 tracking-tight">
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
               R$ {totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Total arrecadado no mês</p>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Total arrecadado no mês</p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Despesas Pagas</span>
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Despesas Pagas</span>
+              <div className="p-2 bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded-xl">
                 <Wallet size={16} />
               </div>
             </div>
-            <p className="text-2xl font-bold text-rose-700 tracking-tight">
+            <p className="text-2xl font-bold text-rose-700 dark:text-rose-400 tracking-tight">
               R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Gastos quitados no mês</p>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Gastos quitados no mês</p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Inadimplência</span>
-              <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Inadimplência</span>
+              <div className="p-2 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl">
                 <Users size={16} />
               </div>
             </div>
-            <p className="text-2xl font-bold text-amber-600 tracking-tight">
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 tracking-tight">
               R$ {Math.max(0, inadimplencia).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Valores pendentes de recebimento</p>
+            <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Valores pendentes de recebimento</p>
           </div>
         </div>
 
@@ -283,22 +283,22 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
             const pct = expected > 0 ? Math.min(100, Math.round((received / expected) * 100)) : 0;
 
             return (
-              <div key={cat.key} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+              <div key={cat.key} className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className={`p-2 rounded-xl ${cat.bg} ${cat.color}`}>
+                      <div className={`p-2 rounded-xl ${cat.bg} dark:bg-white/[0.06] ${cat.color}`}>
                         <cat.icon size={18} />
                       </div>
-                      <h3 className="font-bold text-slate-900 text-sm tracking-tight">{cat.title}</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm tracking-tight">{cat.title}</h3>
                     </div>
-                    <span className="text-xs font-bold text-slate-700 font-mono bg-slate-100 px-2 py-0.5 rounded-lg">
+                    <span className="text-xs font-bold text-slate-700 dark:text-zinc-200 font-mono bg-slate-100 dark:bg-white/[0.06] px-2 py-0.5 rounded-lg">
                       {pct}%
                     </span>
                   </div>
 
                   {/* Progress bar (Green = received, Orange = pending) */}
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex mb-4">
+                  <div className="w-full h-2 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden flex mb-4">
                     <div 
                       className="bg-emerald-500 h-full transition-all duration-500"
                       style={{ width: `${pct}%` }}
@@ -311,30 +311,30 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100">
+                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100 dark:border-white/[0.06]">
                     <div>
-                      <span className="text-slate-400 text-[10px] uppercase font-semibold block">Previsto</span>
-                      <span className="font-bold text-slate-800">R$ {expected.toFixed(2)}</span>
+                      <span className="text-slate-400 dark:text-zinc-500 text-[10px] uppercase font-semibold block">Previsto</span>
+                      <span className="font-bold text-slate-800 dark:text-zinc-100">R$ {expected.toFixed(2)}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 text-[10px] uppercase font-semibold block">Recebido</span>
-                      <span className="font-bold text-emerald-600">R$ {received.toFixed(2)}</span>
+                      <span className="text-slate-400 dark:text-zinc-500 text-[10px] uppercase font-semibold block">Recebido</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">R$ {received.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-xs text-slate-500">
+                <div className="space-y-1 text-xs text-slate-500 dark:text-zinc-400">
                   <div className="flex justify-between">
                     <span>Adesões / Moradores:</span>
-                    <strong className="text-slate-800">{cnt.total}</strong>
+                    <strong className="text-slate-800 dark:text-zinc-200">{cnt.total}</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-emerald-600 flex items-center gap-1">✓ Já pagaram:</span>
-                    <strong className="text-emerald-700">{cnt.paid}</strong>
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">✓ Já pagaram:</span>
+                    <strong className="text-emerald-700 dark:text-emerald-400">{cnt.paid}</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-amber-600 flex items-center gap-1">⏳ Pendentes:</span>
-                    <strong className="text-amber-700">{cnt.pending}</strong>
+                    <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">⏳ Pendentes:</span>
+                    <strong className="text-amber-700 dark:text-amber-400">{cnt.pending}</strong>
                   </div>
                 </div>
               </div>
@@ -343,18 +343,18 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
         </div>
 
         {/* Expenses Section */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-white/[0.06]">
             <div>
-              <h3 className="font-bold text-slate-900 text-sm tracking-tight flex items-center gap-2">
-                <Wallet size={17} className="text-rose-600" />
+              <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm tracking-tight flex items-center gap-2">
+                <Wallet size={17} className="text-rose-600 dark:text-rose-400" />
                 Despesas do Mês ({filterMonth})
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Lançamentos de gastos da chácara por competência</p>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Lançamentos de gastos da chácara por competência</p>
             </div>
             <button
               onClick={() => setIsExpenseModalOpen(true)}
-              className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
             >
               <Plus size={15} />
               <span>Nova Despesa</span>
@@ -365,7 +365,7 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
             <div className="overflow-x-auto pt-4">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 font-bold text-slate-500 uppercase tracking-wider">
+                  <tr className="border-b border-slate-200 dark:border-white/[0.08] bg-slate-50/80 dark:bg-white/[0.04] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                     <th className="px-4 py-3">Data Pagamento</th>
                     <th className="px-4 py-3">Descrição</th>
                     <th className="px-4 py-3">Categoria</th>
@@ -374,36 +374,36 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
                     <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06] font-medium text-slate-700 dark:text-zinc-300">
                   {currentMonthExpenses.map((exp) => (
-                    <tr key={exp.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={exp.id} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors">
                       <td className="px-4 py-3 font-mono">
                         {exp.date ? exp.date.split('-').reverse().join('/') : '-'}
                       </td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">{exp.description}</td>
-                      <td className="px-4 py-3 uppercase text-[10px] font-bold text-slate-500">
+                      <td className="px-4 py-3 font-semibold text-slate-900 dark:text-zinc-100">{exp.description}</td>
+                      <td className="px-4 py-3 uppercase text-[10px] font-bold text-slate-500 dark:text-zinc-400">
                         {exp.category}
                       </td>
-                      <td className="px-4 py-3 font-bold text-rose-600 font-mono">
+                      <td className="px-4 py-3 font-bold text-rose-600 dark:text-rose-400 font-mono">
                         R$ {Number(exp.amount).toFixed(2)}
                       </td>
                       <td className="px-4 py-3">
                         {exp.receipt_url ? (
                           <button
                             onClick={() => setPreviewUrl(exp.receipt_url)}
-                            className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg text-xs font-semibold"
+                            className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 px-2.5 py-1 rounded-lg text-xs font-semibold"
                           >
                             <Eye size={13} />
                             Ver
                           </button>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-slate-400 dark:text-zinc-600">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleDeleteExpense(exp.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-colors"
                           title="Excluir despesa"
                         >
                           <Trash2 size={15} />
@@ -415,7 +415,7 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
               </table>
             </div>
           ) : (
-            <div className="py-12 text-center text-slate-400">
+            <div className="py-12 text-center text-slate-400 dark:text-zinc-500">
               <p className="text-xs">Nenhuma despesa registrada para este mês de competência.</p>
             </div>
           )}
@@ -424,43 +424,43 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
 
       {/* Add Expense Modal */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
-              <h3 className="font-bold text-slate-900 text-sm">Lançar Nova Despesa</h3>
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-white/[0.08]">
+            <div className="p-5 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between bg-slate-50/80 dark:bg-white/[0.03]">
+              <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Lançar Nova Despesa</h3>
               <button 
                 onClick={() => setIsExpenseModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-200/60 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
+                className="w-7 h-7 rounded-full bg-slate-200/60 dark:bg-white/[0.08] flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/[0.14] transition-colors"
               >
                 <X size={15} />
               </button>
             </div>
             <form onSubmit={handleAddExpense} className="p-5 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-500 uppercase mb-1">Descrição</label>
+                <label className="block font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">Descrição</label>
                 <input
                   type="text"
                   required
                   value={expenseForm.description}
                   onChange={e => setExpenseForm({...expenseForm, description: e.target.value})}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.08] rounded-xl text-slate-900 dark:text-zinc-100 font-medium focus:bg-white dark:focus:bg-zinc-800 focus:border-indigo-500 outline-none text-xs"
                   placeholder="Ex: Manutenção da bomba d'água"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-500 uppercase mb-1">Data Pagamento</label>
+                  <label className="block font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">Data Pagamento</label>
                   <input
                     type="date"
                     required
                     value={expenseForm.date}
                     onChange={e => setExpenseForm({...expenseForm, date: e.target.value})}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.08] rounded-xl text-slate-900 dark:text-zinc-100 font-medium focus:bg-white dark:focus:bg-zinc-800 focus:border-indigo-500 outline-none text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-500 uppercase mb-1">Valor (R$)</label>
+                  <label className="block font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">Valor (R$)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -468,18 +468,18 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
                     required
                     value={expenseForm.amount}
                     onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.08] rounded-xl text-slate-900 dark:text-zinc-100 font-medium focus:bg-white dark:focus:bg-zinc-800 focus:border-indigo-500 outline-none text-xs"
                     placeholder="0.00"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-500 uppercase mb-1">Categoria</label>
+                <label className="block font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">Categoria</label>
                 <select
                   value={expenseForm.category}
                   onChange={e => setExpenseForm({...expenseForm, category: e.target.value})}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-indigo-500 outline-none text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.08] rounded-xl text-slate-900 dark:text-zinc-100 font-medium focus:bg-white dark:focus:bg-zinc-800 focus:border-indigo-500 outline-none text-xs"
                 >
                   <option value="geral">Resumo Geral</option>
                   <option value="fundoReserva">Fundo de Reserva</option>
@@ -491,23 +491,23 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
               </div>
 
               <div>
-                <label className="block font-bold text-slate-500 uppercase mb-1">Comprovante (Imagem / PDF)</label>
+                <label className="block font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">Comprovante (Imagem / PDF)</label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={handleFileChange}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                  className="w-full text-xs text-slate-500 dark:text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-white/[0.08] file:text-slate-700 dark:file:text-zinc-200 hover:file:bg-slate-200 dark:hover:file:bg-white/[0.12]"
                 />
                 {expenseForm.receipt_url && (
-                  <p className="text-[11px] text-emerald-600 mt-1 font-semibold">✓ Comprovante anexado</p>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">✓ Comprovante anexado</p>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsExpenseModalOpen(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold transition-colors"
+                  className="px-4 py-2 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl font-semibold transition-colors"
                 >
                   Cancelar
                 </button>
@@ -527,18 +527,18 @@ export const ChacaraFinanceDashboard: React.FC<ChacaraFinanceDashboardProps> = (
       {/* Preview Modal */}
       {previewUrl && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-sm">Visualizar Comprovante</h3>
-              <button onClick={() => setPreviewUrl(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500">
+          <div className="bg-white dark:bg-[#1c1c1e] w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl border border-transparent dark:border-white/[0.08] flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Visualizar Comprovante</h3>
+              <button onClick={() => setPreviewUrl(null)} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-500 dark:text-zinc-400">
                 <X size={18} />
               </button>
             </div>
-            <div className="p-4 bg-slate-50 flex-1 overflow-auto flex items-center justify-center">
+            <div className="p-4 bg-slate-50 dark:bg-zinc-900 flex-1 overflow-auto flex items-center justify-center">
               {previewUrl.startsWith('data:image') ? (
                 <img src={previewUrl} alt="Comprovante" className="max-w-full h-auto rounded-xl shadow-md" />
               ) : (
-                <iframe src={previewUrl} className="w-full h-[60vh] rounded-xl border border-slate-200" title="PDF Preview" />
+                <iframe src={previewUrl} className="w-full h-[60vh] rounded-xl border border-slate-200 dark:border-white/[0.08]" title="PDF Preview" />
               )}
             </div>
           </div>

@@ -83,9 +83,9 @@ export function ResponsibleManager({ fetchWithAuth, onUpdate }: ResponsibleManag
   };
 
   return (
-    <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-      <h3 className="text-sm sm:text-base font-bold tracking-tight text-gray-800 mb-4 flex items-center gap-2">
-        <User size={19} className="text-indigo-600" />
+    <div className="bg-white dark:bg-[#1c1c1e] p-4 md:p-6 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm mb-6">
+      <h3 className="text-sm sm:text-base font-bold tracking-tight text-gray-800 dark:text-zinc-100 mb-4 flex items-center gap-2">
+        <User size={19} className="text-indigo-600 dark:text-indigo-400" />
         Gerenciar Responsáveis
       </h3>
       
@@ -95,7 +95,7 @@ export function ResponsibleManager({ fetchWithAuth, onUpdate }: ResponsibleManag
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nome do responsável"
-          className="flex-1 px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+          className="flex-1 px-4 py-2.5 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
         />
         <button
@@ -110,14 +110,14 @@ export function ResponsibleManager({ fetchWithAuth, onUpdate }: ResponsibleManag
 
       <div className="space-y-2 max-h-60 overflow-y-auto">
         {responsibles.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-4">Nenhum responsável cadastrado.</p>
+          <p className="text-center text-gray-400 dark:text-zinc-500 text-sm py-4">Nenhum responsável cadastrado.</p>
         ) : (
           responsibles.map(resp => (
-            <div key={resp.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl group">
-              <span className="font-medium text-gray-700">{resp.name}</span>
+            <div key={resp.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/[0.04] border border-transparent dark:border-white/[0.06] rounded-xl group">
+              <span className="font-medium text-gray-700 dark:text-zinc-200">{resp.name}</span>
               <button
                 onClick={() => handleDelete(resp.id)}
-                className="text-gray-400 hover:text-red-500 transition-colors md:opacity-0 md:group-hover:opacity-100 p-2"
+                className="text-gray-400 dark:text-zinc-500 hover:text-red-500 transition-colors md:opacity-0 md:group-hover:opacity-100 p-2"
               >
                 <Trash2 size={16} />
               </button>

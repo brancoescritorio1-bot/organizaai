@@ -41,6 +41,7 @@ import {
 import { ChacaraBill, ChacaraExpense, ChacaraUser } from '../types';
 import { cn } from '../lib/utils';
 import { PdfService } from '../lib/PdfService';
+import { useTheme } from './ThemeContext';
 import {
   ChacaraCategoryId,
   ChacaraDashboardFilter,
@@ -84,11 +85,11 @@ const CATEGORY_VISUALS: Record<
   ChacaraCategoryId,
   { icon: React.ComponentType<{ size?: number }>; color: string; bg: string }
 > = {
-  fundo_reserva: { icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  agua: { icon: Droplets, color: 'text-sky-600', bg: 'bg-sky-50' },
-  energia: { icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
-  prestador: { icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
-  rateio: { icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+  fundo_reserva: { icon: Building2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/15' },
+  agua: { icon: Droplets, color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-500/15' },
+  energia: { icon: Zap, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/15' },
+  prestador: { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/15' },
+  rateio: { icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/15' },
 };
 
 const brlTooltipFormatter = (value: unknown) => {
@@ -109,6 +110,18 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
   users = [],
   expenses = [],
 }) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const chartGridColor = isDark ? '#27272a' : '#f1f5f9';
+  const chartTickColor = isDark ? '#a1a1aa' : '#64748b';
+  const chartTooltipStyle = {
+    borderRadius: '12px',
+    border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+    backgroundColor: isDark ? '#18181b' : '#ffffff',
+    color: isDark ? '#f4f4f5' : '#0f172a',
+    fontSize: '12px',
+  };
+
   const todayStr = getLocalTodayStr();
   const initialParts = (filterMonth || todayStr.slice(0, 7)).split('-');
 
@@ -130,6 +143,9 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
       const [y, m] = filterMonth.split('-');
       setSelectedYear(y);
       setSelectedMonth(m);
+    } else if (filterMonth === '') {
+      setSelectedYear('all');
+      setSelectedMonth('all');
     }
   }, [filterMonth]);
 
@@ -137,6 +153,8 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
     setSelectedYear(newYear);
     if (newYear !== 'all' && selectedMonth !== 'all') {
       setFilterMonth(`${newYear}-${selectedMonth}`);
+    } else if (newYear === 'all' && selectedMonth === 'all') {
+      setFilterMonth('');
     }
   };
 
@@ -144,6 +162,8 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
     setSelectedMonth(newMonth);
     if (selectedYear !== 'all' && newMonth !== 'all') {
       setFilterMonth(`${selectedYear}-${newMonth}`);
+    } else if (selectedYear === 'all' && newMonth === 'all') {
+      setFilterMonth('');
     }
   };
 
@@ -264,14 +284,14 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header & Filtros Completos */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-[#141416] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Dashboard da Chácara
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 tabular-nums">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/25 tabular-nums">
                 {dashboard.activePeriodLabel}
               </span>
               <span
@@ -279,8 +299,8 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 className={cn(
                   'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold cursor-pointer transition-colors',
                   dashboard.auditoria.allPassed
-                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/25'
+                    : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/25'
                 )}
                 title="Clique para ver a conferência matemática completa"
               >
@@ -295,21 +315,21 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 )}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Painel financeiro auditado com separação de Caixa Realizado, Competência, Pendentes vs Inadimplentes e Análise Anual
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">
+              Painel financeiro auditado com separação de Competência, Caixa por Data de Pagamento e Análise Anual
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="inline-flex bg-slate-100 p-1 rounded-xl">
+            <div className="inline-flex bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setFilterMode('competence')}
                 className={cn(
                   'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
                   filterMode === 'competence'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
                 )}
               >
                 Mês / Ano
@@ -320,8 +340,8 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 className={cn(
                   'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
                   filterMode === 'custom'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
                 )}
               >
                 Período Personalizado
@@ -333,7 +353,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 type="button"
                 onClick={handleRefreshClick}
                 disabled={isRefreshing}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs sm:text-sm font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-60"
               >
                 <RefreshCw size={14} className={cn(isRefreshing && 'animate-spin')} />
                 {isRefreshing ? 'Atualizando...' : 'Atualizar'}
@@ -343,16 +363,16 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
         </div>
 
         {/* Barra de Filtros */}
-        <div className="pt-3.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="pt-3.5 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {filterMode === 'competence' ? (
             <>
-              <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800">
                 <Calendar size={14} className="text-slate-400 shrink-0" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Mês:</span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Mês:</span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => handleCompetenceMonthChange(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-800 outline-none flex-1 cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none flex-1 cursor-pointer"
                 >
                   {MONTH_OPTIONS.map((m) => (
                     <option key={m.value} value={m.value}>
@@ -362,13 +382,13 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800">
                 <Calendar size={14} className="text-slate-400 shrink-0" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Ano:</span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Ano:</span>
                 <select
                   value={selectedYear}
                   onChange={(e) => handleCompetenceYearChange(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-800 outline-none flex-1 cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none flex-1 cursor-pointer"
                 >
                   <option value="all">Todos os anos</option>
                   {dashboard.availableYears.map((y) => (
@@ -379,51 +399,51 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
-                <span className="text-[11px] font-bold text-slate-500 uppercase shrink-0">Competência:</span>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase shrink-0">Competência:</span>
                 <input
                   type="month"
                   value={selectedYear !== 'all' && selectedMonth !== 'all' ? `${selectedYear}-${selectedMonth}` : filterMonth}
                   onChange={(e) => handleCompetenceInputSync(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-800 outline-none flex-1 cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none flex-1 cursor-pointer"
                 />
               </div>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800">
                 <Calendar size={14} className="text-slate-400 shrink-0" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">De:</span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase">De:</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-800 outline-none flex-1 cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none flex-1 cursor-pointer"
                 />
               </div>
-              <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800">
                 <Calendar size={14} className="text-slate-400 shrink-0" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Até:</span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Até:</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-800 outline-none flex-1 cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none flex-1 cursor-pointer"
                 />
               </div>
-              <div className="hidden lg:flex items-center px-3 py-2 text-[11px] text-slate-400 font-medium">
+              <div className="hidden lg:flex items-center px-3 py-2 text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
                 Filtro por data efetiva de pagamento (Caixa) e vencimento (Lançamentos)
               </div>
             </>
           )}
 
-          <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-zinc-800">
             <Filter size={14} className="text-slate-400 shrink-0" />
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Categoria:</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Categoria:</span>
             <select
               value={selectedCategoryFilter}
               onChange={(e) => setSelectedCategoryFilter(e.target.value as 'all' | ChacaraCategoryId)}
-              className="bg-transparent text-xs font-semibold text-slate-800 outline-none flex-1 cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none flex-1 cursor-pointer"
             >
               <option value="all">Todas as categorias</option>
               <option value="fundo_reserva">Fundo de Reserva</option>
@@ -436,65 +456,69 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
         </div>
       </div>
 
-      {/* 1. Indicadores Financeiros Superiores (3 Cartões Principais) */}
+      {/* 1. Indicadores Financeiros Superiores (3 Cartões Principais por Competência + Caixa na linha auxiliar) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Receitas Recebidas (Realizado)
+            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+              Receitas Recebidas (Competência)
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <TrendingUp size={17} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-bold text-emerald-700 tracking-tight tabular-nums">
-              {formatBRL(dashboard.fluxoRealizado.receitasRecebidasCents)}
+            <p className="text-2xl sm:text-3xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight tabular-nums">
+              {formatBRL(dashboard.lancamentosGerais.totalRecebidoCents)}
             </p>
-            <p className="text-xs text-slate-400 mt-1.5 tabular-nums">
-              {dashboard.fluxoRealizado.paidBillsCount} baixa(s) na data de pagamento • Comp.:{' '}
-              {formatBRL(dashboard.lancamentosGerais.totalRecebidoCents)} de{' '}
-              {formatBRL(dashboard.lancamentosGerais.totalPrevistoCents)}
+            <p className="text-xs text-slate-400 dark:text-zinc-400 mt-1.5 tabular-nums">
+              {dashboard.lancamentosGerais.percentRecebido}% de{' '}
+              {formatBRL(dashboard.lancamentosGerais.totalPrevistoCents)} • Caixa (data pgto):{' '}
+              <span className="font-semibold text-slate-600 dark:text-zinc-300">
+                {formatBRL(dashboard.fluxoRealizado.receitasRecebidasCents)}
+              </span>
             </p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Despesas Pagas (Realizado)
+            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+              Despesas Pagas (Competência)
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <TrendingDown size={17} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-bold text-rose-700 tracking-tight tabular-nums">
-              {formatBRL(dashboard.fluxoRealizado.despesasPagasCents)}
-            </p>
-            <p className="text-xs text-slate-400 mt-1.5 tabular-nums">
-              {dashboard.fluxoRealizado.paidExpensesCount} despesa(s) efetivada(s) • Lançadas na comp.:{' '}
+            <p className="text-2xl sm:text-3xl font-bold text-rose-700 dark:text-rose-400 tracking-tight tabular-nums">
               {formatBRL(dashboard.lancamentosGerais.despesasLancadasCents)}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-zinc-400 mt-1.5 tabular-nums">
+              {dashboard.lancamentosGerais.expensesCount} despesa(s) na comp. • Caixa (data pgto):{' '}
+              <span className="font-semibold text-slate-600 dark:text-zinc-300">
+                {formatBRL(dashboard.fluxoRealizado.despesasPagasCents)}
+              </span>
             </p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
               Inadimplência (Vencidos)
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <AlertCircle size={17} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-bold text-rose-700 tracking-tight tabular-nums">
+            <p className="text-2xl sm:text-3xl font-bold text-rose-700 dark:text-rose-400 tracking-tight tabular-nums">
               {formatBRL(dashboard.lancamentosGerais.totalInadimplenteCents)}
             </p>
-            <p className="text-xs text-slate-400 mt-1.5 tabular-nums">
+            <p className="text-xs text-slate-400 dark:text-zinc-400 mt-1.5 tabular-nums">
               {dashboard.utilidadesECadastros.overdueBillsCount} conta(s) vencida(s) ({dashboard.lancamentosGerais.percentInadimplente}%) • A vencer:{' '}
-              <span className="font-semibold text-amber-600">
+              <span className="font-semibold text-amber-600 dark:text-amber-400">
                 {formatBRL(dashboard.lancamentosGerais.totalPendenteCents)}
               </span>
             </p>
@@ -505,46 +529,46 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
       {/* 1B. Separação Explícita das Duas Visões: Fluxo Realizado vs Lançamentos Gerais */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Visão A: Fluxo Realizado */}
-        <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
-          <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3.5">
+        <div className="lg:col-span-5 bg-white dark:bg-[#141416] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3.5">
             <div>
-              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
                 VISÃO A • DATA DE PAGAMENTO
               </span>
-              <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2 mt-0.5">
-                <Wallet size={16} className="text-emerald-600" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 mt-0.5">
+                <Wallet size={16} className="text-emerald-600 dark:text-emerald-400" />
                 Fluxo Financeiro Realizado (Caixa)
               </h3>
             </div>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
               Regime de Caixa
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70">
-              <span className="text-xs font-semibold text-slate-600">Entradas Recebidas</span>
-              <span className="text-sm sm:text-base font-bold text-emerald-700 tabular-nums">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Entradas Recebidas ({dashboard.fluxoRealizado.paidBillsCount} baixas)</span>
+              <span className="text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {formatBRL(dashboard.fluxoRealizado.receitasRecebidasCents)}
               </span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70">
-              <span className="text-xs font-semibold text-slate-600">Saídas Pagas</span>
-              <span className="text-sm sm:text-base font-bold text-rose-700 tabular-nums">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Saídas Pagas ({dashboard.fluxoRealizado.paidExpensesCount} desp.)</span>
+              <span className="text-sm sm:text-base font-bold text-rose-700 dark:text-rose-400 tabular-nums">
                 {formatBRL(dashboard.fluxoRealizado.despesasPagasCents)}
               </span>
             </div>
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/70 dark:border-zinc-800">
               <div>
-                <span className="text-xs font-bold text-slate-800 block">Saldo Financeiro Realizado</span>
-                <span className="text-[10px] text-slate-400">Entradas efetivas − Saídas pagas</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-zinc-100 block">Saldo Financeiro Realizado</span>
+                <span className="text-[10px] text-slate-400 dark:text-zinc-500">Entradas efetivas − Saídas pagas</span>
               </div>
               <span
                 className={cn(
                   'text-base sm:text-lg font-bold tabular-nums',
                   dashboard.fluxoRealizado.saldoRealizadoCents >= 0
-                    ? 'text-emerald-700'
-                    : 'text-rose-700'
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-rose-700 dark:text-rose-400'
                 )}
               >
                 {formatBRL(dashboard.fluxoRealizado.saldoRealizadoCents)}
@@ -553,7 +577,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
           </div>
 
           {dashboard.fluxoRealizado.missingPaymentDateCount > 0 && (
-            <div className="flex items-center gap-2 text-[11px] text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-100">
+            <div className="flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-100 dark:border-amber-500/20">
               <AlertTriangle size={14} className="shrink-0" />
               <span>
                 {dashboard.fluxoRealizado.missingPaymentDateCount} recebimento(s) sem{' '}
@@ -564,91 +588,91 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
         </div>
 
         {/* Visão B: Lançamentos Gerais */}
-        <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
-          <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3.5">
+        <div className="lg:col-span-7 bg-white dark:bg-[#141416] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3.5">
             <div>
-              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 VISÃO B • COMPETÊNCIA / VENCIMENTO
               </span>
-              <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2 mt-0.5">
-                <FileSpreadsheet size={16} className="text-indigo-600" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 mt-0.5">
+                <FileSpreadsheet size={16} className="text-indigo-600 dark:text-indigo-400" />
                 Lançamentos Gerais do Período
               </h3>
             </div>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 tabular-nums">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 tabular-nums">
               {dashboard.lancamentosGerais.billsCount} conta(s) • {dashboard.lancamentosGerais.expensesCount} desp.
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Previsto</p>
-              <p className="text-sm sm:text-base font-bold text-slate-900 tabular-nums mt-1">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Total Previsto</p>
+              <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums mt-1">
                 {formatBRL(dashboard.lancamentosGerais.totalPrevistoCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                 Total Recebido ({dashboard.lancamentosGerais.percentRecebido}%)
               </p>
-              <p className="text-sm sm:text-base font-bold text-emerald-700 tabular-nums mt-1">
+              <p className="text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-1">
                 {formatBRL(dashboard.lancamentosGerais.totalRecebidoCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                 Pendente A Vencer ({dashboard.lancamentosGerais.percentPendente}%)
               </p>
-              <p className="text-sm sm:text-base font-bold text-amber-600 tabular-nums mt-1">
+              <p className="text-sm sm:text-base font-bold text-amber-600 dark:text-amber-400 tabular-nums mt-1">
                 {formatBRL(dashboard.lancamentosGerais.totalPendenteCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                 Inadimplente ({dashboard.lancamentosGerais.percentInadimplente}%)
               </p>
-              <p className="text-sm sm:text-base font-bold text-rose-700 tabular-nums mt-1">
+              <p className="text-sm sm:text-base font-bold text-rose-700 dark:text-rose-400 tabular-nums mt-1">
                 {formatBRL(dashboard.lancamentosGerais.totalInadimplenteCents)}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contas a Receber</p>
-              <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Contas a Receber</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums mt-0.5">
                 {formatBRL(dashboard.lancamentosGerais.contasAReceberCents)}
               </p>
-              <p className="text-[10px] text-slate-400">Pendente + Vencido</p>
+              <p className="text-[10px] text-slate-400 dark:text-zinc-500">Pendente + Vencido</p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contas a Pagar</p>
-              <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Contas a Pagar</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-zinc-100 tabular-nums mt-0.5">
                 {formatBRL(dashboard.lancamentosGerais.contasAPagarCents)}
               </p>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-slate-400 dark:text-zinc-500">
                 Despesas lançadas: {formatBRL(dashboard.lancamentosGerais.despesasLancadasCents)}
               </p>
             </div>
-            <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Saldo Previsto</p>
+            <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/70 dark:border-zinc-800">
+              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Saldo Previsto</p>
               <p
                 className={cn(
                   'text-sm font-bold tabular-nums mt-0.5',
                   dashboard.lancamentosGerais.saldoPrevistoCents >= 0
-                    ? 'text-indigo-700'
-                    : 'text-rose-700'
+                    ? 'text-indigo-700 dark:text-indigo-400'
+                    : 'text-rose-700 dark:text-rose-400'
                 )}
               >
                 {formatBRL(dashboard.lancamentosGerais.saldoPrevistoCents)}
               </p>
-              <p className="text-[10px] text-slate-400">Receitas lanç. − Desp. lanç.</p>
+              <p className="text-[10px] text-slate-400 dark:text-zinc-500">Receitas lanç. − Desp. lanç.</p>
             </div>
           </div>
 
           {/* Barra Global de Composição (100% Auditada) */}
           <div className="space-y-1.5">
-            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+            <div className="h-2.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
               <div
                 className="bg-emerald-500 h-full transition-all duration-300"
                 style={{ width: `${dashboard.lancamentosGerais.percentRecebido}%` }}
@@ -665,14 +689,14 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 title={`Inadimplente (vencido): ${dashboard.lancamentosGerais.percentInadimplente}%`}
               />
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 tabular-nums">
-              <span className="text-emerald-700">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 dark:text-zinc-400 tabular-nums">
+              <span className="text-emerald-700 dark:text-emerald-400">
                 Recebido: {dashboard.lancamentosGerais.percentRecebido}%
               </span>
-              <span className="text-amber-600">
+              <span className="text-amber-600 dark:text-amber-400">
                 Pendente a vencer: {dashboard.lancamentosGerais.percentPendente}%
               </span>
-              <span className="text-rose-700">
+              <span className="text-rose-700 dark:text-rose-400">
                 Inadimplente vencido: {dashboard.lancamentosGerais.percentInadimplente}%
               </span>
             </div>
@@ -682,140 +706,140 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
 
       {/* 2. Indicadores de Água, Energia e Cadastros */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+        <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 {dashboard.activePeriodLabel} • HIDRÔMETROS
               </p>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5 flex items-center gap-2">
-                <Droplets size={17} className="text-sky-600 shrink-0" />
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight mt-0.5 flex items-center gap-2">
+                <Droplets size={17} className="text-sky-600 dark:text-sky-400 shrink-0" />
                 Água & Saneamento
               </h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-sky-50 text-sky-700 shrink-0 tabular-nums">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 shrink-0 tabular-nums">
               {aguaCat?.percentRecebido ?? 0}% pago
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Consumo</p>
-              <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Consumo</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                 {dashboard.utilidadesECadastros.totalWaterM3.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}{' '}
-                <span className="text-xs font-semibold text-slate-400">m³</span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500">m³</span>
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Medidores</p>
-              <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Medidores</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                 {dashboard.utilidadesECadastros.waterMetersCount}
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Faturado</p>
-              <p className="text-sm sm:text-base font-bold text-slate-800 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Faturado</p>
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-zinc-200 tabular-nums">
                 {formatBRL(aguaCat?.previstoCents ?? 0)}
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Recebido</p>
-              <p className="text-sm sm:text-base font-bold text-emerald-700 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Recebido</p>
+              <p className="text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {formatBRL(aguaCat?.recebidoCents ?? 0)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+        <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 {dashboard.activePeriodLabel} • MEDIÇÃO ELÉTRICA
               </p>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5 flex items-center gap-2">
-                <Zap size={17} className="text-amber-600 shrink-0" />
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight mt-0.5 flex items-center gap-2">
+                <Zap size={17} className="text-amber-600 dark:text-amber-400 shrink-0" />
                 Energia Elétrica
               </h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 shrink-0 tabular-nums">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0 tabular-nums">
               {energiaCat?.percentRecebido ?? 0}% pago
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Consumo</p>
-              <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Consumo</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                 {dashboard.utilidadesECadastros.totalEnergyKwh.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}{' '}
-                <span className="text-xs font-semibold text-slate-400">kWh</span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500">kWh</span>
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Padrões</p>
-              <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Padrões</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                 {dashboard.utilidadesECadastros.energyMetersCount}
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Faturado</p>
-              <p className="text-sm sm:text-base font-bold text-slate-800 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Faturado</p>
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-zinc-200 tabular-nums">
                 {formatBRL(energiaCat?.previstoCents ?? 0)}
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Recebido</p>
-              <p className="text-sm sm:text-base font-bold text-emerald-700 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Recebido</p>
+              <p className="text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {formatBRL(energiaCat?.recebidoCents ?? 0)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+        <div className="bg-white dark:bg-[#141416] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col justify-between space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 {dashboard.activePeriodLabel} • MORADORES & CONTAS
               </p>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5 flex items-center gap-2">
-                <Users size={17} className="text-indigo-600 shrink-0" />
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight mt-0.5 flex items-center gap-2">
+                <Users size={17} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                 Cadastros e Faturas
               </h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 shrink-0 tabular-nums">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0 tabular-nums">
               {dashboard.utilidadesECadastros.paidBillsPct}% quitadas
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Moradores Ativos</p>
-              <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Moradores Ativos</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                 {dashboard.utilidadesECadastros.activeUsers}{' '}
-                <span className="text-[11px] font-semibold text-slate-400">
+                <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500">
                   / {dashboard.utilidadesECadastros.totalUsers}
                 </span>
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Contas Lançadas</p>
-              <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Contas Lançadas</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                 {dashboard.utilidadesECadastros.billsCount}
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Quitadas / Parc.</p>
-              <p className="text-base sm:text-lg font-bold text-emerald-700 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Quitadas / Parc.</p>
+              <p className="text-base sm:text-lg font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {dashboard.utilidadesECadastros.paidBillsCount}{' '}
-                <span className="text-xs font-semibold text-indigo-600">
+                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                   (+{dashboard.utilidadesECadastros.partialBillsCount})
                 </span>
               </p>
             </div>
-            <div className="text-center p-3 bg-slate-50/70 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Vencidas</p>
-              <p className="text-base sm:text-lg font-bold text-rose-700 tabular-nums">
+            <div className="text-center p-3 bg-slate-50/70 dark:bg-zinc-900/70 rounded-xl">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Vencidas</p>
+              <p className="text-base sm:text-lg font-bold text-rose-700 dark:text-rose-400 tabular-nums">
                 {dashboard.utilidadesECadastros.overdueBillsCount}
               </p>
             </div>
@@ -824,17 +848,17 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
       </div>
 
       {/* 3. Detalhamento por Categoria */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
+      <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3.5">
           <div>
-            <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
               Detalhamento por Categoria
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               Previsto, recebido, pendente (a vencer), inadimplente (vencido) e contagem real de moradores — clique para auditar lançamentos
             </p>
           </div>
-          <span className="text-xs font-semibold text-slate-500 font-mono tabular-nums">
+          <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 font-mono tabular-nums">
             Período: {dashboard.activePeriodLabel}
           </span>
         </div>
@@ -851,34 +875,31 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                   setModalStatusFilter('all');
                   setSelectedCategoryModal(cat.id);
                 }}
-                className="group p-4 rounded-xl border border-slate-200/70 hover:border-slate-300 bg-slate-50/40 hover:bg-white transition-all cursor-pointer flex flex-col justify-between shadow-xs space-y-3"
+                className="group p-4 rounded-xl border border-slate-200/70 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/40 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-900 transition-all cursor-pointer flex flex-col justify-between shadow-xs space-y-3"
               >
-                {/* Header */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', vis.bg, vis.color)}>
                       <Icon size={15} />
                     </div>
-                    <h4 className="font-bold text-slate-900 text-xs truncate">{cat.title}</h4>
+                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">{cat.title}</h4>
                   </div>
-                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 tabular-nums shrink-0">
+                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
                     {cat.percentRecebido}%
                   </span>
                 </div>
 
-                {/* Total Previsto */}
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
                     Total Previsto
                   </span>
-                  <span className="text-lg font-bold text-slate-900 tabular-nums">
+                  <span className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">
                     {formatBRL(cat.previstoCents)}
                   </span>
                 </div>
 
-                {/* Barra de Progresso Segmentada */}
                 <div className="space-y-2">
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                  <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
                     <div
                       className="bg-emerald-500 h-full transition-all duration-300"
                       style={{ width: `${cat.percentRecebido}%` }}
@@ -898,27 +919,26 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
 
                   <div className="space-y-1 text-[11px] tabular-nums">
                     <div className="flex items-center justify-between font-semibold">
-                      <span className="text-slate-500">Recebido</span>
-                      <span className="text-emerald-700">{formatBRL(cat.recebidoCents)}</span>
+                      <span className="text-slate-500 dark:text-zinc-400">Recebido</span>
+                      <span className="text-emerald-700 dark:text-emerald-400">{formatBRL(cat.recebidoCents)}</span>
                     </div>
                     <div className="flex items-center justify-between font-semibold">
-                      <span className="text-slate-500">Pendente (a vencer)</span>
-                      <span className="text-amber-600">{formatBRL(cat.pendenteCents)}</span>
+                      <span className="text-slate-500 dark:text-zinc-400">Pendente (a vencer)</span>
+                      <span className="text-amber-600 dark:text-amber-400">{formatBRL(cat.pendenteCents)}</span>
                     </div>
                     <div className="flex items-center justify-between font-semibold">
-                      <span className="text-slate-500">Inadimplente</span>
-                      <span className="text-rose-700">{formatBRL(cat.inadimplenteCents)}</span>
+                      <span className="text-slate-500 dark:text-zinc-400">Inadimplente</span>
+                      <span className="text-rose-700 dark:text-rose-400">{formatBRL(cat.inadimplenteCents)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Moradores */}
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] tabular-nums">
-                  <div className="flex items-center gap-1 text-emerald-700" title="Moradores que quitaram a categoria">
+                <div className="pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-[11px] tabular-nums">
+                  <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400" title="Moradores que quitaram a categoria">
                     <CheckCircle2 size={12} />
                     <span className="font-semibold">{cat.moradoresPagantes} pagaram</span>
                   </div>
-                  <div className="flex items-center gap-1 text-amber-600" title="Moradores com saldo pendente ou vencido">
+                  <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title="Moradores com saldo pendente ou vencido">
                     <Clock size={12} />
                     <span className="font-semibold">{cat.moradoresPendentes} pendentes</span>
                   </div>
@@ -932,34 +952,34 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
       {/* 4. Análise Mensal & Comparativo com Mês Anterior + Análise Anual e Geral */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Análise Mensal */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3.5">
+        <div className="lg:col-span-5 bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6 space-y-4">
+          <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3.5">
             <div>
-              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 FECHAMENTO MENSAL
               </span>
-              <h3 className="font-bold text-slate-900 text-base tracking-tight mt-0.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight mt-0.5">
                 Análise Mensal ({formatMonthLabelPtBr(dashboard.analiseMensal.targetMonthRef)})
               </h3>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full tabular-nums">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full tabular-nums">
               {dashboard.analiseMensal.atual.percentRecebido}% recebido
             </span>
           </div>
 
           <div className="space-y-2.5">
-            <div className="p-3 rounded-xl bg-slate-50/70 flex items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70 flex items-center justify-between gap-2">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Receitas Realizadas no Mês</p>
-                <p className="text-base font-bold text-emerald-700 tabular-nums">
-                  {formatBRL(dashboard.analiseMensal.atual.recebidoRealizadoCents)}
+                <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Recebido na Competência (Caixa: {formatBRL(dashboard.analiseMensal.atual.recebidoRealizadoCents)})</p>
+                <p className="text-base font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                  {formatBRL(dashboard.analiseMensal.atual.recebidoCompetenciaCents)}
                 </p>
               </div>
               <div className="text-right tabular-nums">
                 <span
                   className={cn(
                     'inline-flex items-center gap-0.5 text-[11px] font-bold',
-                    dashboard.analiseMensal.deltas.recebidoDiffCents >= 0 ? 'text-emerald-700' : 'text-rose-700'
+                    dashboard.analiseMensal.deltas.recebidoDiffCents >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
                   )}
                 >
                   {dashboard.analiseMensal.deltas.recebidoDiffCents >= 0 ? (
@@ -969,34 +989,34 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                   )}
                   {formatBRL(Math.abs(dashboard.analiseMensal.deltas.recebidoDiffCents))}
                 </span>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-slate-400 dark:text-zinc-500">
                   {formatDeltaPct(dashboard.analiseMensal.deltas.recebidoDiffPct)}
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50/70 flex items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70 flex items-center justify-between gap-2">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Despesas Pagas no Mês</p>
-                <p className="text-base font-bold text-rose-700 tabular-nums">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Despesas Pagas no Mês</p>
+                <p className="text-base font-bold text-rose-700 dark:text-rose-400 tabular-nums">
                   {formatBRL(dashboard.analiseMensal.atual.despesasPagasCents)}
                 </p>
               </div>
               <div className="text-right tabular-nums">
-                <span className="text-[11px] font-bold text-slate-700">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
                   {dashboard.analiseMensal.deltas.despesasDiffCents >= 0 ? '+' : '−'}
                   {formatBRL(Math.abs(dashboard.analiseMensal.deltas.despesasDiffCents))}
                 </span>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-slate-400 dark:text-zinc-500">
                   {formatDeltaPct(dashboard.analiseMensal.deltas.despesasDiffPct)}
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50/70 flex items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70 flex items-center justify-between gap-2">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Inadimplência da Competência</p>
-                <p className="text-base font-bold text-rose-700 tabular-nums">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Inadimplência da Competência</p>
+                <p className="text-base font-bold text-rose-700 dark:text-rose-400 tabular-nums">
                   {formatBRL(dashboard.analiseMensal.atual.inadimplenteCents)}
                 </p>
               </div>
@@ -1004,32 +1024,32 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 <span
                   className={cn(
                     'text-[11px] font-bold',
-                    dashboard.analiseMensal.deltas.inadimplenteDiffCents <= 0 ? 'text-emerald-700' : 'text-rose-700'
+                    dashboard.analiseMensal.deltas.inadimplenteDiffCents <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
                   )}
                 >
                   {dashboard.analiseMensal.deltas.inadimplenteDiffCents >= 0 ? '+' : '−'}
                   {formatBRL(Math.abs(dashboard.analiseMensal.deltas.inadimplenteDiffCents))}
                 </span>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-slate-400 dark:text-zinc-500">
                   {formatDeltaPct(dashboard.analiseMensal.deltas.inadimplenteDiffPct)}
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-2">
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase">Saldo Realizado do Mês</p>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Saldo Realizado do Mês</p>
                 <p
                   className={cn(
                     'text-base font-bold tabular-nums',
-                    dashboard.analiseMensal.atual.saldoRealizadoCents >= 0 ? 'text-emerald-700' : 'text-rose-700'
+                    dashboard.analiseMensal.atual.saldoRealizadoCents >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
                   )}
                 >
                   {formatBRL(dashboard.analiseMensal.atual.saldoRealizadoCents)}
                 </p>
               </div>
               <div className="text-right tabular-nums">
-                <span className="text-[11px] font-semibold text-slate-600">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">
                   Mês ant. ({formatMonthLabelPtBr(dashboard.analiseMensal.previousMonthRef)}):{' '}
                   {dashboard.analiseMensal.anterior
                     ? formatBRL(dashboard.analiseMensal.anterior.saldoRealizadoCents)
@@ -1041,49 +1061,49 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
         </div>
 
         {/* Análise Anual & Geral */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3.5">
+        <div className="lg:col-span-7 bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6 space-y-4">
+          <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3.5">
             <div>
-              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 ACUMULADO SEM DUPLICIDADE
               </span>
-              <h3 className="font-bold text-slate-900 text-base tracking-tight mt-0.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight mt-0.5">
                 Análise Anual e Geral ({dashboard.analiseAnual.targetYear})
               </h3>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full tabular-nums">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full tabular-nums">
               {dashboard.analiseAnual.mesesComLancamento} mês(es) ativo(s) •{' '}
               {dashboard.analiseAnual.percentRecebidoAnual}% recebido
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Previsto Anual</p>
-              <p className="text-sm font-bold text-slate-900 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Previsto Anual</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.totalPrevistoAnualCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Recebido (Caixa)</p>
-              <p className="text-sm font-bold text-emerald-700 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Recebido (Caixa)</p>
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.totalRecebidoRealizadoAnualCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Despesas Pagas</p>
-              <p className="text-sm font-bold text-rose-700 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Despesas Pagas</p>
+              <p className="text-sm font-bold text-rose-700 dark:text-rose-400 tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.totalDespesasPagasAnualCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <p className="text-[10px] font-bold text-slate-500 uppercase">Resultado Anual</p>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/70 dark:border-zinc-800">
+              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Resultado Anual</p>
               <p
                 className={cn(
                   'text-sm font-bold tabular-nums mt-0.5',
                   dashboard.analiseAnual.resultadoAnualRealizadoCents >= 0
-                    ? 'text-emerald-700'
-                    : 'text-rose-700'
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-rose-700 dark:text-rose-400'
                 )}
               >
                 {formatBRL(dashboard.analiseAnual.resultadoAnualRealizadoCents)}
@@ -1092,45 +1112,44 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Pendente (A vencer)</p>
-              <p className="text-sm font-bold text-amber-600 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Pendente (A vencer)</p>
+              <p className="text-sm font-bold text-amber-600 dark:text-amber-400 tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.totalPendenteAnualCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Inadimplência Anual</p>
-              <p className="text-sm font-bold text-rose-700 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Inadimplência Anual</p>
+              <p className="text-sm font-bold text-rose-700 dark:text-rose-400 tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.totalInadimplenteAnualCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Média Mensal Entradas</p>
-              <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Média Mensal Entradas</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-zinc-200 tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.mediaMensalReceitasCents)}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50/70">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Média Mensal Desp.</p>
-              <p className="text-sm font-bold text-slate-800 tabular-nums mt-0.5">
+            <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase">Média Mensal Desp.</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-zinc-200 tabular-nums mt-0.5">
                 {formatBRL(dashboard.analiseAnual.mediaMensalDespesasCents)}
               </p>
             </div>
           </div>
 
-          {/* Ranking de Inadimplência & Comparativo Anos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 space-y-2">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70 border border-slate-100 dark:border-zinc-800 space-y-2">
+              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                 Categorias com Maior Inadimplência ({dashboard.activePeriodLabel})
               </p>
               <div className="space-y-1.5">
                 {dashboard.analiseAnual.categoriasMaiorInadimplencia.slice(0, 3).map((item) => (
                   <div key={item.id} className="flex items-center justify-between text-xs tabular-nums">
-                    <span className="font-medium text-slate-700 truncate">{item.title}</span>
-                    <span className="font-bold text-rose-700">
+                    <span className="font-medium text-slate-700 dark:text-zinc-300 truncate">{item.title}</span>
+                    <span className="font-bold text-rose-700 dark:text-rose-400">
                       {formatBRL(item.inadimplenteCents)}{' '}
-                      <span className="text-[10px] font-normal text-slate-400">
+                      <span className="text-[10px] font-normal text-slate-400 dark:text-zinc-500">
                         ({item.percentInadimplenteCategoria}%)
                       </span>
                     </span>
@@ -1139,58 +1158,55 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 space-y-2">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/70 border border-slate-100 dark:border-zinc-800 space-y-2">
+              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                 Comparativo entre Anos
               </p>
               {dashboard.analiseAnual.comparativoAnos.length > 0 ? (
                 <div className="space-y-1.5">
                   {dashboard.analiseAnual.comparativoAnos.map((yp) => (
                     <div key={yp.year} className="flex items-center justify-between text-xs tabular-nums">
-                      <span className="font-bold text-slate-800">{yp.year}</span>
-                      <span className="text-slate-600">
-                        Rec: <strong className="text-emerald-700">{formatBRL(yp.recebidoRealizadoCents)}</strong> • Desp:{' '}
-                        <strong className="text-rose-700">{formatBRL(yp.despesasPagasCents)}</strong>
+                      <span className="font-bold text-slate-800 dark:text-zinc-100">{yp.year}</span>
+                      <span className="text-slate-600 dark:text-zinc-400">
+                        Rec: <strong className="text-emerald-700 dark:text-emerald-400">{formatBRL(yp.recebidoRealizadoCents)}</strong> • Desp:{' '}
+                        <strong className="text-rose-700 dark:text-rose-400">{formatBRL(yp.despesasPagasCents)}</strong>
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">Sem registros anuais disponíveis.</p>
+                <p className="text-xs text-slate-400 dark:text-zinc-500">Sem registros anuais disponíveis.</p>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 5. Gráficos Completos (6 Análises Visuais com Cores Preservadas) */}
+      {/* 5. Gráficos Completos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Gráfico 1: Recebimentos vs Pendentes vs Inadimplentes por Categoria */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="border-b border-slate-100 pb-3.5 mb-5">
-            <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-              <BarChart3 size={17} className="text-indigo-600" />
+        {/* Gráfico 1 */}
+        <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+          <div className="border-b border-slate-100 dark:border-zinc-800 pb-3.5 mb-5">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+              <BarChart3 size={17} className="text-indigo-600 dark:text-indigo-400" />
               Recebimentos vs Pendentes vs Inadimplentes
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               Composição financeira por categoria ({dashboard.activePeriodLabel})
             </p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryBarChartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: chartTickColor }} axisLine={false} tickLine={false} />
                 <YAxis
-                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tick={{ fontSize: 11, fill: chartTickColor }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `R$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
                 />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                  formatter={brlTooltipFormatter}
-                />
+                <Tooltip contentStyle={chartTooltipStyle} formatter={brlTooltipFormatter} />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                 <Bar dataKey="Recebido" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={28} />
                 <Bar dataKey="Pendente (A vencer)" fill="#f59e0b" radius={[6, 6, 0, 0]} maxBarSize={28} />
@@ -1200,14 +1216,14 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
           </div>
         </div>
 
-        {/* Gráfico 2: Comparativo Mensal de Receitas e Despesas */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="border-b border-slate-100 pb-3.5 mb-5">
-            <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-              <TrendingUp size={17} className="text-emerald-600" />
+        {/* Gráfico 2 */}
+        <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+          <div className="border-b border-slate-100 dark:border-zinc-800 pb-3.5 mb-5">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+              <TrendingUp size={17} className="text-emerald-600 dark:text-emerald-400" />
               Comparativo Mensal: Receitas vs Despesas
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               Fluxo realizado mensal e saldos inadimplentes (últimos 12 meses)
             </p>
           </div>
@@ -1215,18 +1231,15 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyHistoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartTickColor }} axisLine={false} tickLine={false} />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: chartTickColor }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `R$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
                   />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                    formatter={brlTooltipFormatter}
-                  />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={brlTooltipFormatter} />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                   <Bar dataKey="Receitas Realizadas" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={24} />
                   <Bar dataKey="Despesas Pagas" fill="#f43f5e" radius={[6, 6, 0, 0]} maxBarSize={24} />
@@ -1235,37 +1248,34 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-xs text-slate-400">
+            <div className="h-64 flex items-center justify-center text-xs text-slate-400 dark:text-zinc-500">
               Sem histórico mensal suficiente para exibição.
             </div>
           )}
         </div>
 
-        {/* Gráfico 3: Evolução da Inadimplência */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="border-b border-slate-100 pb-3.5 mb-5">
-            <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-              <AlertCircle size={17} className="text-rose-600" />
+        {/* Gráfico 3 */}
+        <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+          <div className="border-b border-slate-100 dark:border-zinc-800 pb-3.5 mb-5">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+              <AlertCircle size={17} className="text-rose-600 dark:text-rose-400" />
               Evolução da Inadimplência
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Valores vencidos em aberto por competência mensal (R$)</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Valores vencidos em aberto por competência mensal (R$)</p>
           </div>
           {monthlyHistoryChartData.length > 0 ? (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyHistoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartTickColor }} axisLine={false} tickLine={false} />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: chartTickColor }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `R$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
                   />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                    formatter={brlTooltipFormatter}
-                  />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={brlTooltipFormatter} />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                   <Line type="monotone" dataKey="Inadimplência" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: 4 }} />
                   <Line type="monotone" dataKey="Pendente A Vencer" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
@@ -1273,37 +1283,34 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-xs text-slate-400">
+            <div className="h-64 flex items-center justify-center text-xs text-slate-400 dark:text-zinc-500">
               Sem dados históricos para exibição.
             </div>
           )}
         </div>
 
-        {/* Gráfico 4: Desempenho por Categoria (% Recebido vs Inadimplente) */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="border-b border-slate-100 pb-3.5 mb-5">
-            <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-              <Percent size={17} className="text-indigo-600" />
+        {/* Gráfico 4 */}
+        <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+          <div className="border-b border-slate-100 dark:border-zinc-800 pb-3.5 mb-5">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+              <Percent size={17} className="text-indigo-600 dark:text-indigo-400" />
               Desempenho por Categoria (%)
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Taxa de adimplência e pendência sobre o faturado</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Taxa de adimplência e pendência sobre o faturado</p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryPerformanceChartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: chartTickColor }} axisLine={false} tickLine={false} />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tick={{ fontSize: 11, fill: chartTickColor }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `${v}%`}
                 />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                  formatter={pctTooltipFormatter}
-                />
+                <Tooltip contentStyle={chartTooltipStyle} formatter={pctTooltipFormatter} />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                 <Bar dataKey="% Recebido" stackId="pct" fill="#10b981" maxBarSize={36} />
                 <Bar dataKey="% Pendente" stackId="pct" fill="#f59e0b" maxBarSize={36} />
@@ -1313,32 +1320,29 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
           </div>
         </div>
 
-        {/* Gráfico 5: Percentual de Recebimento por Mês */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="border-b border-slate-100 pb-3.5 mb-5">
-            <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-              <CheckCircle2 size={17} className="text-emerald-600" />
+        {/* Gráfico 5 */}
+        <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+          <div className="border-b border-slate-100 dark:border-zinc-800 pb-3.5 mb-5">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+              <CheckCircle2 size={17} className="text-emerald-600 dark:text-emerald-400" />
               Percentual de Recebimento por Mês
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Evolução da eficiência de arrecadação (%)</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Evolução da eficiência de arrecadação (%)</p>
           </div>
           {monthlyHistoryChartData.length > 0 ? (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyHistoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartTickColor }} axisLine={false} tickLine={false} />
                   <YAxis
                     domain={[0, 100]}
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: chartTickColor }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}%`}
                   />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                    formatter={pctTooltipFormatter}
-                  />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={pctTooltipFormatter} />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                   <Line type="monotone" dataKey="% Recebimento" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} />
                   <Line type="monotone" dataKey="% Inadimplência" stroke="#f43f5e" strokeWidth={2} dot={{ r: 3 }} />
@@ -1346,20 +1350,20 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-xs text-slate-400">
+            <div className="h-64 flex items-center justify-center text-xs text-slate-400 dark:text-zinc-500">
               Sem dados históricos para exibição.
             </div>
           )}
         </div>
 
-        {/* Gráfico 6: Evolução do Saldo Financeiro */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-          <div className="border-b border-slate-100 pb-3.5 mb-5">
-            <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-              <Wallet size={17} className="text-indigo-600" />
+        {/* Gráfico 6 */}
+        <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
+          <div className="border-b border-slate-100 dark:border-zinc-800 pb-3.5 mb-5">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+              <Wallet size={17} className="text-indigo-600 dark:text-indigo-400" />
               Evolução do Saldo Financeiro
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               Resultado mensal realizado e saldo acumulado de caixa (sem duplicidades)
             </p>
           </div>
@@ -1367,18 +1371,15 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={monthlyHistoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartTickColor }} axisLine={false} tickLine={false} />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: chartTickColor }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `R$${v >= 1000 || v <= -1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
                   />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                    formatter={brlTooltipFormatter}
-                  />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={brlTooltipFormatter} />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                   <Bar dataKey="Saldo Mensal" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={28} />
                   <Line type="monotone" dataKey="Saldo Acumulado" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} />
@@ -1386,7 +1387,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-xs text-slate-400">
+            <div className="h-64 flex items-center justify-center text-xs text-slate-400 dark:text-zinc-500">
               Sem dados históricos para exibição.
             </div>
           )}
@@ -1394,7 +1395,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
       </div>
 
       {/* 6. Conferência Matemática e Auditoria de Dados */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
+      <div className="bg-white dark:bg-[#141416] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6 space-y-4">
         <div
           onClick={() => setShowAuditDetails((prev) => !prev)}
           className="flex items-center justify-between gap-3 cursor-pointer"
@@ -1403,16 +1404,16 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
             <div
               className={cn(
                 'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                dashboard.auditoria.allPassed ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                dashboard.auditoria.allPassed ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400'
               )}
             >
               {dashboard.auditoria.allPassed ? <ShieldCheck size={19} /> : <AlertTriangle size={19} />}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base tracking-tight">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight">
                 Conferência Matemática e Auditoria de Integridade
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
                 {dashboard.auditoria.allPassed
                   ? 'Todas as 5 equações de reconciliação fecharam com divergência de R$ 0,00.'
                   : 'Atenção: foram detectadas divergências entre registros de origem e totais.'}
@@ -1421,7 +1422,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
           >
             {showAuditDetails ? 'Ocultar detalhes' : 'Ver conferência'}
             {showAuditDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -1429,33 +1430,33 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
         </div>
 
         {showAuditDetails && (
-          <div className="pt-4 border-t border-slate-100 space-y-4">
+          <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-4">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200/70">
-                    <th className="px-3.5 py-2.5 font-bold text-slate-500 uppercase">Regra de Conferência</th>
-                    <th className="px-3.5 py-2.5 font-bold text-slate-500 uppercase text-right">Lado A</th>
-                    <th className="px-3.5 py-2.5 font-bold text-slate-500 uppercase text-right">Lado B</th>
-                    <th className="px-3.5 py-2.5 font-bold text-slate-500 uppercase text-right">Divergência</th>
-                    <th className="px-3.5 py-2.5 font-bold text-slate-500 uppercase text-center">Status</th>
+                  <tr className="bg-slate-50 dark:bg-zinc-900 border-b border-slate-200/70 dark:border-zinc-800">
+                    <th className="px-3.5 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase">Regra de Conferência</th>
+                    <th className="px-3.5 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase text-right">Lado A</th>
+                    <th className="px-3.5 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase text-right">Lado B</th>
+                    <th className="px-3.5 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase text-right">Divergência</th>
+                    <th className="px-3.5 py-2.5 font-bold text-slate-500 dark:text-zinc-400 uppercase text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 tabular-nums">
+                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 tabular-nums">
                   {dashboard.auditoria.checks.map((chk) => (
                     <tr key={chk.id}>
                       <td className="px-3.5 py-2.5">
-                        <p className="font-semibold text-slate-800">{chk.label}</p>
-                        <p className="text-[11px] text-slate-400">{chk.description}</p>
+                        <p className="font-semibold text-slate-800 dark:text-zinc-100">{chk.label}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-zinc-500">{chk.description}</p>
                       </td>
-                      <td className="px-3.5 py-2.5 text-right font-semibold text-slate-700">
+                      <td className="px-3.5 py-2.5 text-right font-semibold text-slate-700 dark:text-zinc-300">
                         {chk.isCount ? chk.leftValueCents : formatBRL(chk.leftValueCents)}
                       </td>
-                      <td className="px-3.5 py-2.5 text-right font-semibold text-slate-700">
+                      <td className="px-3.5 py-2.5 text-right font-semibold text-slate-700 dark:text-zinc-300">
                         {chk.isCount ? chk.rightValueCents : formatBRL(chk.rightValueCents)}
                       </td>
                       <td className="px-3.5 py-2.5 text-right font-bold">
-                        <span className={chk.diffCents === 0 ? 'text-emerald-700' : 'text-rose-700'}>
+                        <span className={chk.diffCents === 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}>
                           {chk.isCount ? chk.diffCents : formatBRL(chk.diffCents)}
                         </span>
                       </td>
@@ -1463,7 +1464,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                         <span
                           className={cn(
                             'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                            chk.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                            chk.passed ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400'
                           )}
                         >
                           {chk.passed ? 'Conciliado' : 'Divergente'}
@@ -1476,11 +1477,11 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
             </div>
 
             {dashboard.auditoria.subCentAdjustedBills.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5 text-xs">
-                <p className="font-bold text-slate-700">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/70 dark:border-zinc-800 space-y-1.5 text-xs">
+                <p className="font-bold text-slate-700 dark:text-zinc-200">
                   Reconciliações de centavo residual em contas legadas ({dashboard.auditoria.subCentAdjustedBills.length}):
                 </p>
-                <div className="max-h-36 overflow-y-auto space-y-1 text-[11px] text-slate-600 tabular-nums">
+                <div className="max-h-36 overflow-y-auto space-y-1 text-[11px] text-slate-600 dark:text-zinc-400 tabular-nums">
                   {dashboard.auditoria.subCentAdjustedBills.map((adj) => (
                     <div key={adj.billId} className="flex justify-between">
                       <span>
@@ -1498,7 +1499,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
             )}
 
             {dashboard.auditoria.criticalMismatches.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 space-y-1.5 text-xs text-rose-800">
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 space-y-1.5 text-xs text-rose-800 dark:text-rose-300">
                 <p className="font-bold">
                   Divergências críticas entre total salvo e soma dos itens ({dashboard.auditoria.criticalMismatches.length}):
                 </p>
@@ -1522,19 +1523,19 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
       {/* Modal de Rastreabilidade por Categoria */}
       {modalCategoryData && (
         <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedCategoryModal(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-slate-200"
+            className="bg-white dark:bg-[#161618] rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-slate-200 dark:border-zinc-800"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+            <div className="p-5 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center bg-slate-50/80 dark:bg-zinc-900/70">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Rastreabilidade — {modalCategoryData.title}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 tabular-nums">
                   Período: {dashboard.activePeriodLabel} • Previsto: {formatBRL(modalCategoryData.previstoCents)} • Recebido:{' '}
                   {formatBRL(modalCategoryData.recebidoCents)} • A receber:{' '}
                   {formatBRL(modalCategoryData.aReceberCents)}
@@ -1543,13 +1544,13 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedCategoryModal(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-1.5 bg-white">
+            <div className="px-5 py-3 border-b border-slate-100 dark:border-zinc-800 flex flex-wrap gap-1.5 bg-white dark:bg-[#161618]">
               {(['all', 'pago', 'parcial', 'pendente', 'inadimplente'] as const).map((st) => (
                 <button
                   key={st}
@@ -1558,8 +1559,8 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                   className={cn(
                     'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer',
                     modalStatusFilter === st
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-950'
+                      : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
                   )}
                 >
                   {st === 'all'
@@ -1581,14 +1582,14 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                 .map((item) => (
                   <div
                     key={`${item.billId}-${modalCategoryData.id}`}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 text-xs"
                   >
                     <div>
-                      <p className="font-semibold text-slate-800">
+                      <p className="font-semibold text-slate-800 dark:text-zinc-100">
                         {item.residentName}{' '}
-                        <span className="text-[10px] font-mono text-slate-400">#{item.billId}</span>
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">#{item.billId}</span>
                       </p>
-                      <p className="text-[11px] text-slate-400 tabular-nums">
+                      <p className="text-[11px] text-slate-400 dark:text-zinc-500 tabular-nums">
                         Comp.: {formatMonthLabelPtBr(item.monthReference)} • Venc.:{' '}
                         {item.dueDate ? new Date(item.dueDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                         {item.paymentDate
@@ -1598,9 +1599,9 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                     </div>
                     <div className="text-left sm:text-right tabular-nums flex sm:flex-col items-center sm:items-end justify-between gap-1">
                       <div>
-                        <span className="font-bold text-slate-900">{formatBRL(item.previstoCents)}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{formatBRL(item.previstoCents)}</span>
                         {item.recebidoCents > 0 && item.aReceberCents > 0 && (
-                          <span className="text-[10px] text-slate-500 ml-2">
+                          <span className="text-[10px] text-slate-500 dark:text-zinc-400 ml-2">
                             (Pago: {formatBRL(item.recebidoCents)} | Resta: {formatBRL(item.aReceberCents)})
                           </span>
                         )}
@@ -1609,12 +1610,12 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
                         className={cn(
                           'text-[10px] font-bold px-2 py-0.5 rounded uppercase',
                           item.status === 'pago'
-                            ? 'bg-emerald-50 text-emerald-700'
+                            ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                             : item.status === 'parcial'
-                            ? 'bg-indigo-50 text-indigo-700'
+                            ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400'
                             : item.status === 'inadimplente'
-                            ? 'bg-rose-50 text-rose-700'
-                            : 'bg-amber-50 text-amber-700'
+                            ? 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400'
+                            : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400'
                         )}
                       >
                         {item.status === 'pago'
@@ -1631,7 +1632,7 @@ export const StrictFinanceDashboard: React.FC<StrictFinanceDashboardProps> = ({
               {modalCategoryData.items.filter(
                 (item) => modalStatusFilter === 'all' || item.status === modalStatusFilter
               ).length === 0 && (
-                <div className="py-10 text-center text-xs text-slate-400">
+                <div className="py-10 text-center text-xs text-slate-400 dark:text-zinc-500">
                   Nenhum registro encontrado para este filtro.
                 </div>
               )}

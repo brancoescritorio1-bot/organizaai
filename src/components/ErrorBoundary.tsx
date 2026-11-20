@@ -40,19 +40,19 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full flex flex-col items-center border border-gray-100">
-            <div className="p-4 bg-red-100 text-red-600 rounded-full mb-4">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0b0b0c] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-white dark:bg-[#1c1c1e] p-8 rounded-2xl shadow-xl max-w-md w-full flex flex-col items-center border border-gray-100 dark:border-white/[0.08]">
+            <div className="p-4 bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400 rounded-full mb-4">
               <AlertTriangle size={36} />
             </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
               Ocorreu um erro na aplicação
             </h1>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 dark:text-zinc-400 mb-6">
               Infelizmente ocorreu um problema inesperado ao carregar a interface. Tente recarregar a página para restaurar o estado.
             </p>
             {this.state.error && (
-              <div className="w-full bg-gray-100 p-3 rounded-xl text-left text-xs font-mono text-gray-700 overflow-x-auto mb-6 max-h-32">
+              <div className="w-full bg-gray-100 dark:bg-zinc-900 p-3 rounded-xl text-left text-xs font-mono text-gray-700 dark:text-zinc-300 overflow-x-auto mb-6 max-h-32 border border-transparent dark:border-white/[0.06]">
                 {this.state.error.message || String(this.state.error)}
               </div>
             )}

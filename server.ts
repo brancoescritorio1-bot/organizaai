@@ -980,9 +980,10 @@ app.get("/api/config", (req, res) => {
     try {
       const user = (req as any).user;
       const id = req.params.id;
-      const scope = req.query.scope || req.body.scope || 'single';
+      const scope = String(req.query.scope || req.body.scope || 'single');
+      const applyMode = String(req.body.apply_mode || 'per_installment');
       const updateData: any = {};
-      
+
       const fields = ['description', 'amount', 'type', 'category_id', 'account_id', 'date', 'due_date', 'status', 'splits', 'is_installment', 'installment_number', 'total_installments'];
       fields.forEach(field => {
         if (req.body[field] !== undefined) {
@@ -994,46 +995,141 @@ app.get("/api/config", (req, res) => {
         }
       });
 
-      if (scope === 'single') {
-        const { error } = await supabase.from("financial_transactions")
-          .update(updateData)
-          .eq("id", id)
-          .eq("user_id", user.id);
-          
-        if (error) return res.status(500).json(error);
-        return res.json({ success: true });
-      }
-
-      // Propagate across installments if 'all' or 'future'
-      const { data: currentTx } = await supabase
+      const { data: currentTx, error: curErr } = await supabase
         .from("financial_transactions")
-        .select("id, is_installment, parent_transaction_id, installment_number")
+        .select("*")
         .eq("id", id)
         .eq("user_id", user.id)
         .single();
 
-      if (!currentTx || !currentTx.is_installment) {
-        const { error } = await supabase.from("financial_transactions").update(updateData).eq("id", id).eq("user_id", user.id);
+      if (curErr || !currentTx) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      if (scope === 'single' || !currentTx.is_installment) {
+        const targetAccId = updateData.account_id !== undefined ? updateData.account_id : currentTx.account_id;
+        const targetDate = updateData.date !== undefined ? updateData.date : currentTx.date;
+
+        if ((updateData.account_id !== undefined || updateData.date !== undefined) && updateData.due_date === undefined && targetAccId) {
+          const { data: accData } = await supabase
+            .from("financial_accounts")
+            .select("*")
+            .eq("id", targetAccId)
+            .eq("user_id", user.id)
+            .single();
+          if (accData?.type === 'credito' && accData.closing_day && accData.due_day) {
+            const invInfo = calculateCreditCardInvoiceDates(targetDate, Number(accData.closing_day), Number(accData.due_day));
+            updateData.due_date = invInfo.dueDateStr;
+          }
+        }
+
+        const { error } = await supabase.from("financial_transactions")
+          .update(updateData)
+          .eq("id", id)
+          .eq("user_id", user.id);
+
         if (error) return res.status(500).json(error);
         return res.json({ success: true });
       }
 
       const parentId = currentTx.parent_transaction_id || currentTx.id;
-      const sharedFields: any = {};
-      ['description', 'category_id', 'account_id', 'type'].forEach(f => {
-        if (updateData[f] !== undefined) sharedFields[f] = updateData[f];
-      });
+      const { data: allSiblings, error: sibErr } = await supabase
+        .from("financial_transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`)
+        .order("installment_number", { ascending: true });
 
-      let query = supabase.from("financial_transactions").update(sharedFields).eq("user_id", user.id);
-      if (scope === 'future') {
-        query = query.or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`).gte('installment_number', currentTx.installment_number || 1);
-      } else {
-        query = query.or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`);
+      if (sibErr || !allSiblings) {
+        return res.status(500).json(sibErr || { error: "Failed to load siblings" });
       }
 
-      const { error } = await query;
-      if (error) return res.status(500).json(error);
-      res.json({ success: true });
+      const currentInstNum = Number(currentTx.installment_number || 1);
+      const targetSiblings = scope === 'future'
+        ? allSiblings.filter((s: any) => Number(s.installment_number || 1) >= currentInstNum)
+        : allSiblings;
+
+      const targetAccId = updateData.account_id !== undefined ? updateData.account_id : currentTx.account_id;
+      let targetAccount: any = null;
+      if (targetAccId) {
+        const { data: accData } = await supabase
+          .from("financial_accounts")
+          .select("*")
+          .eq("id", targetAccId)
+          .eq("user_id", user.id)
+          .single();
+        targetAccount = accData;
+      }
+
+      // Compute amounts for each target sibling
+      let distributedAmounts: number[] | null = null;
+      if (updateData.amount !== undefined) {
+        const numericAmount = Number(updateData.amount) || 0;
+        if (applyMode === 'total') {
+          distributedAmounts = distributeInstallments(numericAmount, targetSiblings.length);
+        } else {
+          distributedAmounts = targetSiblings.map(() => Number(numericAmount.toFixed(2)));
+        }
+      }
+
+      let distributedSplits: any[] | null = null;
+      if (Array.isArray(updateData.splits)) {
+        if (applyMode === 'total') {
+          distributedSplits = distributeSplits(updateData.splits, targetSiblings.length);
+        } else {
+          distributedSplits = targetSiblings.map(() => updateData.splits);
+        }
+      }
+
+      const baseNewDate = updateData.date ? String(updateData.date).split('T')[0] : null;
+      let baseFirstDueDate: string | null = null;
+      if (baseNewDate && targetAccount?.type === 'credito' && targetAccount.closing_day && targetAccount.due_day) {
+        baseFirstDueDate = calculateCreditCardInvoiceDates(baseNewDate, Number(targetAccount.closing_day), Number(targetAccount.due_day)).dueDateStr;
+      } else if (updateData.due_date) {
+        baseFirstDueDate = String(updateData.due_date).split('T')[0];
+      }
+
+      for (let idx = 0; idx < targetSiblings.length; idx++) {
+        const sib = targetSiblings[idx];
+        const patch: any = {};
+
+        ['description', 'category_id', 'account_id', 'type'].forEach(f => {
+          if (updateData[f] !== undefined) patch[f] = updateData[f];
+        });
+
+        if (distributedAmounts) {
+          patch.amount = distributedAmounts[idx];
+        }
+        if (distributedSplits) {
+          patch.splits = distributedSplits[idx];
+        }
+
+        const monthOffset = Number(sib.installment_number || 1) - currentInstNum;
+        if (baseNewDate) {
+          patch.date = addMonthsPreservingDay(baseNewDate, monthOffset);
+        }
+        if (baseFirstDueDate) {
+          patch.due_date = addMonthsPreservingDay(baseFirstDueDate, monthOffset);
+        } else if (updateData.account_id !== undefined && targetAccount?.type === 'credito' && targetAccount.closing_day && targetAccount.due_day) {
+          const sibDate = patch.date || sib.date;
+          patch.due_date = calculateCreditCardInvoiceDates(sibDate, Number(targetAccount.closing_day), Number(targetAccount.due_day)).dueDateStr;
+        }
+
+        if (sib.id === currentTx.id && updateData.status !== undefined) {
+          patch.status = updateData.status;
+        }
+
+        if (Object.keys(patch).length > 0) {
+          const { error: uErr } = await supabase
+            .from("financial_transactions")
+            .update(patch)
+            .eq("id", sib.id)
+            .eq("user_id", user.id);
+          if (uErr) return res.status(500).json(uErr);
+        }
+      }
+
+      res.json({ success: true, updated_count: targetSiblings.length });
     } catch (err: any) {
       console.error("Error in PUT /api/finance/transactions:", err);
       res.status(500).json({ error: err.message || "Internal server error" });
@@ -1110,14 +1206,25 @@ app.get("/api/config", (req, res) => {
   app.post("/api/finance/pay-invoice", async (req, res) => {
     try {
       const user = (req as any).user;
-      const { card_account_id, paying_account_id, month, year } = req.body;
+      const { card_account_id, paying_account_id, month, year, payment_date } = req.body;
 
       if (!card_account_id) {
         return res.status(400).json({ error: "card_account_id is required" });
       }
 
-      const { data: card } = await supabase.from("financial_accounts").select("*").eq("id", card_account_id).single();
-      const closingDay = card?.closing_day || 1;
+      const { data: card } = await supabase
+        .from("financial_accounts")
+        .select("*")
+        .eq("id", card_account_id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!card) {
+        return res.status(404).json({ error: "Cartão não encontrado" });
+      }
+
+      const closingDay = Number(card?.closing_day || 1);
+      const dueDay = Number(card?.due_day || 10);
 
       const { data: allTxs } = await supabase
         .from("financial_transactions")
@@ -1128,17 +1235,26 @@ app.get("/api/config", (req, res) => {
       const targetMonth = Number(month);
       const targetYear = Number(year);
 
-      const invoiceItemIds = [];
+      const invoiceItemIds: number[] = [];
       let totalAmountToPay = 0;
 
       (allTxs || []).forEach(t => {
         let belongs = false;
         if (t.due_date) {
-          const [dY, dM] = t.due_date.split('-').map(Number);
+          const [dY, dM] = String(t.due_date).split('T')[0].split('-').map(Number);
           if (dY === targetYear && dM - 1 === targetMonth) belongs = true;
         } else {
-          const inv = calculateCreditCardInvoiceDates(t.date, closingDay, card?.due_day || 10);
-          if (inv.invoiceYear === targetYear && inv.invoiceMonth === targetMonth) belongs = true;
+          const inv = calculateCreditCardInvoiceDates(t.date, closingDay, dueDay);
+          let invDueMonth = inv.invoiceMonth;
+          let invDueYear = inv.invoiceYear;
+          if (dueDay <= closingDay) {
+            invDueMonth += 1;
+            if (invDueMonth > 11) {
+              invDueYear += Math.floor(invDueMonth / 12);
+              invDueMonth = invDueMonth % 12;
+            }
+          }
+          if (invDueYear === targetYear && invDueMonth === targetMonth) belongs = true;
         }
 
         if (belongs && t.status !== 'pago') {
@@ -1154,14 +1270,48 @@ app.get("/api/config", (req, res) => {
           await supabase.from("financial_transactions").update({
             status: 'pago',
             splits: updatedSplits
-          }).eq("id", tId);
+          }).eq("id", tId).eq("user_id", user.id);
+        }
+
+        // Record liquid bank/cash outflow without double-counting monthly expenses
+        if (paying_account_id && String(paying_account_id) !== String(card_account_id) && totalAmountToPay > 0) {
+          const { data: payAcc } = await supabase
+            .from("financial_accounts")
+            .select("*")
+            .eq("id", paying_account_id)
+            .eq("user_id", user.id)
+            .single();
+
+          if (payAcc && payAcc.type !== 'credito') {
+            const payDate = payment_date || new Date().toISOString().split('T')[0];
+            const compLabel = `${String(targetMonth + 1).padStart(2, '0')}/${targetYear}`;
+            const { data: faturaCats } = await supabase
+              .from("financial_categories")
+              .select("id, name")
+              .eq("user_id", user.id)
+              .eq("type", "despesa");
+            const matchedCat = (faturaCats || []).find((c: any) => c.name?.toLowerCase().includes('fatura'));
+
+            await supabase.from("financial_transactions").insert([{
+              user_id: user.id,
+              description: `Pagamento Fatura ${card.name} (${compLabel})`,
+              amount: Number(totalAmountToPay.toFixed(2)),
+              type: 'despesa',
+              category_id: matchedCat?.id || null,
+              account_id: payAcc.id,
+              date: payDate,
+              due_date: payDate,
+              status: 'pago',
+              splits: []
+            }]);
+          }
         }
       }
 
       res.json({ 
         success: true, 
         paid_items_count: invoiceItemIds.length, 
-        total_paid: totalAmountToPay 
+        total_paid: Number(totalAmountToPay.toFixed(2))
       });
     } catch (err: any) {
       console.error("Error in /api/finance/pay-invoice:", err);
@@ -1235,6 +1385,7 @@ app.get("/api/config", (req, res) => {
 
       let monthIncome = 0;
       let monthExpense = 0;
+      let monthLiquidInvoicePayments = 0;
       let previousLiquidBalance = liquidInitialBalance;
 
       let pendingReceivablesMonth = 0;
@@ -1284,22 +1435,33 @@ app.get("/api/config", (req, res) => {
 
         if (isCreditCard) {
           if (t.due_date) {
-            const [dY, dM] = t.due_date.split('-').map(Number);
+            const [dY, dM] = String(t.due_date).split('T')[0].split('-').map(Number);
             if (dY === filterYear && dM - 1 === filterMonth) {
               belongsToMonth = true;
             } else if (dY < filterYear || (dY === filterYear && dM - 1 < filterMonth)) {
               isBeforeMonth = true;
             }
           } else {
-            const inv = calculateCreditCardInvoiceDates(t.date, acc?.closing_day || 1, acc?.due_day || 10);
-            if (inv.invoiceYear === filterYear && inv.invoiceMonth === filterMonth) {
+            const closingDay = Number(acc?.closing_day || 1);
+            const dueDay = Number(acc?.due_day || 10);
+            const inv = calculateCreditCardInvoiceDates(t.date, closingDay, dueDay);
+            let dueM = inv.invoiceMonth;
+            let dueY = inv.invoiceYear;
+            if (dueDay <= closingDay) {
+              dueM += 1;
+              if (dueM > 11) {
+                dueY += Math.floor(dueM / 12);
+                dueM = dueM % 12;
+              }
+            }
+            if (dueY === filterYear && dueM === filterMonth) {
               belongsToMonth = true;
-            } else if (inv.invoiceYear < filterYear || (inv.invoiceYear === filterYear && inv.invoiceMonth < filterMonth)) {
+            } else if (dueY < filterYear || (dueY === filterYear && dueM < filterMonth)) {
               isBeforeMonth = true;
             }
           }
         } else {
-          const [tY, tM] = t.date.split('T')[0].split('-').map(Number);
+          const [tY, tM] = String(t.date).split('T')[0].split('-').map(Number);
           if (tY === filterYear && tM - 1 === filterMonth) {
             belongsToMonth = true;
           } else if (tY < filterYear || (tY === filterYear && tM - 1 < filterMonth)) {
@@ -1317,12 +1479,13 @@ app.get("/api/config", (req, res) => {
             }
           } else {
             if (belongsToMonth) {
+              const paidPart = Array.isArray(t.splits) && t.splits.length > 0
+                ? t.splits.reduce((sSum: number, s: any) => sSum + (s.status === 'pago' ? Number(s.amount || 0) : 0), 0)
+                : (isPaid ? amount : 0);
+              const pendingPart = Math.max(0, amount - paidPart);
               accSummary.invoice_total = (accSummary.invoice_total || 0) + amount;
-              if (isPaid) {
-                accSummary.invoice_paid = (accSummary.invoice_paid || 0) + amount;
-              } else {
-                accSummary.invoice_pending = (accSummary.invoice_pending || 0) + amount;
-              }
+              accSummary.invoice_paid = (accSummary.invoice_paid || 0) + paidPart;
+              accSummary.invoice_pending = (accSummary.invoice_pending || 0) + pendingPart;
             }
           }
         }
@@ -1346,6 +1509,8 @@ app.get("/api/config", (req, res) => {
           } else {
             if (!isInvoicePayment && !isCreditCard) {
               monthExpense += amount;
+            } else if (isInvoicePayment && !isCreditCard) {
+              monthLiquidInvoicePayments += amount;
             }
 
             if (!isPaid && !isCreditCard) {
@@ -1353,12 +1518,13 @@ app.get("/api/config", (req, res) => {
             }
 
             if (isCreditCard) {
+              const paidPart = Array.isArray(t.splits) && t.splits.length > 0
+                ? t.splits.reduce((sSum: number, s: any) => sSum + (s.status === 'pago' ? Number(s.amount || 0) : 0), 0)
+                : (isPaid ? amount : 0);
+              const pendingPart = Math.max(0, amount - paidPart);
               creditCardMonthTotal += amount;
-              if (isPaid) {
-                creditCardMonthPaid += amount;
-              } else {
-                creditCardMonthPending += amount;
-              }
+              creditCardMonthPaid += paidPart;
+              creditCardMonthPending += pendingPart;
             }
 
             if (Array.isArray(t.splits)) {
@@ -1378,13 +1544,14 @@ app.get("/api/config", (req, res) => {
         }
       });
 
-      const endLiquidBalance = previousLiquidBalance + monthIncome - monthExpense;
+      const endLiquidBalance = previousLiquidBalance + monthIncome - monthExpense - monthLiquidInvoicePayments;
 
       res.json({
         total_balance: endLiquidBalance,
         cash_balance: endLiquidBalance,
         month_income: monthIncome,
         month_expense: monthExpense,
+        month_invoice_payments: monthLiquidInvoicePayments,
         month_net: monthIncome - monthExpense,
         previous_balance: previousLiquidBalance,
         pending_receivables: pendingReceivablesMonth,
@@ -3149,6 +3316,70 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
     }
   });
 
+  // Personal Module Helpers & Routes (Non-destructive metadata + table fallback)
+  const SYS_PREFIX = '__OAI_SYS__:';
+
+  const encodePersonalTaskDescription = (
+    description: string | undefined | null,
+    meta: {
+      due_time?: string;
+      category?: string;
+      tags?: string[];
+      item_type?: 'task' | 'note';
+      completed_at?: string | null;
+    }
+  ) => {
+    const cleanDesc = (description || '').replace(/^\[PTMETA:[^\]]+\]\n?/is, '');
+    const cleanMeta: any = {};
+    if (meta.due_time) cleanMeta.due_time = meta.due_time;
+    if (meta.category) cleanMeta.category = meta.category;
+    if (Array.isArray(meta.tags) && meta.tags.length > 0) cleanMeta.tags = meta.tags;
+    if (meta.item_type && meta.item_type !== 'task') cleanMeta.item_type = meta.item_type;
+    if (meta.completed_at) cleanMeta.completed_at = meta.completed_at;
+    if (Object.keys(cleanMeta).length === 0) return cleanDesc;
+    return `[PTMETA:${JSON.stringify(cleanMeta)}]\n${cleanDesc}`;
+  };
+
+  const decodePersonalTask = (row: any) => {
+    if (!row) return row;
+    let description = row.description || '';
+    let due_time = row.due_time || '';
+    let category = row.category || '';
+    let tags: string[] = Array.isArray(row.tags) ? row.tags : [];
+    let item_type: 'task' | 'note' = row.item_type || 'task';
+    let completed_at: string | null = row.completed_at || null;
+
+    const match = description.match(/^\[PTMETA:([^\]]+)\]\n?(.*)$/s);
+    if (match) {
+      try {
+        const meta = JSON.parse(match[1]);
+        if (meta.due_time !== undefined) due_time = meta.due_time;
+        if (meta.category !== undefined) category = meta.category;
+        if (Array.isArray(meta.tags)) tags = meta.tags;
+        if (meta.item_type) item_type = meta.item_type;
+        if (meta.completed_at !== undefined) completed_at = meta.completed_at;
+        description = match[2] || '';
+      } catch {
+        // Keep original description if metadata parse fails
+      }
+    }
+
+    return {
+      ...row,
+      description,
+      due_time: due_time || undefined,
+      category: category || undefined,
+      tags,
+      item_type,
+      completed_at,
+    };
+  };
+
+  const isMissingTableError = (err: any) => {
+    if (!err) return false;
+    return err.code === '42P01' || err.code === 'PGRST205' || String(err.message || '').includes('does not exist') || String(err.message || '').includes('schema cache');
+  };
+
   // Personal Tasks
   app.get("/api/personal/tasks", async (req, res) => {
     const user = (req as any).user;
@@ -3158,34 +3389,78 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       .eq("user_id", user.id)
       .order("due_date", { ascending: true, nullsFirst: false });
     if (error) return res.status(500).json(error);
-    res.json(data);
+    const tasks = (data || [])
+      .filter((row: any) => !String(row.title || '').startsWith(SYS_PREFIX))
+      .map(decodePersonalTask);
+    res.json(tasks);
   });
 
   app.post("/api/personal/tasks", async (req, res) => {
     const user = (req as any).user;
-    const { title, description, due_date, priority, status, eisenhower_quadrant } = req.body;
+    const {
+      title, description, due_date, due_time, category, tags, item_type,
+      completed_at, priority, status, eisenhower_quadrant
+    } = req.body;
+    const resolvedStatus = status || 'pending';
+    const resolvedCompletedAt = resolvedStatus === 'completed' ? (completed_at || new Date().toISOString()) : null;
+    const encodedDesc = encodePersonalTaskDescription(description, {
+      due_time,
+      category,
+      tags,
+      item_type: item_type || 'task',
+      completed_at: resolvedCompletedAt,
+    });
+
     const { data, error } = await supabase
       .from("personal_tasks")
-      .insert([{ user_id: user.id, title, description, due_date, priority, status, eisenhower_quadrant }])
+      .insert([{
+        user_id: user.id,
+        title,
+        description: encodedDesc,
+        due_date: due_date || null,
+        priority: priority || 'medium',
+        status: resolvedStatus,
+        eisenhower_quadrant: eisenhower_quadrant || 'not_urgent_important'
+      }])
       .select()
       .single();
     if (error) return res.status(500).json(error);
-    res.json(data);
+    res.json(decodePersonalTask(data));
   });
 
   app.put("/api/personal/tasks/:id", async (req, res) => {
     const user = (req as any).user;
     const { id } = req.params;
-    const { title, description, due_date, priority, status, eisenhower_quadrant } = req.body;
+    const {
+      title, description, due_date, due_time, category, tags, item_type,
+      completed_at, priority, status, eisenhower_quadrant
+    } = req.body;
+    const resolvedStatus = status || 'pending';
+    const resolvedCompletedAt = resolvedStatus === 'completed' ? (completed_at || new Date().toISOString()) : null;
+    const encodedDesc = encodePersonalTaskDescription(description, {
+      due_time,
+      category,
+      tags,
+      item_type: item_type || 'task',
+      completed_at: resolvedCompletedAt,
+    });
+
     const { data, error } = await supabase
       .from("personal_tasks")
-      .update({ title, description, due_date, priority, status, eisenhower_quadrant })
+      .update({
+        title,
+        description: encodedDesc,
+        due_date: due_date || null,
+        priority: priority || 'medium',
+        status: resolvedStatus,
+        eisenhower_quadrant: eisenhower_quadrant || 'not_urgent_important'
+      })
       .eq("id", id)
       .eq("user_id", user.id)
       .select()
       .single();
     if (error) return res.status(500).json(error);
-    res.json(data);
+    res.json(decodePersonalTask(data));
   });
 
   app.delete("/api/personal/tasks/:id", async (req, res) => {
@@ -3198,6 +3473,641 @@ Retorne APENAS o texto da legenda formatada, sem comentários extras, introduç�
       .eq("user_id", user.id);
     if (error) return res.status(500).json(error);
     res.json({ success: true });
+  });
+
+  const isMissingColumnError = (err: any) => {
+    if (!err) return false;
+    const msg = String(err.message || '');
+    return err.code === '42703' || err.code === 'PGRST204' || msg.includes('column') || msg.includes('schema cache');
+  };
+
+  const encodeHabitTargetWithMeta = (
+    target: string | undefined | null,
+    meta: {
+      real_frequency?: string;
+      times_per_day?: number;
+      duration_days?: number | null;
+      start_date?: string | null;
+      month_days?: number[];
+      specific_dates?: string[];
+    }
+  ) => {
+    const cleanTarget = String(target || '').replace(/^\[HMETA:[^\]]+\]/is, '');
+    return `[HMETA:${JSON.stringify(meta)}]${cleanTarget}`;
+  };
+
+  const decodeHabitRow = (row: any) => {
+    if (!row) return row;
+    let target = String(row.target || '');
+    const metaMatch = target.match(/^\[HMETA:([^\]]+)\](.*)$/s);
+    if (!metaMatch) {
+      return {
+        ...row,
+        times_per_day: Math.max(1, Number(row.times_per_day || 1)),
+        duration_days: row.duration_days ?? null,
+        start_date: row.start_date ?? null,
+        month_days: Array.isArray(row.month_days) ? row.month_days : [],
+        specific_dates: Array.isArray(row.specific_dates) ? row.specific_dates : [],
+      };
+    }
+    try {
+      const meta = JSON.parse(metaMatch[1]);
+      return {
+        ...row,
+        frequency: meta.real_frequency || row.frequency,
+        times_per_day: Math.max(1, Number(meta.times_per_day || row.times_per_day || 1)),
+        duration_days: meta.duration_days ?? row.duration_days ?? null,
+        start_date: meta.start_date ?? row.start_date ?? null,
+        month_days: Array.isArray(meta.month_days) ? meta.month_days : [],
+        specific_dates: Array.isArray(meta.specific_dates) ? meta.specific_dates : [],
+        target: metaMatch[2] || '',
+      };
+    } catch {
+      return row;
+    }
+  };
+
+  // Personal Habits
+  app.get("/api/personal/habits", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { data, error } = await supabase
+        .from("personal_habits")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        return res.json(data.map(decodeHabitRow));
+      }
+      if (error && !isMissingTableError(error)) {
+        return res.status(500).json(error);
+      }
+
+      const { data: sysRows, error: sysErr } = await supabase
+        .from("personal_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .like("title", `${SYS_PREFIX}HABIT:%`)
+        .order("id", { ascending: true });
+
+      if (sysErr) return res.status(500).json(sysErr);
+      const habits = (sysRows || []).map((r: any) => {
+        try {
+          return decodeHabitRow(JSON.parse(r.description || '{}'));
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+      res.json(habits);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/personal/habits", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const {
+        name, frequency, days_of_week, month_days, specific_dates,
+        times_per_day, duration_days, start_date, target, category, is_active
+      } = req.body;
+      if (!name || !String(name).trim()) {
+        return res.status(400).json({ error: "Nome do hábito é obrigatório." });
+      }
+      const habitId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const cleanTimesPerDay = Math.max(1, Math.min(99, Math.floor(Number(times_per_day || 1))));
+      const cleanDuration = duration_days !== undefined && duration_days !== null && String(duration_days).trim() !== ''
+        ? Math.max(1, Math.floor(Number(duration_days)))
+        : null;
+      const cleanStartDate = start_date ? String(start_date).split('T')[0] : null;
+      const cleanMonthDays = Array.isArray(month_days) ? month_days.map(Number).filter((n) => n >= 1 && n <= 31) : [];
+      const cleanSpecificDates = Array.isArray(specific_dates)
+        ? specific_dates.map((d) => String(d).split('T')[0]).filter(Boolean)
+        : [];
+
+      const payload = {
+        id: habitId,
+        user_id: user.id,
+        name: String(name).trim(),
+        frequency: frequency || 'daily',
+        days_of_week: Array.isArray(days_of_week) ? days_of_week : [0, 1, 2, 3, 4, 5, 6],
+        month_days: cleanMonthDays,
+        specific_dates: cleanSpecificDates,
+        times_per_day: cleanTimesPerDay,
+        duration_days: cleanDuration,
+        start_date: cleanStartDate,
+        target: target || '',
+        category: category || '',
+        is_active: is_active !== undefined ? Boolean(is_active) : true,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("personal_habits")
+        .insert([payload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        return res.json(decodeHabitRow(data));
+      }
+      if (error && isMissingColumnError(error)) {
+        const legacyFreq = ['daily', 'weekdays', 'custom'].includes(payload.frequency) ? payload.frequency : 'custom';
+        const legacyPayload = {
+          id: payload.id,
+          user_id: payload.user_id,
+          name: payload.name,
+          frequency: legacyFreq,
+          days_of_week: payload.days_of_week,
+          target: encodeHabitTargetWithMeta(payload.target, {
+            real_frequency: payload.frequency,
+            times_per_day: payload.times_per_day,
+            duration_days: payload.duration_days,
+            start_date: payload.start_date,
+            month_days: payload.month_days,
+            specific_dates: payload.specific_dates,
+          }),
+          category: payload.category,
+          is_active: payload.is_active,
+          created_at: payload.created_at,
+        };
+        const { data: legacyData, error: legacyErr } = await supabase
+          .from("personal_habits")
+          .insert([legacyPayload])
+          .select()
+          .single();
+        if (!legacyErr && legacyData) {
+          return res.json(decodeHabitRow(legacyData));
+        }
+      }
+      if (error && !isMissingTableError(error) && !isMissingColumnError(error)) {
+        return res.status(500).json(error);
+      }
+
+      const { error: sysErr } = await supabase
+        .from("personal_tasks")
+        .insert([{
+          user_id: user.id,
+          title: `${SYS_PREFIX}HABIT:${habitId}`,
+          description: JSON.stringify(payload),
+          priority: 'medium',
+          status: payload.is_active ? 'pending' : 'completed',
+        }]);
+
+      if (sysErr) return res.status(500).json(sysErr);
+      res.json(payload);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/personal/habits/:id", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const habitId = req.params.id;
+      const {
+        name, frequency, days_of_week, month_days, specific_dates,
+        times_per_day, duration_days, start_date, target, category, is_active
+      } = req.body;
+
+      const cleanTimesPerDay = times_per_day !== undefined
+        ? Math.max(1, Math.min(99, Math.floor(Number(times_per_day || 1))))
+        : undefined;
+      const cleanDuration = duration_days !== undefined
+        ? (duration_days !== null && String(duration_days).trim() !== ''
+            ? Math.max(1, Math.floor(Number(duration_days)))
+            : null)
+        : undefined;
+      const cleanStartDate = start_date !== undefined
+        ? (start_date ? String(start_date).split('T')[0] : null)
+        : undefined;
+
+      const updateFields: any = {
+        ...(name !== undefined ? { name: String(name).trim() } : {}),
+        ...(frequency !== undefined ? { frequency } : {}),
+        ...(days_of_week !== undefined ? { days_of_week } : {}),
+        ...(month_days !== undefined ? { month_days } : {}),
+        ...(specific_dates !== undefined ? { specific_dates } : {}),
+        ...(cleanTimesPerDay !== undefined ? { times_per_day: cleanTimesPerDay } : {}),
+        ...(cleanDuration !== undefined ? { duration_days: cleanDuration } : {}),
+        ...(cleanStartDate !== undefined ? { start_date: cleanStartDate } : {}),
+        ...(target !== undefined ? { target } : {}),
+        ...(category !== undefined ? { category } : {}),
+        ...(is_active !== undefined ? { is_active: Boolean(is_active) } : {}),
+      };
+
+      const { data, error } = await supabase
+        .from("personal_habits")
+        .update(updateFields)
+        .eq("id", habitId)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (!error && data) {
+        return res.json(decodeHabitRow(data));
+      }
+      if (error && isMissingColumnError(error)) {
+        const legacyFreq = frequency && ['daily', 'weekdays', 'custom'].includes(frequency) ? frequency : 'custom';
+        const legacyUpdate: any = {
+          ...(name !== undefined ? { name: String(name).trim() } : {}),
+          ...(frequency !== undefined ? { frequency: legacyFreq } : {}),
+          ...(days_of_week !== undefined ? { days_of_week } : {}),
+          ...(category !== undefined ? { category } : {}),
+          ...(is_active !== undefined ? { is_active: Boolean(is_active) } : {}),
+          target: encodeHabitTargetWithMeta(target, {
+            real_frequency: frequency,
+            times_per_day: cleanTimesPerDay ?? 1,
+            duration_days: cleanDuration ?? null,
+            start_date: cleanStartDate ?? null,
+            month_days: Array.isArray(month_days) ? month_days : [],
+            specific_dates: Array.isArray(specific_dates) ? specific_dates : [],
+          }),
+        };
+        const { data: legacyData, error: legacyErr } = await supabase
+          .from("personal_habits")
+          .update(legacyUpdate)
+          .eq("id", habitId)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+        if (!legacyErr && legacyData) {
+          return res.json(decodeHabitRow(legacyData));
+        }
+      }
+      if (error && !isMissingTableError(error) && !isMissingColumnError(error)) {
+        return res.status(500).json(error);
+      }
+
+      const { data: existingRows, error: fetchErr } = await supabase
+        .from("personal_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("title", `${SYS_PREFIX}HABIT:${habitId}`)
+        .limit(1);
+
+      if (fetchErr) return res.status(500).json(fetchErr);
+      const existing = existingRows?.[0];
+      if (!existing) return res.status(404).json({ error: "Hábito não encontrado." });
+
+      const currentObj = JSON.parse(existing.description || '{}');
+      const updatedObj = {
+        ...currentObj,
+        ...updateFields,
+      };
+
+      const { error: updErr } = await supabase
+        .from("personal_tasks")
+        .update({
+          description: JSON.stringify(updatedObj),
+          status: updatedObj.is_active ? 'pending' : 'completed',
+        })
+        .eq("id", existing.id)
+        .eq("user_id", user.id);
+
+      if (updErr) return res.status(500).json(updErr);
+      res.json(updatedObj);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/personal/habits/:id", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const habitId = req.params.id;
+
+      const { error } = await supabase
+        .from("personal_habits")
+        .delete()
+        .eq("id", habitId)
+        .eq("user_id", user.id);
+
+      if (!error) {
+        await supabase.from("personal_habit_logs").delete().eq("habit_id", habitId).eq("user_id", user.id);
+        return res.json({ success: true });
+      }
+      if (!isMissingTableError(error)) {
+        return res.status(500).json(error);
+      }
+
+      await supabase.from("personal_tasks").delete().eq("user_id", user.id).eq("title", `${SYS_PREFIX}HABIT:${habitId}`);
+      await supabase.from("personal_tasks").delete().eq("user_id", user.id).like("title", `${SYS_PREFIX}HLOG:${habitId}:%`);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Personal Habit Logs
+  app.get("/api/personal/habit-logs", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { data, error } = await supabase
+        .from("personal_habit_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+
+      if (!error && data) {
+        return res.json(data);
+      }
+      if (error && !isMissingTableError(error)) {
+        return res.status(500).json(error);
+      }
+
+      const { data: sysRows, error: sysErr } = await supabase
+        .from("personal_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .like("title", `${SYS_PREFIX}HLOG:%`);
+
+      if (sysErr) return res.status(500).json(sysErr);
+      const logs = (sysRows || []).map((r: any) => {
+        try {
+          return JSON.parse(r.description || '{}');
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+      res.json(logs);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/personal/habit-logs", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { habit_id, date, completed, count } = req.body;
+      if (!habit_id || !date) {
+        return res.status(400).json({ error: "habit_id and date are required" });
+      }
+      const cleanDate = String(date).split('T')[0];
+      const cleanCount = typeof count === 'number' && Number.isFinite(count)
+        ? Math.max(0, Math.floor(count))
+        : (completed ? 1 : 0);
+      const payload = {
+        habit_id: String(habit_id),
+        user_id: user.id,
+        date: cleanDate,
+        completed: Boolean(completed),
+        count: cleanCount,
+        completed_at: completed ? new Date().toISOString() : null,
+      };
+
+      const { data: existingTbl, error: tblErr } = await supabase
+        .from("personal_habit_logs")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("habit_id", payload.habit_id)
+        .eq("date", cleanDate)
+        .limit(1);
+
+      if (!tblErr) {
+        if (existingTbl && existingTbl.length > 0) {
+          const { data, error } = await supabase
+            .from("personal_habit_logs")
+            .update({ completed: payload.completed, count: payload.count, completed_at: payload.completed_at })
+            .eq("id", existingTbl[0].id)
+            .eq("user_id", user.id)
+            .select()
+            .single();
+          if (!error && data) return res.json(data);
+          if (error && isMissingColumnError(error)) {
+            const { data: d2, error: e2 } = await supabase
+              .from("personal_habit_logs")
+              .update({ completed: payload.completed, completed_at: payload.completed_at })
+              .eq("id", existingTbl[0].id)
+              .eq("user_id", user.id)
+              .select()
+              .single();
+            if (!e2 && d2) return res.json({ ...d2, count: payload.count });
+          }
+          if (error) return res.status(500).json(error);
+        } else {
+          const { data, error } = await supabase
+            .from("personal_habit_logs")
+            .insert([payload])
+            .select()
+            .single();
+          if (!error && data) return res.json(data);
+          if (error && isMissingColumnError(error)) {
+            const { count: _omitCount, ...legacyLogPayload } = payload;
+            const { data: d2, error: e2 } = await supabase
+              .from("personal_habit_logs")
+              .insert([legacyLogPayload])
+              .select()
+              .single();
+            if (!e2 && d2) return res.json({ ...d2, count: payload.count });
+          }
+          if (error) return res.status(500).json(error);
+        }
+      }
+
+      if (tblErr && !isMissingTableError(tblErr)) {
+        return res.status(500).json(tblErr);
+      }
+
+      const logKey = `${SYS_PREFIX}HLOG:${payload.habit_id}:${cleanDate}`;
+      const { data: sysRows } = await supabase
+        .from("personal_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("title", logKey)
+        .limit(1);
+
+      if (sysRows && sysRows.length > 0) {
+        await supabase
+          .from("personal_tasks")
+          .update({
+            description: JSON.stringify(payload),
+            status: payload.completed ? 'completed' : 'pending',
+          })
+          .eq("id", sysRows[0].id)
+          .eq("user_id", user.id);
+      } else {
+        await supabase
+          .from("personal_tasks")
+          .insert([{
+            user_id: user.id,
+            title: logKey,
+            description: JSON.stringify(payload),
+            due_date: cleanDate,
+            priority: 'low',
+            status: payload.completed ? 'completed' : 'pending',
+          }]);
+      }
+
+      res.json(payload);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Personal Daily Check-ins ("Como foi hoje?" — strictly optional)
+  app.get("/api/personal/checkins", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { data, error } = await supabase
+        .from("personal_daily_checkins")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+
+      if (!error && data) {
+        return res.json(data);
+      }
+      if (error && !isMissingTableError(error)) {
+        return res.status(500).json(error);
+      }
+
+      const { data: sysRows, error: sysErr } = await supabase
+        .from("personal_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .like("title", `${SYS_PREFIX}CHECKIN:%`)
+        .order("due_date", { ascending: false });
+
+      if (sysErr) return res.status(500).json(sysErr);
+      const checkins = (sysRows || []).map((r: any) => {
+        try {
+          return JSON.parse(r.description || '{}');
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+      res.json(checkins);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/personal/checkins", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { date, mood, energy, note } = req.body;
+      if (!date || !mood) {
+        return res.status(400).json({ error: "date and mood are required" });
+      }
+      const cleanDate = String(date).split('T')[0];
+      const nowIso = new Date().toISOString();
+      const payload = {
+        id: cleanDate,
+        user_id: user.id,
+        date: cleanDate,
+        mood,
+        energy: Number(energy || 3),
+        note: note ? String(note).trim() : '',
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+
+      const { data: existingTbl, error: tblErr } = await supabase
+        .from("personal_daily_checkins")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("date", cleanDate)
+        .limit(1);
+
+      if (!tblErr) {
+        if (existingTbl && existingTbl.length > 0) {
+          const { data, error } = await supabase
+            .from("personal_daily_checkins")
+            .update({ mood: payload.mood, energy: payload.energy, note: payload.note, updated_at: nowIso })
+            .eq("id", existingTbl[0].id)
+            .eq("user_id", user.id)
+            .select()
+            .single();
+          if (error) return res.status(500).json(error);
+          return res.json(data);
+        } else {
+          const { data, error } = await supabase
+            .from("personal_daily_checkins")
+            .insert([{
+              user_id: user.id,
+              date: cleanDate,
+              mood: payload.mood,
+              energy: payload.energy,
+              note: payload.note,
+            }])
+            .select()
+            .single();
+          if (error) return res.status(500).json(error);
+          return res.json(data);
+        }
+      }
+
+      if (!isMissingTableError(tblErr)) {
+        return res.status(500).json(tblErr);
+      }
+
+      const key = `${SYS_PREFIX}CHECKIN:${cleanDate}`;
+      const { data: sysRows } = await supabase
+        .from("personal_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("title", key)
+        .limit(1);
+
+      if (sysRows && sysRows.length > 0) {
+        const existingObj = JSON.parse(sysRows[0].description || '{}');
+        const merged = { ...existingObj, ...payload, created_at: existingObj.created_at || nowIso };
+        const { error: updErr } = await supabase
+          .from("personal_tasks")
+          .update({ description: JSON.stringify(merged) })
+          .eq("id", sysRows[0].id)
+          .eq("user_id", user.id);
+        if (updErr) return res.status(500).json(updErr);
+        return res.json(merged);
+      } else {
+        const { error: insErr } = await supabase
+          .from("personal_tasks")
+          .insert([{
+            user_id: user.id,
+            title: key,
+            description: JSON.stringify(payload),
+            due_date: cleanDate,
+            priority: 'low',
+            status: 'completed',
+          }]);
+        if (insErr) return res.status(500).json(insErr);
+        return res.json(payload);
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/personal/checkins/:date", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const cleanDate = String(req.params.date).split('T')[0];
+
+      const { error } = await supabase
+        .from("personal_daily_checkins")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("date", cleanDate);
+
+      if (!error) {
+        return res.json({ success: true });
+      }
+      if (!isMissingTableError(error)) {
+        return res.status(500).json(error);
+      }
+
+      await supabase
+        .from("personal_tasks")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("title", `${SYS_PREFIX}CHECKIN:${cleanDate}`);
+
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.get("/api/work/escalas", async (req, res) => {

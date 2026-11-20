@@ -330,12 +330,12 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
       {/* Bell Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className="p-2 text-gray-500 hover:text-indigo-600 transition-colors relative"
+        className="p-2 text-gray-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors relative"
         title="Notificações"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white">
+          <span className="absolute top-1 right-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-[#1c1c1e]">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -349,13 +349,13 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#1c1c1e] rounded-xl shadow-2xl border border-gray-100 dark:border-white/[0.08] overflow-hidden z-50 origin-top-right"
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.03]">
+              <h3 className="font-bold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
                 Notificações
                 {unreadCount > 0 && (
-                  <span className="bg-indigo-100 text-indigo-700 text-xs py-0.5 px-2 rounded-full">
+                  <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs py-0.5 px-2 rounded-full">
                     {unreadCount} novas
                   </span>
                 )}
@@ -364,12 +364,12 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
                 {unreadCount > 0 && (
                   <button 
                     onClick={markAllAsRead}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors"
                   >
                     Marcar todas lidas
                   </button>
                 )}
-                <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setIsOpen(false)} className="text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300">
                   <X size={18} />
                 </button>
               </div>
@@ -378,11 +378,11 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
             <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                    <Bell size={24} className="text-gray-300" />
+                  <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center mb-3">
+                    <Bell size={24} className="text-gray-300 dark:text-zinc-600" />
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Nenhuma notificação</p>
-                  <p className="text-gray-400 text-xs mt-1">Você está em dia com seus avisos.</p>
+                  <p className="text-gray-500 dark:text-zinc-400 text-sm font-medium">Nenhuma notificação</p>
+                  <p className="text-gray-400 dark:text-zinc-500 text-xs mt-1">Você está em dia com seus avisos.</p>
                 </div>
               ) : (
                 <div className="flex flex-col">
@@ -398,8 +398,8 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
                         }
                       }}
                       className={cn(
-                        "p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors relative group cursor-pointer",
-                        !notif.is_read ? "bg-indigo-50/30" : ""
+                        "p-4 border-b border-gray-50 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors relative group cursor-pointer",
+                        !notif.is_read ? "bg-indigo-50/30 dark:bg-indigo-500/[0.07]" : ""
                       )}
                     >
                       {!notif.is_read && (
@@ -411,13 +411,13 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
                           {getIcon(notif.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className={cn("text-sm tracking-tight", !notif.is_read ? "font-bold text-gray-900" : "font-semibold text-gray-700")}>
+                          <h4 className={cn("text-sm tracking-tight", !notif.is_read ? "font-bold text-gray-900 dark:text-zinc-100" : "font-semibold text-gray-700 dark:text-zinc-300")}>
                             {notif.title}
                           </h4>
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-gray-600 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
                             {notif.message}
                           </p>
-                          <span className="text-[10px] text-gray-400 font-medium block mt-2">
+                          <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-medium block mt-2">
                             {formatDate(notif.created_at)}
                           </span>
                         </div>
@@ -425,7 +425,7 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
                           {!notif.is_read && (
                             <button 
                               onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-md transition-colors"
                               title="Marcar como lida"
                             >
                               <Check size={14} />
@@ -433,7 +433,7 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
                           )}
                           <button 
                             onClick={(e) => deleteNotification(notif.id, e)}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-md transition-colors"
                             title="Excluir"
                           >
                             <Trash2 size={14} />
@@ -447,8 +447,8 @@ export function NotificationCenter({ supabase, user, dashboardData, onNavigate }
             </div>
             
             {notifications.length > 0 && (
-               <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
-                 <p className="text-xs text-gray-400">As notificações são baseadas em suas atividades recentes.</p>
+               <div className="p-3 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.03] text-center">
+                 <p className="text-xs text-gray-400 dark:text-zinc-500">As notificações são baseadas em suas atividades recentes.</p>
                </div>
             )}
           </motion.div>

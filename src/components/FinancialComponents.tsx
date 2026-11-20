@@ -16,39 +16,39 @@ interface FinancialMetricCardProps {
 
 const variantStyles = {
   emerald: {
-    bg: 'bg-white',
-    border: 'border-black/[0.06] hover:border-black/[0.12]',
-    iconBg: 'bg-[#34c759]/10 text-[#34c759] border border-[#34c759]/20',
-    text: 'text-[#1d1d1f]',
-    badge: 'bg-[#34c759]/10 text-[#28833e] border-[#34c759]/20',
+    bg: 'bg-white dark:bg-[#1c1c1e]',
+    border: 'border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.12] dark:hover:border-white/[0.15]',
+    iconBg: 'bg-[#34c759]/10 dark:bg-[#34c759]/15 text-[#34c759] border border-[#34c759]/20',
+    text: 'text-[#1d1d1f] dark:text-[#f5f5f7]',
+    badge: 'bg-[#34c759]/10 text-[#28833e] dark:text-[#4ade80] border-[#34c759]/20',
   },
   red: {
-    bg: 'bg-white',
-    border: 'border-black/[0.06] hover:border-black/[0.12]',
-    iconBg: 'bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/20',
-    text: 'text-[#1d1d1f]',
-    badge: 'bg-[#ff3b30]/10 text-[#c92a24] border-[#ff3b30]/20',
+    bg: 'bg-white dark:bg-[#1c1c1e]',
+    border: 'border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.12] dark:hover:border-white/[0.15]',
+    iconBg: 'bg-[#ff3b30]/10 dark:bg-[#ff3b30]/15 text-[#ff3b30] border border-[#ff3b30]/20',
+    text: 'text-[#1d1d1f] dark:text-[#f5f5f7]',
+    badge: 'bg-[#ff3b30]/10 text-[#c92a24] dark:text-[#f87171] border-[#ff3b30]/20',
   },
   indigo: {
-    bg: 'bg-white',
-    border: 'border-black/[0.06] hover:border-black/[0.12]',
-    iconBg: 'bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20',
-    text: 'text-[#1d1d1f]',
-    badge: 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20',
+    bg: 'bg-white dark:bg-[#1c1c1e]',
+    border: 'border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.12] dark:hover:border-white/[0.15]',
+    iconBg: 'bg-[#0071e3]/10 dark:bg-[#0071e3]/15 text-[#0071e3] dark:text-[#4ea3ff] border border-[#0071e3]/20',
+    text: 'text-[#1d1d1f] dark:text-[#f5f5f7]',
+    badge: 'bg-[#0071e3]/10 text-[#0071e3] dark:text-[#4ea3ff] border-[#0071e3]/20',
   },
   amber: {
-    bg: 'bg-white',
-    border: 'border-black/[0.06] hover:border-black/[0.12]',
-    iconBg: 'bg-[#ff9500]/10 text-[#ff9500] border border-[#ff9500]/20',
-    text: 'text-[#1d1d1f]',
-    badge: 'bg-[#ff9500]/10 text-[#b26a00] border-[#ff9500]/20',
+    bg: 'bg-white dark:bg-[#1c1c1e]',
+    border: 'border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.12] dark:hover:border-white/[0.15]',
+    iconBg: 'bg-[#ff9500]/10 dark:bg-[#ff9500]/15 text-[#ff9500] dark:text-[#ffb340] border border-[#ff9500]/20',
+    text: 'text-[#1d1d1f] dark:text-[#f5f5f7]',
+    badge: 'bg-[#ff9500]/10 text-[#b26a00] dark:text-[#ffb340] border-[#ff9500]/20',
   },
   slate: {
-    bg: 'bg-white',
-    border: 'border-black/[0.06] hover:border-black/[0.12]',
-    iconBg: 'bg-[#f5f5f7] text-[#1d1d1f] border border-black/[0.06]',
-    text: 'text-[#1d1d1f]',
-    badge: 'bg-[#f5f5f7] text-[#515154] border-black/[0.06]',
+    bg: 'bg-white dark:bg-[#1c1c1e]',
+    border: 'border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.12] dark:hover:border-white/[0.15]',
+    iconBg: 'bg-[#f5f5f7] dark:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.08]',
+    text: 'text-[#1d1d1f] dark:text-[#f5f5f7]',
+    badge: 'bg-[#f5f5f7] dark:bg-white/[0.08] text-[#515154] dark:text-zinc-300 border-black/[0.06] dark:border-white/[0.08]',
   },
 };
 
@@ -84,7 +84,7 @@ export const FinancialMetricCard: React.FC<FinancialMetricCardProps> = ({
           <div className={cn('w-7 h-7 rounded-lg shrink-0 flex items-center justify-center', styles.iconBg)}>
             <Icon size={14} />
           </div>
-          <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider truncate">
+          <span className="text-[11px] font-semibold text-[#86868b] dark:text-zinc-400 uppercase tracking-wider truncate">
             {title}
           </span>
         </div>
@@ -100,7 +100,7 @@ export const FinancialMetricCard: React.FC<FinancialMetricCardProps> = ({
           {formattedValue}
         </h3>
         {subtitle && (
-          <p className="text-[11px] text-[#86868b] font-normal mt-1 truncate">
+          <p className="text-[11px] text-[#86868b] dark:text-zinc-400 font-normal mt-1 truncate">
             {subtitle}
           </p>
         )}
@@ -123,13 +123,13 @@ export const FinancialHeader: React.FC<FinancialHeaderProps> = ({
   rightContent,
 }) => {
   return (
-    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-black/[0.06] shadow-xs">
+    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-xs">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 border border-black/[0.06]">
+        <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center justify-center shrink-0 border border-black/[0.06] dark:border-white/[0.08]">
           <Icon size={17} />
         </div>
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-[#1d1d1f] leading-tight tracking-tight">
+          <h2 className="text-base sm:text-lg font-bold text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight tracking-tight">
             {title}
           </h2>
         </div>
@@ -154,20 +154,20 @@ export const FinancialStatusBadge: React.FC<{
   const isOverdue = norm === 'vencida';
   const isRetained = norm === 'retida';
 
-  let colorClass = 'bg-[#f5f5f7] text-[#515154] border-black/[0.08]';
+  let colorClass = 'bg-[#f5f5f7] dark:bg-white/[0.08] text-[#515154] dark:text-zinc-300 border-black/[0.08] dark:border-white/[0.1]';
   let label = status || 'N/A';
 
   if (isPaid) {
-    colorClass = 'bg-[#34c759]/10 text-[#247c3b] border-[#34c759]/20';
+    colorClass = 'bg-[#34c759]/10 dark:bg-[#34c759]/15 text-[#247c3b] dark:text-[#4ade80] border-[#34c759]/20';
     label = 'Pago';
   } else if (isPending) {
-    colorClass = 'bg-[#ff9500]/10 text-[#b26a00] border-[#ff9500]/20';
+    colorClass = 'bg-[#ff9500]/10 dark:bg-[#ff9500]/15 text-[#b26a00] dark:text-[#ffb340] border-[#ff9500]/20';
     label = 'Pendente';
   } else if (isOverdue) {
-    colorClass = 'bg-[#ff3b30]/10 text-[#c92a24] border-[#ff3b30]/20';
+    colorClass = 'bg-[#ff3b30]/10 dark:bg-[#ff3b30]/15 text-[#c92a24] dark:text-[#f87171] border-[#ff3b30]/20';
     label = 'Vencida';
   } else if (isRetained) {
-    colorClass = 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20';
+    colorClass = 'bg-[#0071e3]/10 dark:bg-[#0071e3]/15 text-[#0071e3] dark:text-[#4ea3ff] border-[#0071e3]/20';
     label = 'Retida';
   }
 

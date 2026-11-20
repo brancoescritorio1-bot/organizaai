@@ -772,15 +772,15 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   const getSocialIcon = (net: string, size = 16) => {
     switch (net) {
       case 'instagram':
-        return <Instagram size={size} className="text-pink-600" />;
+        return <Instagram size={size} className="text-pink-600 dark:text-pink-400" />;
       case 'facebook':
-        return <Facebook size={size} className="text-blue-600" />;
+        return <Facebook size={size} className="text-blue-600 dark:text-blue-400" />;
       case 'youtube':
-        return <Youtube size={size} className="text-red-600" />;
+        return <Youtube size={size} className="text-red-600 dark:text-red-400" />;
       case 'tiktok':
-        return <Video size={size} className="text-black" />;
+        return <Video size={size} className="text-black dark:text-white" />;
       default:
-        return <Megaphone size={size} className="text-indigo-600" />;
+        return <Megaphone size={size} className="text-indigo-600 dark:text-indigo-400" />;
     }
   };
 
@@ -788,39 +788,39 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   const getWorkflowBadge = (status: string) => {
     switch (status) {
       case 'rascunho':
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-700 uppercase tracking-wide border border-gray-200">Rascunho / Tema</span>;
+        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-300 uppercase tracking-wide border border-gray-200 dark:border-white/[0.1]">Rascunho / Tema</span>;
       case 'programado':
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 uppercase tracking-wide border border-blue-100">Programado</span>;
+        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 uppercase tracking-wide border border-blue-100 dark:border-blue-500/30">Programado</span>;
       case 'feito':
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 uppercase tracking-wide border border-amber-100">Post Feito</span>;
+        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 uppercase tracking-wide border border-amber-100 dark:border-amber-500/30">Post Feito</span>;
       case 'aprovado':
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 uppercase tracking-wide border border-indigo-100">Aprovado</span>;
+        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 uppercase tracking-wide border border-indigo-100 dark:border-indigo-500/30">Aprovado</span>;
       case 'publicado':
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wide border border-emerald-100">Publicado</span>;
+        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 uppercase tracking-wide border border-emerald-100 dark:border-emerald-500/30">Publicado</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-700 uppercase">Rascunho</span>;
+        return <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-300 uppercase">Rascunho</span>;
     }
   };
 
   const getWorkflowColor = (status: string) => {
     switch (status) {
-      case 'rascunho': return 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100';
-      case 'programado': return 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100';
-      case 'feito': return 'bg-amber-50 border-amber-100 text-amber-700 hover:bg-amber-100';
-      case 'aprovado': return 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100';
-      case 'publicado': return 'bg-emerald-50 border-emerald-100 text-emerald-800 hover:bg-emerald-100';
-      default: return 'bg-gray-50 border-gray-200 text-gray-600';
+      case 'rascunho': return 'bg-gray-50 dark:bg-white/[0.06] border-gray-200 dark:border-white/[0.1] text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/[0.1]';
+      case 'programado': return 'bg-blue-50 dark:bg-blue-500/15 border-blue-100 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/25';
+      case 'feito': return 'bg-amber-50 dark:bg-amber-500/15 border-amber-100 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/25';
+      case 'aprovado': return 'bg-indigo-50 dark:bg-indigo-500/15 border-indigo-100 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/25';
+      case 'publicado': return 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-100 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/25';
+      default: return 'bg-gray-50 dark:bg-white/[0.06] border-gray-200 dark:border-white/[0.1] text-gray-600 dark:text-zinc-300';
     }
   };
 
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case 'pago':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider flex items-center gap-1 min-w-fit w-fit"><CheckCircle size={12} /> Pago</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1 min-w-fit w-fit"><CheckCircle size={12} /> Pago</span>;
       case 'atrasado':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 uppercase tracking-wider flex items-center gap-1 min-w-fit w-fit"><XCircle size={12} /> Atrasado</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 uppercase tracking-wider flex items-center gap-1 min-w-fit w-fit"><XCircle size={12} /> Atrasado</span>;
       default:
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 uppercase tracking-wider flex items-center gap-1 min-w-fit w-fit"><Clock size={12} /> Pendente</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1 min-w-fit w-fit"><Clock size={12} /> Pendente</span>;
     }
   };
 
@@ -2201,17 +2201,17 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
   };
 
   return (
-    <div className="space-y-6 text-gray-800">
+    <div className="space-y-6 text-gray-800 dark:text-zinc-100">
       
       {/* Module Header Card */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl shadow-xs">
+          <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-2xl shadow-xs dark:shadow-none">
             <Megaphone size={22} />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Gestão de Marketing</h2>
-            <p className="text-xs text-gray-500 font-medium">Cronograma de publicações, carteira de clientes, fluxo financeiro e relatórios em PDF</p>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-zinc-100 tracking-tight">Gestão de Marketing</h2>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium">Cronograma de publicações, carteira de clientes, fluxo financeiro e relatórios em PDF</p>
           </div>
         </div>
         
@@ -2220,32 +2220,32 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             type="button"
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all shadow-2xs disabled:opacity-60"
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-600 dark:text-zinc-300 bg-gray-50 dark:bg-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.1] border border-gray-200 dark:border-white/[0.08] rounded-xl transition-all shadow-2xs dark:shadow-none disabled:opacity-60"
             title="Sincronizar dados com o banco de dados"
           >
-            <Loader2 size={14} className={loading ? "animate-spin text-indigo-600" : "text-gray-500"} />
+            <Loader2 size={14} className={loading ? "animate-spin text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-zinc-400"} />
             <span>Sincronizar Banco</span>
           </button>
         </div>
       </div>
 
       {/* Sub-tab Navigation (Consistent with Academic/Financial Tab Style) */}
-      <div className="bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200/80 flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
+      <div className="bg-gray-100/90 dark:bg-white/[0.06] p-1.5 rounded-2xl border border-gray-200/80 dark:border-white/[0.08] flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
         <button
           type="button"
           onClick={() => { setActiveSubTab('calendar'); setErrorInfo(null); }}
           className={cn(
             "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
             activeSubTab === 'calendar' 
-              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
-              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+              ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none ring-1 ring-black/5 dark:ring-white/10" 
+              : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white/40 dark:hover:bg-white/[0.06]"
           )}
         >
           <CalendarIcon size={16} />
           <span>Calendário</span>
           <span className={cn(
             "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
-            activeSubTab === 'calendar' ? "bg-indigo-50 text-indigo-600" : "bg-gray-200/80 text-gray-600"
+            activeSubTab === 'calendar' ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300" : "bg-gray-200/80 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300"
           )}>
             {realPosts.length}
           </span>
@@ -2257,15 +2257,15 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           className={cn(
             "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
             activeSubTab === 'clients' 
-              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
-              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+              ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none ring-1 ring-black/5 dark:ring-white/10" 
+              : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white/40 dark:hover:bg-white/[0.06]"
           )}
         >
           <Users size={16} />
           <span>Clientes</span>
           <span className={cn(
             "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
-            activeSubTab === 'clients' ? "bg-indigo-50 text-indigo-600" : "bg-gray-200/80 text-gray-600"
+            activeSubTab === 'clients' ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300" : "bg-gray-200/80 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300"
           )}>
             {clients.length}
           </span>
@@ -2277,8 +2277,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           className={cn(
             "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
             activeSubTab === 'payments' 
-              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
-              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+              ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none ring-1 ring-black/5 dark:ring-white/10" 
+              : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white/40 dark:hover:bg-white/[0.06]"
           )}
         >
           <DollarSign size={16} />
@@ -2286,7 +2286,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           {(payments.filter(p => p.status === 'pendente' || p.status === 'atrasado').length > 0) && (
             <span className={cn(
               "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
-              activeSubTab === 'payments' ? "bg-amber-100 text-amber-800" : "bg-amber-200 text-amber-900"
+              activeSubTab === 'payments' ? "bg-amber-100 dark:bg-amber-500/25 text-amber-800 dark:text-amber-300" : "bg-amber-200 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300"
             )}>
               {payments.filter(p => p.status === 'pendente' || p.status === 'atrasado').length}
             </span>
@@ -2299,8 +2299,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           className={cn(
             "flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
             activeSubTab === 'reports' 
-              ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
-              : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+              ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none ring-1 ring-black/5 dark:ring-white/10" 
+              : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white/40 dark:hover:bg-white/[0.06]"
           )}
         >
           <FileText size={16} />
@@ -2310,14 +2310,14 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
       {/* Migration Alert */}
       {errorInfo && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-amber-800 text-xs sm:text-sm items-start">
-          <AlertCircle className="text-amber-500 flex-shrink-0 mt-0.5" size={18} />
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-2xl flex gap-3 text-amber-800 dark:text-amber-200 text-xs sm:text-sm items-start">
+          <AlertCircle className="text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" size={18} />
           <div>
             <p className="font-bold">Upgrade de Banco Requerido</p>
             <p className="mt-1 opacity-90">
               Caso as novas colunas ou estados ('programado', 'feito', 'aprovado') causem erros ao salvar, execute a query de alteração de restrição no seu painel Supabase:
             </p>
-            <pre className="mt-2 p-2.5 bg-amber-100/60 rounded-lg text-[10px] font-mono overflow-x-auto select-all">
+            <pre className="mt-2 p-2.5 bg-amber-100/60 dark:bg-black/30 rounded-lg text-[10px] font-mono overflow-x-auto select-all">
               ALTER TABLE marketing_posts DROP CONSTRAINT IF EXISTS marketing_posts_status_check;
               ALTER TABLE marketing_posts ADD CONSTRAINT marketing_posts_status_check CHECK (status IN ('rascunho', 'programado', 'feito', 'aprovado', 'publicado'));
             </pre>
@@ -2339,83 +2339,83 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           >
             {/* Quick stats on top (Standardized with Financial Summary Cards) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-white/[0.08] flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <div className="p-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl">
                     <CalendarIcon size={18} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Total</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Total</span>
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">{realPosts.length}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Posts cadastrados</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-zinc-100">{realPosts.length}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 font-medium mt-0.5">Posts cadastrados</p>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-white/[0.08] flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <div className="p-2 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 rounded-xl">
                     <Clock size={18} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Programados</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Programados</span>
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-blue-600">{realPosts.filter(p => p.status === 'programado').length}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Na grade mensal</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{realPosts.filter(p => p.status === 'programado').length}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 font-medium mt-0.5">Na grade mensal</p>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-white/[0.08] flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                  <div className="p-2 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl">
                     <Edit2 size={18} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Produção</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Produção</span>
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-amber-600">{realPosts.filter(p => p.status === 'feito').length}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Posts criados</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{realPosts.filter(p => p.status === 'feito').length}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 font-medium mt-0.5">Posts criados</p>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-white/[0.08] flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                  <div className="p-2 bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded-xl">
                     <CheckCircle size={18} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Aprovados</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Aprovados</span>
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-purple-600">{realPosts.filter(p => p.status === 'aprovado').length}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Validados pelo cliente</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{realPosts.filter(p => p.status === 'aprovado').length}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 font-medium mt-0.5">Validados pelo cliente</p>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 col-span-2 sm:col-span-1 flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl shadow-sm dark:shadow-none border border-gray-100 dark:border-white/[0.08] col-span-2 sm:col-span-1 flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                     <TrendingUp size={18} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Publicados</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">Publicados</span>
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-emerald-600">{realPosts.filter(p => p.status === 'publicado').length}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">No ar nas redes</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{realPosts.filter(p => p.status === 'publicado').length}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 font-medium mt-0.5">No ar nas redes</p>
                 </div>
               </div>
             </div>
             
             {/* View Selector: Calendar vs Kanban */}
-            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm gap-3">
-              <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white dark:bg-[#1c1c1e] p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none gap-3">
+              <div className="flex bg-gray-100 dark:bg-white/[0.06] p-1 rounded-xl shrink-0">
                 <button
                   type="button"
                   onClick={() => setMarketingViewMode('calendar')}
                   className={cn(
                     "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all",
                     marketingViewMode === 'calendar'
-                      ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                      : "text-gray-500 hover:text-gray-800"
+                      ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none ring-1 ring-black/5 dark:ring-white/10"
+                      : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                   )}
                 >
                   <CalendarIcon size={14} />
@@ -2427,8 +2427,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   className={cn(
                     "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all",
                     marketingViewMode === 'kanban'
-                      ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                      : "text-gray-500 hover:text-gray-800"
+                      ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-none ring-1 ring-black/5 dark:ring-white/10"
+                      : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200"
                   )}
                 >
                   <Layers size={14} />
@@ -2440,14 +2440,14 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <button
                   type="button"
                   onClick={() => handleOpenPostModal(undefined, undefined, true)}
-                  className="flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all shadow-2xs w-full sm:w-auto justify-center"
+                  className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-500/30 px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-all shadow-2xs dark:shadow-none w-full sm:w-auto justify-center"
                 >
                   <Plus size={13} /> Novo Feriado / Data
                 </button>
                 <button
                   type="button"
                   onClick={() => handleOpenPostModal()}
-                  className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm w-full sm:w-auto justify-center"
+                  className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm dark:shadow-none w-full sm:w-auto justify-center"
                 >
                   <Plus size={13} /> Novo Post
                 </button>
@@ -2457,32 +2457,32 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             {marketingViewMode === 'calendar' ? (
               <>
                 {/* Interactive Monthly Grid Calendar */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-col sm:flex-row gap-3">
+                <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.03] flex items-center justify-between flex-col sm:flex-row gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                         <CalendarIcon size={16} />
                       </div>
                       <div>
-                        <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Calendário de Conteúdo</h3>
-                        <p className="text-[11px] text-gray-400 font-medium">Visualização mensal de publicações e datas comemorativas</p>
+                        <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">Calendário de Conteúdo</h3>
+                        <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">Visualização mensal de publicações e datas comemorativas</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 bg-white border border-gray-200/80 px-2 py-1 rounded-xl shadow-2xs">
+                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-white/[0.08] px-2 py-1 rounded-xl shadow-2xs dark:shadow-none">
                       <button 
                         onClick={handlePrevMonth} 
-                        className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition-all"
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg text-gray-600 dark:text-zinc-300 transition-all"
                         title="Mês Anterior"
                       >
                         <ChevronLeft size={16} />
                       </button>
-                      <span className="font-black text-gray-800 text-xs sm:text-sm uppercase tracking-widest min-w-[130px] text-center">
+                      <span className="font-black text-gray-800 dark:text-zinc-100 text-xs sm:text-sm uppercase tracking-widest min-w-[130px] text-center">
                         {monthNames[selectedMonth]} {selectedYear}
                       </span>
                       <button 
                         onClick={handleNextMonth} 
-                        className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition-all"
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg text-gray-600 dark:text-zinc-300 transition-all"
                         title="Próximo Mês"
                       >
                         <ChevronRight size={16} />
@@ -2491,7 +2491,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
                   {/* Day of Week Headers */}
-                  <div className="grid grid-cols-7 border-b border-gray-100 text-center py-2 bg-gray-50/40 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <div className="grid grid-cols-7 border-b border-gray-100 dark:border-white/[0.08] text-center py-2 bg-gray-50/40 dark:bg-white/[0.03] text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest">
                     <span>Dom</span>
                     <span>Seg</span>
                     <span>Ter</span>
@@ -2502,10 +2502,10 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 bg-gray-100/30 gap-px">
+              <div className="grid grid-cols-7 bg-gray-100/30 dark:bg-white/[0.03] gap-px">
                 {/* Empty starting cells */}
                 {Array.from({ length: firstDayIndex }).map((_, idx) => (
-                  <div key={`empty-${idx}`} className="bg-gray-50/20 min-h-[90px] sm:min-h-[110px]"></div>
+                  <div key={`empty-${idx}`} className="bg-gray-50/20 dark:bg-white/[0.01] min-h-[90px] sm:min-h-[110px]"></div>
                 ))}
 
                 {/* Days cells */}
@@ -2520,9 +2520,9 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     <div 
                       key={`day-${day}`} 
                       onClick={() => handleOpenPostModal(undefined, dayStr)}
-                      className="bg-white min-h-[90px] sm:min-h-[110px] p-1 sm:p-2 border-b border-r border-gray-100 hover:bg-indigo-50/10 cursor-pointer transition-all flex flex-col justify-between"
+                      className="bg-white dark:bg-[#1c1c1e] min-h-[90px] sm:min-h-[110px] p-1 sm:p-2 border-b border-r border-gray-100 dark:border-white/[0.06] hover:bg-indigo-50/10 dark:hover:bg-white/[0.04] cursor-pointer transition-all flex flex-col justify-between"
                     >
-                      <span className="font-extrabold text-xs text-gray-400 self-start">{day}</span>
+                      <span className="font-extrabold text-xs text-gray-400 dark:text-zinc-500 self-start">{day}</span>
                       
                       <div className="space-y-1 mt-1 flex-1 overflow-y-auto max-h-[65px] sm:max-h-[85px] scrollbar-thin">
                         {/* Render Holidays first */}
@@ -2533,7 +2533,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                               e.stopPropagation();
                               handleOpenPostModal(holiday);
                             }}
-                            className="p-1 rounded text-[9px] bg-rose-50 border border-rose-100 text-rose-800 font-extrabold flex flex-col gap-0.5 hover:bg-rose-100 transition-all"
+                            className="p-1 rounded text-[9px] bg-rose-50 dark:bg-rose-500/15 border border-rose-100 dark:border-rose-500/30 text-rose-800 dark:text-rose-300 font-extrabold flex flex-col gap-0.5 hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-all"
                             title={`Feriado / Data: ${holiday.title}`}
                           >
                             <div className="flex items-center justify-between gap-1">
@@ -2550,7 +2550,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                     caption: `Postagem de comemoração de ${holiday.title}.`
                                   }));
                                 }}
-                                className="text-[7px] bg-white text-rose-700 px-1 rounded hover:bg-rose-50 transition-all font-black border border-rose-200"
+                                className="text-[7px] bg-white dark:bg-zinc-900 text-rose-700 dark:text-rose-300 px-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/20 transition-all font-black border border-rose-200 dark:border-rose-500/30"
                                 title="Agendar Post para esta data"
                               >
                                 +Post
@@ -2575,7 +2575,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                             </span>
                             <div className="flex justify-between items-center opacity-85 text-[8px]">
                               <span>{post.scheduled_time || '12:00'}</span>
-                              <span className="font-bold uppercase tracking-widest text-[7px] bg-white/60 px-1 rounded">
+                              <span className="font-bold uppercase tracking-widest text-[7px] bg-white/60 dark:bg-black/30 px-1 rounded">
                                 {post.status === 'rascunho' ? 'Rasc' : post.status === 'feito' ? 'Feito' : post.status}
                               </span>
                             </div>
@@ -2589,38 +2589,38 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             </div>
 
             {/* Structured Table Listing with Status Actions */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                     <Megaphone size={16} />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Fila Completa de Postagens</h3>
-                    <p className="text-[11px] text-gray-400 font-medium">Controle e alteração rápida de fluxo de todas as postagens</p>
+                    <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">Fila Completa de Postagens</h3>
+                    <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">Controle e alteração rápida de fluxo de todas as postagens</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1 sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" size={13} />
                     <input
                       type="text"
                       value={postSearchTerm}
                       onChange={(e) => setPostSearchTerm(e.target.value)}
                       placeholder="Buscar post, tema ou cliente..."
-                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
+                      className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
                     />
                   </div>
-                  <span className="text-xs text-indigo-600 font-bold bg-indigo-50 border border-indigo-100/60 px-2.5 py-1.5 rounded-xl whitespace-nowrap">
+                  <span className="text-xs text-indigo-600 dark:text-indigo-300 font-bold bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100/60 dark:border-indigo-500/30 px-2.5 py-1.5 rounded-xl whitespace-nowrap">
                     {filteredRealPosts.length} posts
                   </span>
                 </div>
               </div>
 
               {filteredRealPosts.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  <Megaphone className="mx-auto text-gray-300 mb-2" size={32} />
+                <div className="p-8 text-center text-gray-400 dark:text-zinc-500">
+                  <Megaphone className="mx-auto text-gray-300 dark:text-zinc-600 mb-2" size={32} />
                   <p className="text-xs">
                     {postSearchTerm ? "Nenhum post corresponde à busca digitada." : "Nenhum post agendado no calendário."}
                   </p>
@@ -2629,7 +2629,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      <tr className="bg-gray-50 dark:bg-white/[0.04] text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest border-b border-gray-100 dark:border-white/[0.08]">
                         <th className="px-5 py-3">Rede & Título</th>
                         <th className="px-5 py-3">Cliente</th>
                         <th className="px-5 py-3">Data Programada</th>
@@ -2638,28 +2638,28 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                         <th className="px-5 py-3 text-right">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
+                    <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06] text-xs sm:text-sm">
                       {filteredRealPosts.map(post => {
                         const matchingClient = clients.find(c => c.id.toString() === post.client_id?.toString());
                         return (
-                          <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
+                          <tr key={post.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors">
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-2.5">
-                                <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0">
+                                <div className="p-2 bg-gray-100 dark:bg-white/[0.06] rounded-lg flex-shrink-0">
                                   {getSocialIcon(post.social_network, 16)}
                                 </div>
                                 <div>
-                                  <p className="font-bold text-gray-800">{post.title}</p>
+                                  <p className="font-bold text-gray-800 dark:text-zinc-100">{post.title}</p>
                                   {post.caption && (
-                                    <p className="text-[10px] text-gray-400 truncate max-w-[220px]">{post.caption}</p>
+                                    <p className="text-[10px] text-gray-400 dark:text-zinc-400 truncate max-w-[220px]">{post.caption}</p>
                                   )}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-5 py-4 font-semibold text-gray-700">
-                              {matchingClient?.name || <span className="text-gray-400 italic">Tema Livre / Geral</span>}
+                            <td className="px-5 py-4 font-semibold text-gray-700 dark:text-zinc-300">
+                              {matchingClient?.name || <span className="text-gray-400 dark:text-zinc-500 italic">Tema Livre / Geral</span>}
                             </td>
-                            <td className="px-5 py-4 font-mono font-bold text-gray-600">
+                            <td className="px-5 py-4 font-mono font-bold text-gray-600 dark:text-zinc-300">
                               {new Date(post.scheduled_date).toLocaleDateString('pt-BR')} {post.scheduled_time || '12:00'}
                             </td>
                             <td className="px-5 py-4">
@@ -2670,7 +2670,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                 <select 
                                   value={post.status} 
                                   onChange={(e) => handleQuickStatusChange(post, e.target.value as any)}
-                                  className="p-1 border border-gray-200 rounded text-[10px] bg-white font-medium focus:outline-none"
+                                  className="p-1 border border-gray-200 dark:border-white/[0.08] rounded text-[10px] bg-white dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 font-medium focus:outline-none"
                                 >
                                   <option value="rascunho">1. Rascunho / Tema</option>
                                   <option value="programado">2. Programado</option>
@@ -2686,26 +2686,26 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   href={post.attachment_url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:underline"
+                                  className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
                                 >
                                   <LinkIcon size={12} />
                                   Ver Anexo
                                 </a>
                               ) : (
-                                <span className="text-gray-400 text-xs">Sem anexo</span>
+                                <span className="text-gray-400 dark:text-zinc-500 text-xs">Sem anexo</span>
                               )}
                             </td>
                             <td className="px-5 py-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => handleOpenPostModal(post)}
-                                  className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-all"
+                                  className="p-1.5 text-gray-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-all"
                                 >
                                   <Edit2 size={14} />
                                 </button>
                                 <button
                                   onClick={() => handleDeletePost(post.id)}
-                                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                  className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-all"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -2721,34 +2721,34 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             </div>
 
             {/* Feriados e Datas Comemorativas Cadastradas */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-rose-500 font-bold text-lg">🎉</span>
-                  <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Feriados e Datas Comemorativas Cadastradas</h3>
+                  <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">Feriados e Datas Comemorativas Cadastradas</h3>
                 </div>
                 <button
                   onClick={() => handleOpenPostModal(undefined, undefined, true)}
-                  className="flex items-center gap-1 bg-rose-50 text-rose-700 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all border border-rose-100"
+                  className="flex items-center gap-1 bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-all border border-rose-100 dark:border-rose-500/30"
                 >
                   <Plus size={12} /> Novo Feriado / Data
                 </button>
               </div>
 
               {holidays.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
+                <div className="p-8 text-center text-gray-400 dark:text-zinc-500">
                   <p className="text-xs">Nenhum feriado ou data comemorativa registrada.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-5">
                   {holidays.map(holiday => (
-                    <div key={holiday.id} className="p-3 bg-rose-50/40 border border-rose-100/60 rounded-xl flex items-center justify-between gap-3 shadow-sm">
+                    <div key={holiday.id} className="p-3 bg-rose-50/40 dark:bg-rose-500/10 border border-rose-100/60 dark:border-rose-500/25 rounded-xl flex items-center justify-between gap-3 shadow-sm dark:shadow-none">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs">{holiday.caption === '[FERIADO]' ? '🚩' : '🎉'}</span>
-                          <p className="font-bold text-gray-800 text-xs truncate">{holiday.title}</p>
+                          <p className="font-bold text-gray-800 dark:text-zinc-100 text-xs truncate">{holiday.title}</p>
                         </div>
-                        <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">
+                        <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-mono font-bold mt-1">
                           {new Date(holiday.scheduled_date).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
@@ -2762,21 +2762,21 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                               caption: `Postagem de comemoração de ${holiday.title}.`
                             }));
                           }}
-                          className="px-2 py-1 bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100 rounded-lg text-[10px] font-black transition-all flex items-center gap-0.5 whitespace-nowrap"
+                          className="px-2 py-1 bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 border border-indigo-100 dark:border-indigo-500/30 rounded-lg text-[10px] font-black transition-all flex items-center gap-0.5 whitespace-nowrap"
                           title="Agendar Post para esta data"
                         >
                           <Plus size={10} /> +Post
                         </button>
                         <button
                           onClick={() => handleOpenPostModal(holiday)}
-                          className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded transition-all"
+                          className="p-1 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded transition-all"
                           title="Editar Feriado"
                         >
                           <Edit2 size={12} />
                         </button>
                         <button
                           onClick={() => handleDeletePost(holiday.id)}
-                          className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-all"
+                          className="p-1 text-gray-400 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded transition-all"
                           title="Excluir Feriado"
                         >
                           <Trash2 size={12} />
@@ -2791,20 +2791,20 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
         ) : (
           <div className="space-y-4 animate-fade-in">
             {/* Kanban Board View */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm">
+            <div className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm dark:shadow-none">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
                   <Layers size={18} />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-gray-900 text-sm">Quadro de Fluxo Kanban</h4>
-                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  <h4 className="font-extrabold text-gray-900 dark:text-zinc-100 text-sm">Quadro de Fluxo Kanban</h4>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium mt-0.5">
                     Arraste os cards entre as fases ou use os botões direcionais para avançar e aprovar postagens.
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
-                <span className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-3 py-1.5 rounded-xl font-bold">
+                <span className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100/80 dark:border-indigo-500/30 px-3 py-1.5 rounded-xl font-bold">
                   {realPosts.length} postagens no fluxo
                 </span>
               </div>
@@ -2813,11 +2813,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             {/* Columns Grid */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
               {[
-                { id: 'rascunho' as const, title: '1. Rascunhos', border: 'border-slate-200/80 bg-slate-50/50', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-700' },
-                { id: 'programado' as const, title: '2. Programados', border: 'border-blue-200/80 bg-blue-50/20', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-700' },
-                { id: 'feito' as const, title: '3. Posts Feitos', border: 'border-amber-200/80 bg-amber-50/20', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-700' },
-                { id: 'aprovado' as const, title: '4. Aprovados', border: 'border-purple-200/80 bg-purple-50/20', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-700' },
-                { id: 'publicado' as const, title: '5. Publicados', border: 'border-emerald-200/80 bg-emerald-50/20', text: 'text-emerald-800', badge: 'bg-emerald-100 text-emerald-700' }
+                { id: 'rascunho' as const, title: '1. Rascunhos', border: 'border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.03]', text: 'text-slate-800 dark:text-zinc-200', badge: 'bg-slate-100 dark:bg-white/[0.1] text-slate-700 dark:text-zinc-200' },
+                { id: 'programado' as const, title: '2. Programados', border: 'border-blue-200/80 dark:border-blue-500/25 bg-blue-50/20 dark:bg-blue-500/[0.06]', text: 'text-blue-800 dark:text-blue-300', badge: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' },
+                { id: 'feito' as const, title: '3. Posts Feitos', border: 'border-amber-200/80 dark:border-amber-500/25 bg-amber-50/20 dark:bg-amber-500/[0.06]', text: 'text-amber-800 dark:text-amber-300', badge: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' },
+                { id: 'aprovado' as const, title: '4. Aprovados', border: 'border-purple-200/80 dark:border-purple-500/25 bg-purple-50/20 dark:bg-purple-500/[0.06]', text: 'text-purple-800 dark:text-purple-300', badge: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' },
+                { id: 'publicado' as const, title: '5. Publicados', border: 'border-emerald-200/80 dark:border-emerald-500/25 bg-emerald-50/20 dark:bg-emerald-500/[0.06]', text: 'text-emerald-800 dark:text-emerald-300', badge: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' }
               ].map((column, colIndex, columnsArr) => {
                 const columnPosts = realPosts.filter(p => p.status === column.id);
 
@@ -2837,7 +2837,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     className={`rounded-2xl border ${column.border} p-3 flex flex-col min-h-[480px] transition-all`}
                   >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100 shrink-0">
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100 dark:border-white/[0.08] shrink-0">
                       <span className={`font-black text-[11px] uppercase tracking-wider ${column.text}`}>
                         {column.title}
                       </span>
@@ -2849,7 +2849,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     {/* Cards container */}
                     <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px] pr-0.5 scrollbar-thin">
                       {columnPosts.length === 0 ? (
-                        <div className="h-28 border border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 p-4 text-center">
+                        <div className="h-28 border border-dashed border-gray-200 dark:border-white/[0.1] rounded-xl flex items-center justify-center text-gray-400 dark:text-zinc-500 p-4 text-center">
                           <p className="text-[10px] font-bold">Sem postagens nesta fase</p>
                         </div>
                       ) : (
@@ -2862,46 +2862,46 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                               onDragStart={(e) => {
                                 e.dataTransfer.setData("text/plain", post.id.toString());
                               }}
-                              className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all space-y-2 group hover:border-indigo-200 text-left"
+                              className="bg-white dark:bg-[#1c1c1e] p-3 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none hover:shadow-md cursor-grab active:cursor-grabbing transition-all space-y-2 group hover:border-indigo-200 dark:hover:border-indigo-500/40 text-left"
                             >
                               {/* Top Row with Icon and Date */}
                               <div className="flex items-center justify-between gap-1">
                                 <div className="flex items-center gap-1 min-w-0">
                                   {getSocialIcon(post.social_network, 12)}
-                                  <span className="text-[9px] font-black uppercase text-gray-400 truncate">
+                                  <span className="text-[9px] font-black uppercase text-gray-400 dark:text-zinc-400 truncate">
                                     {post.social_network}
                                   </span>
                                 </div>
-                                <span className="text-[9px] text-gray-500 font-mono font-bold bg-gray-50 px-1 rounded border border-gray-100 shrink-0">
+                                <span className="text-[9px] text-gray-500 dark:text-zinc-300 font-mono font-bold bg-gray-50 dark:bg-white/[0.06] px-1 rounded border border-gray-100 dark:border-white/[0.08] shrink-0">
                                   {new Date(post.scheduled_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                                 </span>
                               </div>
 
                               {/* Title & Caption */}
                               <div>
-                                <h5 className="font-extrabold text-gray-800 text-[11px] leading-snug line-clamp-2">
+                                <h5 className="font-extrabold text-gray-800 dark:text-zinc-100 text-[11px] leading-snug line-clamp-2">
                                   {post.title}
                                 </h5>
                                 {post.caption && (
-                                  <p className="text-[9px] text-gray-400 font-semibold line-clamp-1 mt-0.5">
+                                  <p className="text-[9px] text-gray-400 dark:text-zinc-400 font-semibold line-clamp-1 mt-0.5">
                                     {post.caption}
                                   </p>
                                 )}
                               </div>
 
                               {/* Metadata */}
-                              <div className="flex items-center justify-between text-[9px] pt-1.5 border-t border-gray-50">
-                                <span className="font-black text-indigo-700 truncate max-w-[80px]" title={matchingClient?.name || 'Geral'}>
+                              <div className="flex items-center justify-between text-[9px] pt-1.5 border-t border-gray-50 dark:border-white/[0.06]">
+                                <span className="font-black text-indigo-700 dark:text-indigo-400 truncate max-w-[80px]" title={matchingClient?.name || 'Geral'}>
                                   {matchingClient?.name || 'Livre / Geral'}
                                 </span>
-                                <span className="font-mono text-gray-400 font-bold flex items-center gap-0.5">
+                                <span className="font-mono text-gray-400 dark:text-zinc-400 font-bold flex items-center gap-0.5">
                                   <Clock size={9} />
                                   {post.scheduled_time || '12:00'}
                                 </span>
                               </div>
 
                               {/* Quick Actions Footer */}
-                              <div className="flex items-center justify-between pt-2 border-t border-gray-100 gap-1 shrink-0">
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-white/[0.06] gap-1 shrink-0">
                                 {/* Arrows for sliding */}
                                 <div className="flex items-center gap-1">
                                   <button
@@ -2911,7 +2911,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                       const prevStatus = columnsArr[colIndex - 1].id;
                                       await handleQuickStatusChange(post, prevStatus);
                                     }}
-                                    className="p-1 rounded bg-gray-50 hover:bg-gray-100 text-gray-500 disabled:opacity-20 disabled:cursor-not-allowed border border-gray-100 transition active:scale-90"
+                                    className="p-1 rounded bg-gray-50 dark:bg-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.12] text-gray-500 dark:text-zinc-300 disabled:opacity-20 disabled:cursor-not-allowed border border-gray-100 dark:border-white/[0.08] transition active:scale-90"
                                     title="Mover anterior"
                                   >
                                     <ChevronLeft size={10} />
@@ -2923,7 +2923,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                       const nextStatus = columnsArr[colIndex + 1].id;
                                       await handleQuickStatusChange(post, nextStatus);
                                     }}
-                                    className="p-1 rounded bg-gray-50 hover:bg-gray-100 text-gray-500 disabled:opacity-20 disabled:cursor-not-allowed border border-gray-100 transition active:scale-90"
+                                    className="p-1 rounded bg-gray-50 dark:bg-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.12] text-gray-500 dark:text-zinc-300 disabled:opacity-20 disabled:cursor-not-allowed border border-gray-100 dark:border-white/[0.08] transition active:scale-90"
                                     title="Mover próximo"
                                   >
                                     <ChevronRight size={10} />
@@ -2935,7 +2935,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   <button
                                     type="button"
                                     onClick={() => handleOpenPostModal(post)}
-                                    className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded transition"
+                                    className="p-1 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-white/[0.08] rounded transition"
                                     title="Editar"
                                   >
                                     <Edit2 size={10} />
@@ -2943,7 +2943,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   <button
                                     type="button"
                                     onClick={() => handleDeletePost(post.id)}
-                                    className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"
+                                    className="p-1 text-gray-400 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded transition"
                                     title="Excluir"
                                   >
                                     <Trash2 size={10} />
@@ -2975,59 +2975,59 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           >
             {/* Client metrics card (Standardized with Financial Summary Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl">
                     <Users size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Ativos</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Ativos</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-indigo-600">{activeClientsCount}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Com contrato vigente</p>
+                  <h3 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{activeClientsCount}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Com contrato vigente</p>
                 </div>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl">
                     <Sparkles size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Prospects</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Prospects</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-amber-600">{prospectClientsCount}</h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Leads em negociação</p>
+                  <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400">{prospectClientsCount}</h3>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Leads em negociação</p>
                 </div>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                     <TrendingUp size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Recorrência Mensal</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Recorrência Mensal</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-emerald-600">
+                  <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                     R$ {totalMonthlyFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Faturamento fixo previsto</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Faturamento fixo previsto</p>
                 </div>
               </div>
             </div>
 
             {/* Clients Grid */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.02] flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                       <Users size={16} />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Carteira de Clientes de Marketing</h3>
-                      <p className="text-[11px] text-gray-400 font-medium">Contratos ativos, planos contratados e dias de publicação</p>
+                      <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">Carteira de Clientes de Marketing</h3>
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">Contratos ativos, planos contratados e dias de publicação</p>
                     </div>
                   </div>
 
@@ -3042,16 +3042,16 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 </div>
 
                 {/* Toolbar Filters: Status pills & Search */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 border-t border-gray-100/60">
-                  <div className="flex bg-gray-100/80 p-1 rounded-xl gap-1 overflow-x-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 border-t border-gray-100/60 dark:border-white/[0.06]">
+                  <div className="flex bg-gray-100/80 dark:bg-white/[0.06] p-1 rounded-xl gap-1 overflow-x-auto">
                     <button
                       type="button"
                       onClick={() => setClientStatusFilter('all')}
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         clientStatusFilter === 'all'
-                          ? "bg-white text-indigo-600 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Todos ({clients.length})
@@ -3062,8 +3062,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         clientStatusFilter === 'ativo'
-                          ? "bg-white text-emerald-700 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-emerald-700 dark:text-emerald-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Ativos ({activeClientsCount})
@@ -3074,8 +3074,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         clientStatusFilter === 'prospect'
-                          ? "bg-white text-amber-700 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-amber-700 dark:text-amber-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Prospects ({prospectClientsCount})
@@ -3086,8 +3086,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         clientStatusFilter === 'inativo'
-                          ? "bg-white text-gray-700 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-gray-700 dark:text-zinc-100 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Inativos ({clients.filter(c => c.status === 'inativo').length})
@@ -3095,21 +3095,21 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
                   <div className="relative flex-1 sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" size={13} />
                     <input
                       type="text"
                       value={clientSearchTerm}
                       onChange={(e) => setClientSearchTerm(e.target.value)}
                       placeholder="Buscar por cliente, empresa..."
-                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
+                      className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
                     />
                   </div>
                 </div>
               </div>
 
               {filteredClients.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  <Users className="mx-auto text-gray-300 mb-2" size={32} />
+                <div className="p-8 text-center text-gray-400 dark:text-zinc-500">
+                  <Users className="mx-auto text-gray-300 dark:text-zinc-600 mb-2" size={32} />
                   <p className="text-xs">
                     {clientSearchTerm || clientStatusFilter !== 'all' 
                       ? "Nenhum cliente corresponde aos filtros aplicados." 
@@ -3120,7 +3120,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      <tr className="bg-gray-50 dark:bg-white/[0.04] text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest border-b border-gray-100 dark:border-white/[0.08]">
                         <th className="px-5 py-3">Cliente / Empresa</th>
                         <th className="px-5 py-3">Telefone</th>
                         <th className="px-5 py-3">Contrato / Pacote</th>
@@ -3130,59 +3130,59 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                         <th className="px-5 py-3 text-right">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
+                    <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06] text-xs sm:text-sm">
                       {filteredClients.map(client => (
-                        <tr key={client.id} className="hover:bg-gray-50/50 transition-colors">
+                        <tr key={client.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors">
                           <td className="px-5 py-4">
                             <div>
-                              <p className="font-extrabold text-gray-800">{client.name}</p>
+                              <p className="font-extrabold text-gray-800 dark:text-zinc-100">{client.name}</p>
                               {client.company && (
-                                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{client.company}</p>
+                                <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{client.company}</p>
                               )}
                             </div>
                           </td>
-                          <td className="px-5 py-4 font-medium text-gray-600">
-                            {client.phone || <span className="text-gray-300">Não informado</span>}
+                          <td className="px-5 py-4 font-medium text-gray-600 dark:text-zinc-300">
+                            {client.phone || <span className="text-gray-300 dark:text-zinc-600">Não informado</span>}
                           </td>
-                          <td className="px-5 py-4 font-bold text-gray-700">
-                            {client.plan_name || <span className="text-gray-300">Sem pacote</span>}
+                          <td className="px-5 py-4 font-bold text-gray-700 dark:text-zinc-200">
+                            {client.plan_name || <span className="text-gray-300 dark:text-zinc-600">Sem pacote</span>}
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex flex-wrap gap-1">
                               {client.publication_days ? (
                                 client.publication_days.split(',').map((day, dIdx) => (
-                                  <span key={dIdx} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[9px] font-extrabold rounded-md uppercase">
+                                  <span key={dIdx} className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[9px] font-extrabold rounded-md uppercase">
                                     {day}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-gray-300 italic text-xs">Todos os dias</span>
+                                <span className="text-gray-300 dark:text-zinc-600 italic text-xs">Todos os dias</span>
                               )}
                             </div>
                           </td>
-                          <td className="px-5 py-4 font-mono font-extrabold text-gray-800">
+                          <td className="px-5 py-4 font-mono font-extrabold text-gray-800 dark:text-zinc-100">
                             R$ {Number(client.plan_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-5 py-4">
                             {client.status === 'ativo' ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase">Ativo</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 uppercase">Ativo</span>
                             ) : client.status === 'prospect' ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 uppercase">Prospect</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 uppercase">Prospect</span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-gray-100 text-gray-800 uppercase">Inativo</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-gray-100 dark:bg-white/[0.08] text-gray-800 dark:text-zinc-300 uppercase">Inativo</span>
                             )}
                           </td>
                           <td className="px-5 py-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => handleOpenClientModal(client)}
-                                className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-all"
+                                className="p-1.5 text-gray-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-all"
                               >
                                 <Edit2 size={14} />
                               </button>
                               <button
                                 onClick={() => handleDeleteClient(client.id)}
-                                className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -3209,78 +3209,78 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
           >
             {/* Quick cash stats (Standardized with Financial Summary Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none rounded-2xl flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
                     <CheckCircle size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Recebido</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Recebido</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-emerald-600">
+                  <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                     R$ {totalCollected.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Pagamentos confirmados</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Pagamentos confirmados</p>
                 </div>
               </div>
 
-              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none rounded-2xl flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl">
                     <Clock size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Pendente</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Pendente</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-amber-600">
+                  <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                     R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Aguardando vencimento</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Aguardando vencimento</p>
                 </div>
               </div>
 
-              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none rounded-2xl flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+                  <div className="p-2.5 bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded-xl">
                     <AlertTriangle size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Atrasado</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Atrasado</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-rose-600">
+                  <h3 className="text-2xl font-bold text-rose-600 dark:text-rose-400">
                     R$ {totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Cobranças vencidas</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Cobranças vencidas</p>
                 </div>
               </div>
 
-              <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-2xl flex flex-col justify-between">
+              <div className="bg-white dark:bg-[#1c1c1e] p-5 border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none rounded-2xl flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl">
                     <DollarSign size={20} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Total Geral</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Total Geral</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
                     R$ {(totalCollected + totalPending + totalOverdue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </h3>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">Volume de mensalidades</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium mt-0.5">Volume de mensalidades</p>
                 </div>
               </div>
             </div>
 
             {/* List and tools */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.02] flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                       <DollarSign size={16} />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Mensalidades & Recebíveis</h3>
-                      <p className="text-[11px] text-gray-400 font-medium">Controle de faturamento, cobranças pendentes e conciliação</p>
+                      <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">Mensalidades & Recebíveis</h3>
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">Controle de faturamento, cobranças pendentes e conciliação</p>
                     </div>
                   </div>
 
@@ -3293,16 +3293,16 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 </div>
 
                 {/* Toolbar Filters: Status pills & Search (Identical to StrictFinanceDashboard) */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 border-t border-gray-100/60">
-                  <div className="flex bg-gray-100/80 p-1 rounded-xl gap-1 overflow-x-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 border-t border-gray-100/60 dark:border-white/[0.06]">
+                  <div className="flex bg-gray-100/80 dark:bg-white/[0.06] p-1 rounded-xl gap-1 overflow-x-auto">
                     <button
                       type="button"
                       onClick={() => setPaymentStatusFilter('all')}
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         paymentStatusFilter === 'all'
-                          ? "bg-white text-indigo-600 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Todos ({payments.length})
@@ -3313,8 +3313,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         paymentStatusFilter === 'pago'
-                          ? "bg-white text-emerald-700 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-emerald-700 dark:text-emerald-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Pagos ({payments.filter(p => p.status === 'pago').length})
@@ -3325,8 +3325,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         paymentStatusFilter === 'pendente'
-                          ? "bg-white text-amber-700 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-amber-700 dark:text-amber-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Pendentes ({payments.filter(p => p.status === 'pendente').length})
@@ -3337,8 +3337,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
                         paymentStatusFilter === 'atrasado'
-                          ? "bg-white text-rose-700 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white dark:bg-white/[0.12] text-rose-700 dark:text-rose-300 shadow-xs"
+                          : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
                       )}
                     >
                       Atrasados ({payments.filter(p => p.status === 'atrasado').length})
@@ -3346,21 +3346,21 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
                   <div className="relative flex-1 sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" size={13} />
                     <input
                       type="text"
                       placeholder="Pesquisar cliente ou referência..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
+                      className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all"
                     />
                   </div>
                 </div>
               </div>
 
               {filteredPayments.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  <DollarSign className="mx-auto text-gray-300 mb-2" size={32} />
+                <div className="p-8 text-center text-gray-400 dark:text-zinc-500">
+                  <DollarSign className="mx-auto text-gray-300 dark:text-zinc-600 mb-2" size={32} />
                   <p className="text-xs">
                     {searchTerm || paymentStatusFilter !== 'all'
                       ? "Nenhum lançamento corresponde aos filtros aplicados."
@@ -3371,7 +3371,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      <tr className="bg-gray-50 dark:bg-white/[0.04] text-[10px] font-black text-gray-400 dark:text-zinc-400 uppercase tracking-widest border-b border-gray-100 dark:border-white/[0.08]">
                         <th className="px-5 py-3">Cliente</th>
                         <th className="px-5 py-3">Referência / Mês</th>
                         <th className="px-5 py-3">Valor Cobrado</th>
@@ -3381,38 +3381,38 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                         <th className="px-5 py-3 text-right">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
+                    <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06] text-xs sm:text-sm">
                       {filteredPayments.map(payment => (
-                        <tr key={payment.id} className="hover:bg-gray-50/50 transition-colors">
+                        <tr key={payment.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors">
                           <td className="px-5 py-4">
                             <div>
-                              <p className="font-extrabold text-gray-800">
+                              <p className="font-extrabold text-gray-800 dark:text-zinc-100">
                                 {payment.marketing_clients?.name || 'Pagamento Avulso'}
                               </p>
                               {payment.marketing_clients?.company ? (
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">
                                   {payment.marketing_clients?.company}
                                 </p>
                               ) : (
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider italic text-gray-400">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider italic">
                                   Lançamento à Parte / Avulso
                                 </p>
                               )}
                             </div>
                           </td>
-                          <td className="px-5 py-4 font-bold text-indigo-950 font-mono">
+                          <td className="px-5 py-4 font-bold text-indigo-950 dark:text-indigo-200 font-mono">
                             {payment.month_reference}
                           </td>
-                          <td className="px-5 py-4 font-mono font-extrabold text-gray-800">
+                          <td className="px-5 py-4 font-mono font-extrabold text-gray-800 dark:text-zinc-100">
                             R$ {Number(payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="px-5 py-4 font-mono font-medium text-gray-600">
+                          <td className="px-5 py-4 font-mono font-medium text-gray-600 dark:text-zinc-300">
                             {new Date(payment.due_date).toLocaleDateString('pt-BR')}
                           </td>
-                          <td className="px-5 py-4 font-mono font-medium text-emerald-700">
+                          <td className="px-5 py-4 font-mono font-medium text-emerald-700 dark:text-emerald-400">
                             {payment.payment_date 
                               ? new Date(payment.payment_date).toLocaleDateString('pt-BR') 
-                              : <span className="text-gray-300">Pendente</span>
+                              : <span className="text-gray-300 dark:text-zinc-600">Pendente</span>
                             }
                           </td>
                           <td className="px-5 py-4">
@@ -3422,20 +3422,20 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => sendWhatsAppReminder(payment)}
-                                className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all"
+                                className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 rounded-lg transition-all"
                                 title="Enviar lembrete via WhatsApp"
                               >
                                 <MessageSquare size={14} />
                               </button>
                               <button
                                 onClick={() => handleOpenPaymentModal(payment)}
-                                className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-all"
+                                className="p-1.5 text-gray-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-all"
                               >
                                 <Edit2 size={14} />
                               </button>
                               <button
                                 onClick={() => handleDeletePayment(payment.id)}
-                                className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-lg transition-all"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -3461,15 +3461,15 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             className="space-y-6"
           >
             {/* Sub-selector of Report Type (Identical to Academic and Financial sub-modules) */}
-            <div className="bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200/80 flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
+            <div className="bg-gray-100/90 dark:bg-white/[0.06] p-1.5 rounded-2xl border border-gray-200/80 dark:border-white/[0.08] flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
               <button
                 type="button"
                 onClick={() => setActiveReportType('weekly')}
                 className={cn(
                   "flex-1 min-w-[150px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
                   activeReportType === 'weekly'
-                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+                    ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                    : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-100 hover:bg-white/40 dark:hover:bg-white/[0.05]"
                 )}
               >
                 <Sparkles size={16} />
@@ -3482,8 +3482,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 className={cn(
                   "flex-1 min-w-[150px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
                   activeReportType === 'monthly'
-                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+                    ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                    : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-100 hover:bg-white/40 dark:hover:bg-white/[0.05]"
                 )}
               >
                 <FileText size={16} />
@@ -3496,8 +3496,8 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 className={cn(
                   "flex-1 min-w-[150px] flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all",
                   activeReportType === 'multiclient'
-                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-white/40"
+                    ? "bg-white dark:bg-white/[0.12] text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                    : "text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-100 hover:bg-white/40 dark:hover:bg-white/[0.05]"
                 )}
               >
                 <Layers size={16} />
@@ -3507,23 +3507,23 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
             {/* REPORT 1: WEEKLY PLANNER */}
             {activeReportType === 'weekly' && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                       <Sparkles size={18} />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+                      <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">
                         1. Emissor de Cronograma Semanal
                       </h3>
-                      <p className="text-[11px] text-gray-400 font-medium">
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">
                         Monte a pauta da semana por cliente, salve diretamente no Kanban e exporte em PDF ou WhatsApp
                       </p>
                     </div>
                   </div>
                   {selectedClientDetails && (
-                    <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                    <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100/80 dark:border-indigo-500/30 px-3 py-1.5 rounded-xl self-start sm:self-auto">
                       Cliente: {selectedClientDetails.name}
                     </span>
                   )}
@@ -3533,13 +3533,13 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   {/* Selectors */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                      <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
                         Cliente Atendido *
                       </label>
                       <select
                         value={reportClient}
                         onChange={(e) => setReportClient(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800 dark:text-zinc-100"
                       >
                         <option value="">Selecione um cliente</option>
                         {clients.map(c => (
@@ -3549,31 +3549,31 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                      <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
                         Segunda-feira da Semana *
                       </label>
                       <input
                         type="date"
                         value={reportStartDate}
                         onChange={(e) => setReportStartDate(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800 dark:text-zinc-100"
                       />
                     </div>
                   </div>
 
                   {/* Display client's standard publication days */}
                   {selectedClientDetails && (
-                    <div className="p-3.5 bg-indigo-50/70 rounded-xl text-indigo-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-indigo-100">
+                    <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-500/10 rounded-xl text-indigo-900 dark:text-indigo-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-indigo-100 dark:border-indigo-500/25">
                       <div>
                         <span className="font-bold">Dias habituais de publicação:</span>{' '}
-                        <span className="font-extrabold uppercase text-indigo-950">
+                        <span className="font-extrabold uppercase text-indigo-950 dark:text-indigo-100">
                           {selectedClientDetails.publication_days || "Todos os dias"}
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setShowAllDaysInPlanner(prev => !prev)}
-                        className="px-3 py-1.5 text-[10px] font-extrabold uppercase bg-white text-indigo-700 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-200/80 shadow-2xs whitespace-nowrap"
+                        className="px-3 py-1.5 text-[10px] font-extrabold uppercase bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg transition-all border border-indigo-200/80 dark:border-indigo-500/30 shadow-2xs whitespace-nowrap"
                       >
                         {showAllDaysInPlanner ? "Filtrar Dias Habituais" : "Exibir Todos os 7 Dias"}
                       </button>
@@ -3581,14 +3581,14 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   )}
 
                   {/* Days form builder */}
-                  <div className="space-y-4 border-t border-gray-100 pt-4 max-h-[460px] overflow-y-auto pr-1">
+                  <div className="space-y-4 border-t border-gray-100 dark:border-white/[0.08] pt-4 max-h-[460px] overflow-y-auto pr-1">
                     {!reportClient ? (
-                      <div className="p-12 text-center text-gray-400">
-                        <Sparkles className="mx-auto text-gray-300 mb-2" size={32} />
+                      <div className="p-12 text-center text-gray-400 dark:text-zinc-500">
+                        <Sparkles className="mx-auto text-gray-300 dark:text-zinc-600 mb-2" size={32} />
                         <p className="text-xs font-medium">Por favor, selecione um cliente para montar a programação da semana.</p>
                       </div>
                     ) : clientDaysOfWeek.length === 0 ? (
-                      <div className="p-6 text-center text-amber-700 bg-amber-50 rounded-2xl border border-amber-200">
+                      <div className="p-6 text-center text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 rounded-2xl border border-amber-200 dark:border-amber-500/30">
                         <p className="text-xs font-bold">Nenhum dia habitual configurado</p>
                         <p className="text-[11px] mt-1">Este cliente não possui dias de publicação cadastrados. Clique em "Exibir Todos os 7 Dias" acima para programar posts.</p>
                       </div>
@@ -3596,18 +3596,18 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       clientDaysOfWeek.map(day => {
                         const item = weeklyPlannerItems[day.num] || { isCustom: true, customTheme: '', postId: '', social_network: 'instagram', caption: '', scheduled_time: '12:00' };
                         return (
-                          <div key={day.num} className={`p-4 rounded-2xl border transition-all space-y-3 ${item.existingPostId ? 'bg-emerald-50/20 border-emerald-200/80 shadow-xs' : 'bg-gray-50/60 border-gray-200/80'}`}>
+                          <div key={day.num} className={`p-4 rounded-2xl border transition-all space-y-3 ${item.existingPostId ? 'bg-emerald-50/20 dark:bg-emerald-500/[0.08] border-emerald-200/80 dark:border-emerald-500/30 shadow-xs' : 'bg-gray-50/60 dark:bg-white/[0.03] border-gray-200/80 dark:border-white/[0.08]'}`}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-xs text-gray-900">{day.name}</span>
+                                <span className="font-extrabold text-xs text-gray-900 dark:text-zinc-100">{day.name}</span>
                                 {item.existingPostId && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
+                                  <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/30">
                                     ✓ Salvo no Kanban
                                   </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-3">
-                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 dark:text-zinc-300 cursor-pointer">
                                   <input 
                                     type="radio" 
                                     checked={item.isCustom} 
@@ -3615,7 +3615,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   />
                                   Digitar Tema
                                 </label>
-                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 cursor-pointer">
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-600 dark:text-zinc-300 cursor-pointer">
                                   <input 
                                     type="radio" 
                                     checked={!item.isCustom} 
@@ -3634,20 +3634,20 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   placeholder="Título do Tema ou Assunto..."
                                   value={item.customTheme}
                                   onChange={(e) => handleWeeklyItemChange(day.num, 'customTheme', e.target.value)}
-                                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                  className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 />
                                 <textarea
                                   placeholder="Legenda / Observação / Ideia do Post..."
                                   rows={2}
                                   value={item.caption}
                                   onChange={(e) => handleWeeklyItemChange(day.num, 'caption', e.target.value)}
-                                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                  className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-medium text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 />
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                   <select
                                     value={item.social_network}
                                     onChange={(e) => handleWeeklyItemChange(day.num, 'social_network', e.target.value)}
-                                    className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold"
+                                    className="p-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-gray-800 dark:text-zinc-100"
                                   >
                                     <option value="instagram">Instagram</option>
                                     <option value="facebook">Facebook</option>
@@ -3659,7 +3659,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                   <select
                                     value={item.status || 'rascunho'}
                                     onChange={(e) => handleWeeklyItemChange(day.num, 'status', e.target.value)}
-                                    className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700"
+                                    className="p-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-bold text-gray-700 dark:text-zinc-100"
                                   >
                                     <option value="rascunho">📝 Rascunho / Tema</option>
                                     <option value="programado">⏰ Programado</option>
@@ -3672,7 +3672,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                     type="time"
                                     value={item.scheduled_time || '12:00'}
                                     onChange={(e) => handleWeeklyItemChange(day.num, 'scheduled_time', e.target.value)}
-                                    className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold"
+                                    className="p-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-gray-800 dark:text-zinc-100"
                                   />
                                 </div>
                               </div>
@@ -3681,7 +3681,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                 <select
                                   value={item.postId}
                                   onChange={(e) => handleWeeklyItemChange(day.num, 'postId', e.target.value)}
-                                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold"
+                                  className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-bold text-gray-800 dark:text-zinc-100"
                                 >
                                   <option value="">-- Selecionar Post em Rascunho --</option>
                                   {clientDraftPosts.map(p => (
@@ -3690,7 +3690,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                                 </select>
                                 
                                 {item.postId && (
-                                  <div className="mt-2 p-2.5 bg-white rounded-xl border border-gray-100 text-[11px] text-gray-500 line-clamp-2 italic">
+                                  <div className="mt-2 p-2.5 bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-white/[0.08] text-[11px] text-gray-500 dark:text-zinc-400 line-clamp-2 italic">
                                     Legenda: {item.caption || '(Sem legenda)'}
                                   </div>
                                 )}
@@ -3703,7 +3703,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
                   {/* Action Buttons Toolbar */}
-                  <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+                  <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] flex flex-col sm:flex-row gap-3">
                     <button
                       type="button"
                       onClick={handlePrintWeeklyAndSave}
@@ -3745,17 +3745,17 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
             {/* REPORT 2: MONTHLY REPORT */}
             {activeReportType === 'monthly' && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                       <FileText size={18} />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+                      <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">
                         2. Relatório de Postagens Mensal
                       </h3>
-                      <p className="text-[11px] text-gray-400 font-medium">
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">
                         Consolidado analítico mensal de postagens, métricas e comprovação de entregas para o cliente
                       </p>
                     </div>
@@ -3765,13 +3765,13 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <div className="p-6 space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                      <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
                         Cliente *
                       </label>
                       <select
                         value={monthlyReportClient}
                         onChange={(e) => setMonthlyReportClient(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800 dark:text-zinc-100"
                       >
                         {clients.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
@@ -3780,13 +3780,13 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                      <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
                         Mês de Referência *
                       </label>
                       <select
                         value={monthlyReportMonth}
                         onChange={(e) => setMonthlyReportMonth(Number(e.target.value))}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-gray-800 dark:text-zinc-100"
                       >
                         {monthNames.map((m, idx) => (
                           <option key={idx} value={idx}>{m}</option>
@@ -3795,13 +3795,13 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                      <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
                         Ano *
                       </label>
                       <select
                         value={monthlyReportYear}
                         onChange={(e) => setMonthlyReportYear(Number(e.target.value))}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800 dark:text-zinc-100"
                       >
                         <option value={2026}>2026</option>
                         <option value={2025}>2025</option>
@@ -3811,36 +3811,36 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
                   {/* Summary Preview Cards (Standardized KPI Style) */}
-                  <div className="p-5 bg-gray-50/70 rounded-2xl border border-gray-200/70 space-y-4">
+                  <div className="p-5 bg-gray-50/70 dark:bg-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/[0.08] space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-extrabold text-xs uppercase text-gray-500 tracking-wider">
+                      <h4 className="font-extrabold text-xs uppercase text-gray-500 dark:text-zinc-400 tracking-wider">
                         Prévia dos Posts Encontrados no Mês
                       </h4>
-                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
+                      <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100 dark:border-indigo-500/30 px-2.5 py-1 rounded-lg">
                         {monthNames[monthlyReportMonth]} / {monthlyReportYear}
                       </span>
                     </div>
                     
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
-                        <span className="text-[10px] uppercase font-bold text-gray-400">Total Encontrado</span>
-                        <p className="text-2xl font-black text-gray-900 mt-1">{monthlyMetrics.total}</p>
-                        <span className="text-[10px] text-gray-400">postagens no período</span>
+                      <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-zinc-400">Total Encontrado</span>
+                        <p className="text-2xl font-black text-gray-900 dark:text-zinc-100 mt-1">{monthlyMetrics.total}</p>
+                        <span className="text-[10px] text-gray-400 dark:text-zinc-500">postagens no período</span>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
-                        <span className="text-[10px] uppercase font-bold text-emerald-600">Publicados</span>
-                        <p className="text-2xl font-black text-emerald-600 mt-1">{monthlyMetrics.published}</p>
-                        <span className="text-[10px] text-emerald-600/70">concluídos e no ar</span>
+                      <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Publicados</span>
+                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{monthlyMetrics.published}</p>
+                        <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">concluídos e no ar</span>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
-                        <span className="text-[10px] uppercase font-bold text-indigo-600">Aprovados</span>
-                        <p className="text-2xl font-black text-indigo-600 mt-1">{monthlyMetrics.approved}</p>
-                        <span className="text-[10px] text-indigo-600/70">validados pelo cliente</span>
+                      <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                        <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Aprovados</span>
+                        <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{monthlyMetrics.approved}</p>
+                        <span className="text-[10px] text-indigo-600/70 dark:text-indigo-400/70">validados pelo cliente</span>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
-                        <span className="text-[10px] uppercase font-bold text-amber-600">Em Produção</span>
-                        <p className="text-2xl font-black text-amber-600 mt-1">{monthlyMetrics.inProd}</p>
-                        <span className="text-[10px] text-amber-600/70">design / redação</span>
+                      <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                        <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Em Produção</span>
+                        <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{monthlyMetrics.inProd}</p>
+                        <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">design / redação</span>
                       </div>
                     </div>
                   </div>
@@ -3860,17 +3860,17 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
             {/* REPORT 3: MULTI-CLIENT STATUS REPORT */}
             {activeReportType === 'multiclient' && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm dark:shadow-none overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-lg">
                       <Layers size={18} />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">
+                      <h3 className="font-extrabold text-gray-800 dark:text-zinc-100 text-sm uppercase tracking-wide">
                         3. Relatório Semanal Multicliente por Status
                       </h3>
-                      <p className="text-[11px] text-gray-400 font-medium">
+                      <p className="text-[11px] text-gray-400 dark:text-zinc-400 font-medium">
                         Visão panorâmica de produção de toda a carteira de clientes para a semana selecionada
                       </p>
                     </div>
@@ -3880,14 +3880,14 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 <div className="p-6 space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div>
-                      <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
+                      <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">
                         Escolha a Segunda-feira da Semana *
                       </label>
                       <input
                         type="date"
                         value={weeklyStatusReportStartDate}
                         onChange={(e) => setWeeklyStatusReportStartDate(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800"
+                        className="w-full p-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-bold text-gray-800 dark:text-zinc-100"
                       />
                     </div>
                     
@@ -3901,45 +3901,45 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </div>
 
                   {/* Live Preview Metrics for Chosen Week */}
-                  <div className="p-5 bg-gray-50/70 rounded-2xl border border-gray-200/70 space-y-4">
+                  <div className="p-5 bg-gray-50/70 dark:bg-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/[0.08] space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-extrabold text-xs uppercase text-gray-500 tracking-wider">
+                      <h4 className="font-extrabold text-xs uppercase text-gray-500 dark:text-zinc-400 tracking-wider">
                         Panorama da Semana Selecionada
                       </h4>
-                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl">
+                      <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100 dark:border-indigo-500/30 px-3 py-1 rounded-xl">
                         {weeklyStatusMetrics.uniqueClientsCount} {weeklyStatusMetrics.uniqueClientsCount === 1 ? 'cliente' : 'clientes'} com atividade
                       </span>
                     </div>
                     
                     {weeklyStatusReportPosts.length === 0 ? (
-                      <div className="p-8 text-center text-gray-400 bg-white rounded-xl border border-gray-100">
+                      <div className="p-8 text-center text-gray-400 dark:text-zinc-500 bg-white dark:bg-[#1c1c1e] rounded-xl border border-gray-100 dark:border-white/[0.08]">
                         <p className="text-xs font-medium">Nenhuma postagem cadastrada para o período selecionado.</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
-                          <span className="text-[10px] uppercase font-bold text-gray-400">Total Posts</span>
-                          <p className="text-xl font-black text-gray-900 mt-0.5">{weeklyStatusMetrics.total}</p>
+                        <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-zinc-400">Total Posts</span>
+                          <p className="text-xl font-black text-gray-900 dark:text-zinc-100 mt-0.5">{weeklyStatusMetrics.total}</p>
                         </div>
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
-                          <span className="text-[10px] uppercase font-bold text-gray-400">Rascunhos</span>
-                          <p className="text-xl font-black text-gray-600 mt-0.5">{weeklyStatusMetrics.drafts}</p>
+                        <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-zinc-400">Rascunhos</span>
+                          <p className="text-xl font-black text-gray-600 dark:text-zinc-300 mt-0.5">{weeklyStatusMetrics.drafts}</p>
                         </div>
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
-                          <span className="text-[10px] uppercase font-bold text-blue-600">Programados</span>
-                          <p className="text-xl font-black text-blue-600 mt-0.5">{weeklyStatusMetrics.scheduled}</p>
+                        <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                          <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Programados</span>
+                          <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5">{weeklyStatusMetrics.scheduled}</p>
                         </div>
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
-                          <span className="text-[10px] uppercase font-bold text-amber-600">Em Produção</span>
-                          <p className="text-xl font-black text-amber-600 mt-0.5">{weeklyStatusMetrics.inProd}</p>
+                        <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                          <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Em Produção</span>
+                          <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{weeklyStatusMetrics.inProd}</p>
                         </div>
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
-                          <span className="text-[10px] uppercase font-bold text-indigo-600">Aprovados</span>
-                          <p className="text-xl font-black text-indigo-600 mt-0.5">{weeklyStatusMetrics.approved}</p>
+                        <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                          <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Aprovados</span>
+                          <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{weeklyStatusMetrics.approved}</p>
                         </div>
-                        <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs">
-                          <span className="text-[10px] uppercase font-bold text-emerald-600">Publicados</span>
-                          <p className="text-xl font-black text-emerald-600 mt-0.5">{weeklyStatusMetrics.published}</p>
+                        <div className="bg-white dark:bg-[#1c1c1e] p-3.5 rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-xs dark:shadow-none">
+                          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Publicados</span>
+                          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{weeklyStatusMetrics.published}</p>
                         </div>
                       </div>
                     )}
@@ -3954,11 +3954,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
       {/* MODAL: ADD/EDIT CLIENT */}
       {isClientModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+            className="bg-white dark:bg-[#1c1c1e] rounded-3xl w-full max-w-lg shadow-2xl border border-transparent dark:border-white/[0.08] overflow-hidden"
           >
             <div className="px-6 py-4 bg-indigo-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold text-sm uppercase tracking-wider">
@@ -3975,43 +3975,43 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             <form onSubmit={handleSaveClient} className="p-6 space-y-4 text-xs sm:text-sm max-h-[500px] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Nome Completo *</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Nome Completo *</label>
                   <input
                     type="text"
                     required
                     value={clientForm.name}
                     onChange={(e) => setClientForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-gray-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Empresa / Marca</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Empresa / Marca</label>
                   <input
                     type="text"
                     value={clientForm.company}
                     onChange={(e) => setClientForm(prev => ({ ...prev, company: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-gray-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Celular / WhatsApp</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Celular / WhatsApp</label>
                   <input
                     type="text"
                     value={clientForm.phone}
                     onChange={(e) => setClientForm(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(00) 00000-0000"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Status na Agência</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Status na Agência</label>
                   <select
                     value={clientForm.status}
                     onChange={(e) => setClientForm(prev => ({ ...prev, status: e.target.value as any }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold text-gray-900 dark:text-zinc-100"
                   >
                     <option value="mensalista">Mensalista</option>
                     <option value="semanal">Semanal</option>
@@ -4026,30 +4026,30 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Nome do Pacote contratado</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Nome do Pacote contratado</label>
                   <input
                     type="text"
                     value={clientForm.plan_name}
                     onChange={(e) => setClientForm(prev => ({ ...prev, plan_name: e.target.value }))}
                     placeholder="Ex: Combo 12 Posts/Mês"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Valor da Mensalidade (R$)</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Valor da Mensalidade (R$)</label>
                   <input
                     type="number"
                     value={clientForm.plan_value}
                     onChange={(e) => setClientForm(prev => ({ ...prev, plan_value: e.target.value }))}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono font-bold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
               </div>
 
               {/* Dias de Publicação Checkboxes */}
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-2">Dias habituais de publicação</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-2">Dias habituais de publicação</label>
                 <div className="grid grid-cols-4 gap-2">
                   {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(day => (
                     <button
@@ -4059,7 +4059,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={`p-2 rounded-xl text-xs font-bold transition-all border ${
                         clientForm.publication_days.includes(day)
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                          : 'bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-zinc-300 border-gray-200 dark:border-white/[0.08] hover:bg-gray-100 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       {day}
@@ -4068,11 +4068,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end gap-2">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsClientModalOpen(false)}
-                  className="px-4 py-2 text-gray-500 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition-all text-xs"
+                  className="px-4 py-2 text-gray-500 dark:text-zinc-300 font-bold bg-gray-100 dark:bg-white/[0.08] rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.14] transition-all text-xs"
                 >
                   Cancelar
                 </button>
@@ -4090,11 +4090,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
       {/* MODAL: ADD/EDIT POST */}
       {isPostModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+            className="bg-white dark:bg-[#1c1c1e] rounded-3xl w-full max-w-lg shadow-2xl border border-transparent dark:border-white/[0.08] overflow-hidden"
           >
             <div className="px-6 py-4 bg-indigo-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold text-sm uppercase tracking-wider">
@@ -4110,24 +4110,24 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             
             <form onSubmit={handleSavePost} className="p-6 space-y-4 text-xs sm:text-sm max-h-[500px] overflow-y-auto">
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Título do Post / Tema *</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Título do Post / Tema *</label>
                 <input
                   type="text"
                   required
                   value={postForm.title}
                   onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Ex: Post Carrossel sobre Vendas"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none font-bold"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none font-bold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Vinculado</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Vinculado</label>
                   <select
                     value={postForm.client_id}
                     onChange={(e) => setPostForm(prev => ({ ...prev, client_id: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold text-gray-900 dark:text-zinc-100"
                   >
                     <option value="">-- Tema Livre (Sem Cliente) --</option>
                     {clients.map(c => (
@@ -4136,11 +4136,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Rede Social Principal</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Rede Social Principal</label>
                   <select
                     value={postForm.social_network}
                     onChange={(e) => setPostForm(prev => ({ ...prev, social_network: e.target.value as any }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold text-gray-900 dark:text-zinc-100"
                   >
                     <option value="instagram">Instagram</option>
                     <option value="facebook">Facebook</option>
@@ -4153,37 +4153,37 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data Programada</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data Programada</label>
                   <input
                     type="date"
                     required
                     value={postForm.scheduled_date}
                     onChange={(e) => setPostForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold"
+                    className="w-full p-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold text-gray-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Horário (Opcional)</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Horário (Opcional)</label>
                   <input
                     type="text"
                     value={postForm.scheduled_time}
                     placeholder="12:00"
                     onChange={(e) => setPostForm(prev => ({ ...prev, scheduled_time: e.target.value }))}
-                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold"
+                    className="w-full p-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
               </div>
 
               {holidayOnSelectedDate && !isHolidayForm && (
-                <div className="bg-rose-50/70 border border-rose-100 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-fade-in">
+                <div className="bg-rose-50/70 dark:bg-rose-500/15 border border-rose-100 dark:border-rose-500/30 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm dark:shadow-none animate-fade-in">
                   <div className="space-y-0.5">
-                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-rose-600 bg-rose-100/50 px-2 py-0.5 rounded-full mb-1">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-rose-600 dark:text-rose-300 bg-rose-100/50 dark:bg-rose-500/20 px-2 py-0.5 rounded-full mb-1">
                       💡 Sugestão de Tema
                     </span>
-                    <h5 className="font-bold text-gray-800 text-xs sm:text-sm">
+                    <h5 className="font-bold text-gray-800 dark:text-zinc-100 text-xs sm:text-sm">
                       {holidayOnSelectedDate.caption === '[FERIADO]' ? '🚩 Feriado' : '🎉 Data Comemorativa'}: {holidayOnSelectedDate.title}
                     </h5>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                    <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-medium">
                       Esta data especial está ativa. Deseja usar como tema do post?
                     </p>
                   </div>
@@ -4203,7 +4203,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
               {/* Workflow Status Picker */}
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">Fluxo de Aprovação / Status</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1.5">Fluxo de Aprovação / Status</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     { id: 'rascunho', label: '1. Rascunho / Tema' },
@@ -4219,7 +4219,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                       className={`p-2.5 rounded-xl text-left text-xs font-bold transition-all border flex items-center justify-between ${
                         postForm.status === item.id 
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
-                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          : 'bg-gray-50 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 border-gray-200 dark:border-white/[0.08] hover:bg-gray-100 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       <span>{item.label}</span>
@@ -4231,7 +4231,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider">Legenda / Texto do Post</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider">Legenda / Texto do Post</label>
                   <button
                     type="button"
                     disabled={generatingAi}
@@ -4256,24 +4256,24 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                   value={postForm.caption}
                   onChange={(e) => setPostForm(prev => ({ ...prev, caption: e.target.value }))}
                   placeholder="Insira as hashtags, CTAs e texto do post..."
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none"
                 />
               </div>
 
               {/* File Upload Section - Handles up to 50MB */}
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Mídia do Post / Arquivo (Max 50MB)</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Mídia do Post / Arquivo (Max 50MB)</label>
                 <div 
                   onDragOver={onDragOver}
                   onDrop={onDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/10 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
+                  className="border-2 border-dashed border-gray-200 dark:border-white/[0.12] hover:border-indigo-400 dark:hover:border-indigo-500/50 bg-gray-50 dark:bg-white/[0.03] hover:bg-indigo-50/10 dark:hover:bg-indigo-500/10 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
                 >
-                  <FileUp className="text-gray-400" size={24} />
-                  <div className="text-xs">
-                    <span className="font-extrabold text-indigo-600 hover:underline">Clique para carregar</span> ou arraste o arquivo aqui
+                  <FileUp className="text-gray-400 dark:text-zinc-500" size={24} />
+                  <div className="text-xs text-gray-600 dark:text-zinc-300">
+                    <span className="font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline">Clique para carregar</span> ou arraste o arquivo aqui
                   </div>
-                  <span className="text-[10px] text-gray-400">Imagens, vídeos, PSDs, PDFs de até 50MB</span>
+                  <span className="text-[10px] text-gray-400 dark:text-zinc-500">Imagens, vídeos, PSDs, PDFs de até 50MB</span>
                 </div>
                 <input 
                   type="file" 
@@ -4283,30 +4283,30 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 />
 
                 {isUploading && (
-                  <div className="mt-2 p-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold animate-pulse flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="mt-2 p-2 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold animate-pulse flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
                     {uploadProgress}
                   </div>
                 )}
 
                 {uploadError && (
-                  <div className="mt-2 p-2 bg-rose-50 text-rose-700 rounded-lg text-xs font-bold flex items-center gap-2">
+                  <div className="mt-2 p-2 bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-bold flex items-center gap-2">
                     <AlertCircle size={14} />
                     {uploadError}
                   </div>
                 )}
 
                 {postForm.attachment_url && (
-                  <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2">
+                  <div className="mt-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle className="text-emerald-500 flex-shrink-0" size={16} />
+                      <CheckCircle className="text-emerald-500 dark:text-emerald-400 flex-shrink-0" size={16} />
                       <span className="truncate font-bold">Arquivo anexado com sucesso!</span>
                     </div>
                     <a 
                       href={postForm.attachment_url} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="text-indigo-600 font-extrabold hover:underline whitespace-nowrap flex items-center gap-1 flex-shrink-0"
+                      className="text-indigo-600 dark:text-indigo-400 font-extrabold hover:underline whitespace-nowrap flex items-center gap-1 flex-shrink-0"
                     >
                       Visualizar
                       <ExternalLink size={10} />
@@ -4315,11 +4315,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 )}
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end gap-2">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsPostModalOpen(false)}
-                  className="px-4 py-2 text-gray-500 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition-all text-xs"
+                  className="px-4 py-2 text-gray-500 dark:text-zinc-300 font-bold bg-gray-100 dark:bg-white/[0.08] rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.14] transition-all text-xs"
                 >
                   Cancelar
                 </button>
@@ -4338,11 +4338,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
       {/* MODAL: ADD/EDIT PAYMENT */}
       {isPaymentModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+            className="bg-white dark:bg-[#1c1c1e] rounded-3xl w-full max-w-md shadow-2xl border border-transparent dark:border-white/[0.08] overflow-hidden"
           >
             <div className="px-6 py-4 bg-indigo-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold text-sm uppercase tracking-wider">
@@ -4358,11 +4358,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
             
             <form onSubmit={handleSavePayment} className="p-6 space-y-4 text-xs sm:text-sm">
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Solicitante</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Cliente Solicitante</label>
                 <select
                   value={paymentForm.client_id}
                   onChange={(e) => handlePaymentClientChange(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold text-gray-900 dark:text-zinc-100"
                 >
                   <option value="">-- Pagamento Avulso (Sem Cliente Vinculado) --</option>
                   {clients.map(c => (
@@ -4373,7 +4373,7 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">
                     {paymentForm.client_id ? 'Mês de Referência *' : 'Descrição / Referência *'}
                   </label>
                   <input
@@ -4382,11 +4382,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     placeholder={paymentForm.client_id ? 'MM/AAAA' : 'Ex: Criação de Logo / Avulso'}
                     value={paymentForm.month_reference}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, month_reference: e.target.value }))}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono text-center font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-center font-bold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Valor Cobrado (R$) *</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Valor Cobrado (R$) *</label>
                   <input
                     type="number"
                     step="any"
@@ -4394,39 +4394,39 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono font-bold text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data de Vencimento *</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data de Vencimento *</label>
                   <input
                     type="date"
                     required
                     value={paymentForm.due_date}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, due_date: e.target.value }))}
-                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold"
+                    className="w-full p-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold text-gray-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data de Pagamento</label>
+                  <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Data de Pagamento</label>
                   <input
                     type="date"
                     value={paymentForm.payment_date}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, payment_date: e.target.value }))}
-                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs font-bold"
+                    className="w-full p-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-mono text-xs font-bold text-gray-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-600 font-extrabold uppercase text-[10px] tracking-wider mb-1">Status do Recebimento</label>
+                <label className="block text-gray-600 dark:text-zinc-400 font-extrabold uppercase text-[10px] tracking-wider mb-1">Status do Recebimento</label>
                 <select
                   value={paymentForm.status}
                   onChange={(e) => setPaymentForm(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl font-bold text-gray-900 dark:text-zinc-100"
                 >
                   <option value="pendente">Pendente / Aguardando</option>
                   <option value="pago">Pago / Confirmado</option>
@@ -4434,11 +4434,11 @@ export const MarketingManager: React.FC<MarketingManagerProps> = ({ fetchWithAut
                 </select>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end gap-2">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="px-4 py-2 text-gray-500 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition-all text-xs"
+                  className="px-4 py-2 text-gray-500 dark:text-zinc-300 font-bold bg-gray-100 dark:bg-white/[0.08] rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.14] transition-all text-xs"
                 >
                   Cancelar
                 </button>

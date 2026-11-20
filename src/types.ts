@@ -258,10 +258,53 @@ export interface PersonalTask {
   title: string;
   description?: string;
   due_date?: string;
+  due_time?: string;
+  category?: string;
+  tags?: string[];
+  item_type?: 'task' | 'note';
+  completed_at?: string | null;
   priority: 'low' | 'medium' | 'high';
   status: 'pending' | 'completed';
   eisenhower_quadrant?: 'urgent_important' | 'not_urgent_important' | 'urgent_not_important' | 'not_urgent_not_important';
   created_at?: string;
+}
+
+export interface PersonalHabit {
+  id: string;
+  user_id?: string;
+  name: string;
+  frequency: 'daily' | 'weekdays' | 'custom' | 'monthly_days' | 'specific_dates';
+  days_of_week: number[]; // 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sab
+  month_days?: number[]; // 1..31 for monthly_days
+  specific_dates?: string[]; // YYYY-MM-DD for specific_dates
+  times_per_day?: number; // default 1
+  duration_days?: number | null; // null/undefined = continuous
+  start_date?: string | null; // YYYY-MM-DD
+  target?: string;
+  category?: string;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export interface PersonalHabitLog {
+  id?: string;
+  habit_id: string;
+  date: string; // YYYY-MM-DD
+  completed: boolean;
+  count?: number;
+  completed_at?: string | null;
+}
+
+export type DailyMood = 'otimo' | 'bom' | 'neutro' | 'cansado' | 'dificil';
+
+export interface PersonalDailyCheckin {
+  id?: string;
+  date: string; // YYYY-MM-DD
+  mood: DailyMood;
+  energy: 1 | 2 | 3 | 4 | 5;
+  note?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface EmailTemplate {
