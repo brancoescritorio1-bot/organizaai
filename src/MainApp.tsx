@@ -70,9 +70,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { NotificationCenter } from './components/NotificationCenter';
 import { WorkEscalas } from './components/WorkEscalas';
 import { FinancialMetricCard, FinancialHeader, FinancialStatusBadge } from './components/FinancialComponents';
-import { Sidebar, AppModule } from './components/Sidebar';
-import { HomePage } from './components/HomePage';
-import { ModuleBottomNav, ModuleSubNav } from './components/ModuleSubNav';
+import { AppModule } from './components/Sidebar';
+import { HomePage, QuickNoteItem } from './components/HomePage';
+import { ModuleBottomNav } from './components/ModuleSubNav';
+import { FloatingDockNav } from './components/FloatingDockNav';
 
 const parseMonthYear = (str: string) => {
   if (!str) return { m: 0, y: 0 };
@@ -276,20 +277,36 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
 
   // Main Module State (includes 'home' as default)
   const [activeModule, setActiveModule] = useState<AppModule>('home');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+  const [coverCustomizerOpen, setCoverCustomizerOpen] = useState(false);
+  const [quickNotes, setQuickNotes] = useState<QuickNoteItem[]>(() => {
     try {
-      return localStorage.getItem('sidebar_collapsed') === 'true';
+      const saved = localStorage.getItem('organizaai_quick_notes');
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return false;
+      return [];
     }
   });
-  const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
 
-  const toggleSidebarCollapse = () => {
-    setSidebarCollapsed(prev => {
-      const next = !prev;
+  const handleAddQuickNote = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setQuickNotes((prev) => {
+      const next: QuickNoteItem[] = [
+        { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: trimmed, createdAt: new Date().toISOString() },
+        ...prev,
+      ];
       try {
-        localStorage.setItem('sidebar_collapsed', String(next));
+        localStorage.setItem('organizaai_quick_notes', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleDeleteQuickNote = (id: string) => {
+    setQuickNotes((prev) => {
+      const next = prev.filter((n) => n.id !== id);
+      try {
+        localStorage.setItem('organizaai_quick_notes', JSON.stringify(next));
       } catch {}
       return next;
     });
@@ -724,6 +741,8 @@ Escalas GMNL ${year}`;
       fetchClients();
       fetchClientSales();
       fetchClientInstallments();
+      fetchDashboard();
+      fetchEscalas();
     } else if (activeModule === 'financial' || activeModule === 'work') {
       fetchFinancialData();
       if (activeModule === 'financial') {
@@ -780,6 +799,33 @@ Escalas GMNL ${year}`;
       fetchPersonalTasks();
     } catch (e) {
       console.error("Error toggling personal task:", e);
+    }
+  };
+
+  const handleQuickCreateTask = async (task: {
+    title: string;
+    due_date?: string;
+    priority: 'low' | 'medium' | 'high';
+  }) => {
+    try {
+      const res = await fetchWithAuth('/api/personal/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: task.title,
+          description: '',
+          due_date: task.due_date || '',
+          priority: task.priority,
+          status: 'pending',
+          eisenhower_quadrant:
+            task.priority === 'high' ? 'urgent_important' : 'not_urgent_important',
+        }),
+      });
+      if (res.ok) {
+        fetchPersonalTasks();
+      }
+    } catch (e) {
+      console.error('Error quick-creating personal task:', e);
     }
   };
 
@@ -1518,121 +1564,137 @@ Escalas GMNL ${year}`;
     return `${day}/${month}/${year}`;
   };
 
+  const resolvedUserName =
+    (session?.user?.user_metadata?.full_name as string) ||
+    (session?.user?.user_metadata?.name as string) ||
+    'Lara';
+
+  const handleSelectModule = (mod: AppModule, tab?: string) => {
+    setActiveModule(mod);
+    if (tab) {
+      setActiveTab(tab);
+    } else if (mod === 'academic') setActiveTab('dashboard');
+    else if (mod === 'financial') setActiveTab('fin_dashboard');
+    else if (mod === 'chacara') setActiveTab('chacara_dashboard');
+    else if (mod === 'personal') setActiveTab('personal_tasks');
+    else if (mod === 'work') setActiveTab('work_clients');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className={cn(
-      "min-h-screen bg-slate-50/70 text-gray-900 font-sans pb-24 transition-all duration-200",
-      sidebarCollapsed ? "md:pl-20" : "md:pl-64"
-    )}>
-      {/* Sidebar Navigation */}
-      <Sidebar 
-        activeModule={activeModule}
-        activeTab={activeTab}
-        onSelectModule={(mod) => {
-          setActiveModule(mod);
-          if (mod !== 'home') {
-            setSidebarCollapsed(true);
-          }
-          if (mod === 'academic') setActiveTab('dashboard');
-          else if (mod === 'financial') setActiveTab('fin_dashboard');
-          else if (mod === 'chacara') setActiveTab('chacara_dashboard');
-          else if (mod === 'personal') setActiveTab('personal_tasks');
-          else if (mod === 'work') setActiveTab('work_clients');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onSelectTab={(tab) => {
-          setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={toggleSidebarCollapse}
-        isOpenMobile={sidebarOpenMobile}
-        onCloseMobile={() => setSidebarOpenMobile(false)}
-        onLogout={onLogout}
-        userEmail={session?.user?.email}
-      />
+    <div
+      className={cn(
+        "min-h-screen font-sans transition-colors duration-200",
+        activeModule === 'home' ? "bg-[#09090b] text-zinc-100" : "bg-[#f5f5f7] text-[#1d1d1f]"
+      )}
+    >
+      {/* Internal Modules Header & Sticky Sub-Navigation */}
+      {activeModule !== 'home' && (
+        <>
+          <header className="h-[53px] sm:h-[57px] bg-white/85 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-30 print:hidden">
+            <div className="max-w-7xl mx-auto h-full px-4 md:px-6 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleSelectModule('home')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium transition-colors shrink-0 cursor-pointer"
+                  title="Voltar para a Página Inicial"
+                  aria-label="Voltar para a Página Inicial"
+                >
+                  <Home size={14} />
+                  <span className="hidden sm:inline">Início</span>
+                </button>
 
-      {/* Top Header (Apple Glass Top Bar) */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-30 print:hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile hamburger button */}
-            <button 
-              onClick={() => setSidebarOpenMobile(true)}
-              className="md:hidden p-1.5 text-[#515154] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-xl transition-colors shrink-0 cursor-pointer"
-              title="Abrir Menu Lateral"
-              aria-label="Abrir Menu Lateral"
-            >
-              <Menu size={18} />
-            </button>
+                <div className="h-4 w-px bg-black/[0.08] shrink-0" aria-hidden="true" />
 
-            {/* Active module icon & title */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-[#1d1d1f] text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
-                {activeModule === 'home' ? <Home size={15} /> :
-                 activeModule === 'academic' ? <GraduationCap size={15} /> :
-                 activeModule === 'financial' ? <Wallet size={15} /> :
-                 activeModule === 'chacara' ? <Trees size={15} /> :
-                 activeModule === 'personal' ? <User size={15} /> :
-                 <Briefcase size={15} />}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-[#1d1d1f] text-white flex items-center justify-center shrink-0">
+                    {activeModule === 'academic' ? <GraduationCap size={14} /> :
+                     activeModule === 'financial' ? <Wallet size={14} /> :
+                     activeModule === 'chacara' ? <Trees size={14} /> :
+                     activeModule === 'personal' ? <User size={14} /> :
+                     <Briefcase size={14} />}
+                  </div>
+                  <h1 className="font-semibold text-sm sm:text-[15px] leading-none text-[#1d1d1f] tracking-tight truncate">
+                    {activeModule === 'academic' ? 'Módulo Acadêmico' :
+                     activeModule === 'financial' ? 'Módulo Financeiro' :
+                     activeModule === 'chacara' ? 'Gestão da Chácara' :
+                     activeModule === 'personal' ? 'Produtividade Pessoal' : 'Trabalho & Clientes'}
+                  </h1>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h1 className="font-semibold text-sm sm:text-base leading-none text-[#1d1d1f] tracking-tight truncate">
-                  {activeModule === 'home' ? 'Página Inicial' :
-                   activeModule === 'academic' ? 'Módulo Acadêmico' : 
-                   activeModule === 'financial' ? 'Módulo Financeiro' : 
-                   activeModule === 'chacara' ? 'Gestão da Chácara' : 
-                   activeModule === 'personal' ? 'Produtividade Pessoal' : 'Trabalho & Clientes'}
-                </h1>
+
+              <div className="flex gap-1.5 items-center shrink-0">
+                <button
+                  type="button"
+                  onClick={handleGlobalExport}
+                  className="p-2 text-[#515154] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-xl transition-colors cursor-pointer"
+                  title="Exportar Relatório PDF"
+                  aria-label="Exportar Relatório PDF"
+                >
+                  <Download size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="p-2 text-[#86868b] hover:text-[#ff3b30] hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                  title="Encerrar Sessão (Sair)"
+                  aria-label="Encerrar Sessão"
+                >
+                  <LogOut size={17} />
+                </button>
               </div>
             </div>
-          </div>
+          </header>
 
-          {/* Header Right Actions */}
-          <div className="flex gap-1.5 items-center shrink-0">
-            <button 
-              onClick={handleGlobalExport} 
-              className="p-2 text-[#515154] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-xl transition-colors cursor-pointer" 
-              title="Exportar Relatório PDF"
-              aria-label="Exportar Relatório PDF"
-            >
-              <Download size={17} />
-            </button>
-            <button 
-              onClick={onLogout} 
-              className="p-2 text-[#86868b] hover:text-[#ff3b30] hover:bg-rose-50 rounded-xl transition-colors cursor-pointer" 
-              title="Encerrar Sessão (Sair)"
-              aria-label="Encerrar Sessão"
-            >
-              <LogOut size={17} />
-            </button>
-          </div>
-        </div>
-      </header>
+          <ModuleBottomNav
+            module={activeModule}
+            activeTab={activeTab}
+            onSelectTab={(tab) => {
+              setActiveTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </>
+      )}
 
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32 md:pb-28">
+      <main
+        className={cn(
+          activeModule === 'home'
+            ? "w-full"
+            : "max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32 md:pb-28"
+        )}
+      >
         <AnimatePresence mode="wait">
           {activeModule === 'home' && (
-            <motion.div 
-              key="home" 
-              initial={{ opacity: 0, y: 12 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -12 }} 
+            <motion.div
+              key="home"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
             >
-              <HomePage 
+              <HomePage
                 onNavigate={(mod, tab, filterParams) => {
-                  setActiveModule(mod);
-                  if (mod !== 'home') {
-                    setSidebarCollapsed(true);
-                  }
-                  if (tab) setActiveTab(tab);
+                  handleSelectModule(mod, tab);
                   if (filterParams) {
                     setFinExtractFilter(prev => ({ ...prev, ...filterParams }));
                   }
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 personalTasks={personalTasks}
                 onTogglePersonalTask={handleTogglePersonalTask}
+                onQuickAddTask={handleQuickCreateTask}
+                quickNotes={quickNotes}
+                onAddQuickNote={handleAddQuickNote}
+                onDeleteQuickNote={handleDeleteQuickNote}
+                finTransactions={finTransactions}
+                chacaraBills={chacaraBills}
+                academicDashboard={dashboardData}
+                clientInstallments={clientInstallments}
+                escalas={escalas}
+                userName={resolvedUserName}
+                coverModalOpen={coverCustomizerOpen}
+                setCoverModalOpen={setCoverCustomizerOpen}
               />
             </motion.div>
           )}
@@ -5728,18 +5790,18 @@ Escalas GMNL ${year}`;
         </div>
       )}
 
-      {/* Bottom Sub-Tabs Navigation for active module */}
-      {activeModule !== 'home' && (
-        <ModuleBottomNav 
-          module={activeModule}
-          activeTab={activeTab}
-          onSelectTab={(tab) => {
-            setActiveTab(tab);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          sidebarCollapsed={sidebarCollapsed}
-        />
-      )}
+      {/* Global Floating Dock Bottom Navigation */}
+      <FloatingDockNav
+        activeModule={activeModule}
+        onSelectModule={handleSelectModule}
+        onQuickCreateTask={handleQuickCreateTask}
+        onQuickAddNote={handleAddQuickNote}
+        onOpenCoverCustomizer={
+          activeModule === 'home' ? () => setCoverCustomizerOpen(true) : undefined
+        }
+        onExportPDF={handleGlobalExport}
+        onLogout={onLogout}
+      />
     </div>
   );
 }
