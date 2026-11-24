@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import { 
   BookOpen, 
   Calendar, 
@@ -75,6 +75,20 @@ import { HomePage, QuickNoteItem } from './components/HomePage';
 import { PersonalModule } from './components/PersonalModule';
 import { ModuleBottomNav } from './components/ModuleSubNav';
 import { FloatingDockNav } from './components/FloatingDockNav';
+import {
+  round2,
+  normalizeDateStr,
+  calculateCreditCardInvoiceDates,
+  getCreditCardInvoiceWindow,
+  doesTransactionBelongToCompetence,
+  distributeInstallmentsCents,
+  resolvePurchaseGroup,
+  ResolvedPurchaseGroup,
+  getAccountCreditLimit,
+  isInvoicePaymentTransaction,
+  isTransferTransaction,
+  computeFinancialDashboard,
+} from './lib/financeMath';
 
 const parseMonthYear = (str: string) => {
   if (!str) return { m: 0, y: 0 };
@@ -319,51 +333,31 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
   const [finDashboard, setFinDashboard] = useState<any>(null);
   const [isUpdatingDueDates, setIsUpdatingDueDates] = useState(false);
 
-  const calculateDueDate = (purchaseDateStr: string, closingDay: number, dueDay: number, installmentIndex: number = 0) => {
-    if (!purchaseDateStr || !closingDay || !dueDay) return null;
-    const [y, m, d] = purchaseDateStr.split('-').map(Number);
-    let invoiceMonth = m - 1; // 0-indexed month
-    let invoiceYear = y;
-
-    // Se o dia da compra for maior que o dia de fechamento, cai na próxima fatura
-    if (d > closingDay) {
-      invoiceMonth += 1;
-    }
-    if (invoiceMonth > 11) {
-      invoiceYear += Math.floor(invoiceMonth / 12);
-      invoiceMonth = invoiceMonth % 12;
-    }
-
-    let dueMonth = invoiceMonth;
-    let dueYear = invoiceYear;
-    // Se o dia de vencimento for menor ou igual ao de fechamento, o pagamento é no mês seguinte ao fechamento
-    if (dueDay <= closingDay) {
-      dueMonth += 1;
-      if (dueMonth > 11) {
-        dueYear += Math.floor(dueMonth / 12);
-        dueMonth = dueMonth % 12;
-      }
-    }
-
-    // Offset for installments
-    if (installmentIndex > 0) {
-      dueMonth += installmentIndex;
-      if (dueMonth > 11) {
-        dueYear += Math.floor(dueMonth / 12);
-        dueMonth = dueMonth % 12;
-      }
-    }
-
-    const maxDays = new Date(dueYear, dueMonth + 1, 0).getDate();
-    const clampedDueDay = Math.min(dueDay, maxDays);
-
-    return `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}-${String(clampedDueDay).padStart(2, '0')}`;
-  };
-
   const [finFilter, setFinFilter] = useState({
     month: new Date().getMonth(),
     year: new Date().getFullYear()
   });
+
+  const canonicalFinDashboard = useMemo(
+    () =>
+      computeFinancialDashboard({
+        transactions: finTransactions,
+        accounts: finAccounts,
+        categories: finCategories,
+        month: finFilter.month,
+        year: finFilter.year,
+      }),
+    [finTransactions, finAccounts, finCategories, finFilter.month, finFilter.year]
+  );
+
+  const activeFinDashboard = useMemo(() => {
+    // Prefer canonical client computation when transactions are loaded so optimistic updates match immediately;
+    // fallback to server finDashboard if transactions array is empty while finDashboard has data.
+    if (finTransactions.length > 0 || finAccounts.length > 0) {
+      return canonicalFinDashboard;
+    }
+    return finDashboard || canonicalFinDashboard;
+  }, [finTransactions.length, finAccounts.length, canonicalFinDashboard, finDashboard]);
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>('all');
   
   // Client Module State
@@ -404,26 +398,37 @@ export default function MainApp({ onLogout, session, supabaseClient }: { onLogou
   
   const [finCategoryForm, setFinCategoryForm] = useState({ name: '', type: 'despesa' });
   
-  const [finAccountForm, setFinAccountForm] = useState({ name: '', initial_balance: '', type: 'corrente', closing_day: '', due_day: '' });
-  const [finTransactionForm, setFinTransactionForm] = useState({ 
-    description: '', 
-    amount: '', 
+  const [finAccountForm, setFinAccountForm] = useState({ name: '', initial_balance: '', credit_limit: '', type: 'corrente', closing_day: '', due_day: '' });
+  const createEmptyFinTxForm = () => ({
+    description: '',
+    amount: '',
     discount: '',
-    type: 'despesa', 
-    category_id: '', 
-    account_id: '', 
-    date: new Date().toISOString().split('T')[0], 
+    type: 'despesa',
+    category_id: '',
+    account_id: '',
+    to_account_id: '',
+    is_transfer: false,
+    date: new Date().toISOString().split('T')[0],
     due_date: '',
     status: 'pago',
     is_installment: false,
     total_installments: '1',
     splits: [] as { name: string; amount: number; status?: 'pago' | 'pendente' }[]
   });
+  const [finTransactionForm, setFinTransactionForm] = useState(createEmptyFinTxForm);
   const [selectedCreditCardId, setSelectedCreditCardId] = useState<string>('');
+  const [payInvoiceModal, setPayInvoiceModal] = useState<{
+    cardId: number;
+    cardName: string;
+    totalPending: number;
+    payingAccountId: string;
+    paymentDate: string;
+  } | null>(null);
   
   const [editingFinCategory, setEditingFinCategory] = useState<FinancialCategory | null>(null);
   const [editingFinAccount, setEditingFinAccount] = useState<FinancialAccount | null>(null);
   const [editingFinTransaction, setEditingFinTransaction] = useState<FinancialTransaction | null>(null);
+  const [editingPurchaseGroup, setEditingPurchaseGroup] = useState<ResolvedPurchaseGroup | null>(null);
   const [editingClientInstallment, setEditingClientInstallment] = useState<ClientInstallment | null>(null);
   const [clientInstallmentForm, setClientInstallmentForm] = useState({
     amount: '',
@@ -1090,28 +1095,37 @@ Escalas GMNL ${year}`;
 
   const handleSaveFinAccount = async () => {
     try {
+      const isCredit = finAccountForm.type === 'credito';
+      const parsedLimit = isCredit ? Number(finAccountForm.credit_limit || finAccountForm.initial_balance || 0) : 0;
       const payload = {
         ...finAccountForm,
-        initial_balance: Number(finAccountForm.initial_balance),
-        closing_day: finAccountForm.closing_day ? Number(finAccountForm.closing_day) : null,
-        due_day: finAccountForm.due_day ? Number(finAccountForm.due_day) : null
+        initial_balance: isCredit ? parsedLimit : Number(finAccountForm.initial_balance || 0),
+        credit_limit: isCredit ? parsedLimit : null,
+        closing_day: isCredit && finAccountForm.closing_day ? Math.max(1, Math.min(31, Number(finAccountForm.closing_day))) : null,
+        due_day: isCredit && finAccountForm.due_day ? Math.max(1, Math.min(31, Number(finAccountForm.due_day))) : null,
       };
 
+      let res: Response;
       if (editingFinAccount) {
-        await fetchWithAuth(`/api/finance/accounts/${editingFinAccount.id}`, {
+        res = await fetchWithAuth(`/api/finance/accounts/${editingFinAccount.id}`, {
           method: 'PUT',
           body: JSON.stringify(payload)
         });
       } else {
-        await fetchWithAuth('/api/finance/accounts', {
+        res = await fetchWithAuth('/api/finance/accounts', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
       }
-      setFinAccountForm({ name: '', initial_balance: '', type: 'corrente', closing_day: '', due_day: '' });
+      const data = await res.json().catch(() => ({}));
+      setFinAccountForm({ name: '', initial_balance: '', credit_limit: '', type: 'corrente', closing_day: '', due_day: '' });
       setEditingFinAccount(null);
       fetchFinancialData();
-      dialogAlert('Conta salva com sucesso!', 'Sucesso');
+      if (data?.recalculated_due_dates > 0) {
+        dialogAlert(`Conta atualizada com sucesso! ${data.recalculated_due_dates} parcela(s) pendente(s) tiveram o vencimento recalculado automaticamente.`, 'Sucesso');
+      } else {
+        dialogAlert('Conta salva com sucesso!', 'Sucesso');
+      }
     } catch (e) {
       console.error("Error saving account:", e);
     }
@@ -1123,26 +1137,112 @@ Escalas GMNL ${year}`;
     fetchFinancialData();
   };
 
-  const handleSaveFinTransaction = async () => {
+  const openEditFinTransaction = (t: FinancialTransaction) => {
+    const group = resolvePurchaseGroup(t, finTransactions);
+    setEditingFinTransaction(t);
+    setEditingPurchaseGroup(group.isInstallmentPurchase ? group : null);
+    setFinTransactionForm({
+      description: group.anchor.description,
+      amount: group.grossAmount.toFixed(2),
+      discount: group.discountAmount > 0 ? group.discountAmount.toFixed(2) : '',
+      type: group.anchor.type,
+      category_id: group.anchor.category_id?.toString() || '',
+      account_id: group.anchor.account_id?.toString() || '',
+      to_account_id: '',
+      is_transfer: false,
+      date: group.purchaseDate || normalizeDateStr(group.anchor.date),
+      due_date: group.anchor.due_date || '',
+      status: group.anchor.status,
+      is_installment: group.isInstallmentPurchase,
+      total_installments: group.totalInstallments.toString(),
+      splits: group.splits.map((s) => ({ ...s })),
+    });
+    setActiveTab('fin_transactions');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleToggleSingleInstallmentStatus = async (inst: FinancialTransaction) => {
     try {
-      if (!finTransactionForm.description.trim()) {
-        dialogAlert('Por favor, informe a descrição do lançamento.', 'Atenção');
-        return;
+      const nextStatus: 'pago' | 'pendente' = inst.status === 'pago' ? 'pendente' : 'pago';
+      const nextSplits = (inst.splits || []).map((s) => ({ ...s, status: nextStatus }));
+      const nextTxs = finTransactions.map((tr) =>
+        tr.id === inst.id ? { ...tr, status: nextStatus, splits: nextSplits } : tr
+      );
+      setFinTransactions(nextTxs);
+      if (editingPurchaseGroup) {
+        const refreshed = resolvePurchaseGroup(
+          { ...inst, status: nextStatus, splits: nextSplits },
+          nextTxs
+        );
+        setEditingPurchaseGroup(refreshed.isInstallmentPurchase ? refreshed : null);
       }
 
-      const grossAmount = Number(finTransactionForm.amount) || 0;
+      const res = await fetchWithAuth(`/api/finance/transactions/${inst.id}?scope=single`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: nextStatus, splits: nextSplits }),
+      });
+      if (res.ok) {
+        await fetchFinancialData();
+      }
+    } catch (err) {
+      console.error('Error toggling installment status:', err);
+    }
+  };
+
+  const handleSaveFinTransaction = async () => {
+    try {
+      const grossAmount = round2(Number(finTransactionForm.amount) || 0);
       if (grossAmount <= 0) {
         dialogAlert('Por favor, informe um valor válido maior que zero.', 'Atenção');
         return;
       }
 
-      const discountAmount = Number(finTransactionForm.discount) || 0;
-      if (discountAmount >= grossAmount) {
-        dialogAlert('O valor do desconto não pode ser maior ou igual ao valor total da compra.', 'Atenção');
+      // Transfer flow (new transaction only)
+      if (!editingFinTransaction && finTransactionForm.is_transfer) {
+        if (!finTransactionForm.account_id || !finTransactionForm.to_account_id) {
+          dialogAlert('Selecione a conta de origem e a conta de destino.', 'Atenção');
+          return;
+        }
+        if (finTransactionForm.account_id === finTransactionForm.to_account_id) {
+          dialogAlert('As contas de origem e destino devem ser diferentes.', 'Atenção');
+          return;
+        }
+        const res = await fetchWithAuth('/api/finance/transfers', {
+          method: 'POST',
+          body: JSON.stringify({
+            from_account_id: finTransactionForm.account_id,
+            to_account_id: finTransactionForm.to_account_id,
+            amount: grossAmount,
+            date: finTransactionForm.date,
+            description: finTransactionForm.description,
+            status: finTransactionForm.status,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: res.statusText }));
+          dialogAlert(`Erro ao registrar transferência: ${err.error || err.message || JSON.stringify(err)}`);
+          return;
+        }
+        setFinTransactionForm(createEmptyFinTxForm());
+        setEditingFinTransaction(null);
+        setEditingPurchaseGroup(null);
+        fetchFinancialData();
+        dialogAlert('Transferência registrada com sucesso!', 'Sucesso');
         return;
       }
 
-      const netAmount = Number((grossAmount - discountAmount).toFixed(2));
+      if (!finTransactionForm.description.trim()) {
+        dialogAlert('Por favor, informe a descrição do lançamento.', 'Atenção');
+        return;
+      }
+
+      const discountAmount = round2(Number(finTransactionForm.discount) || 0);
+      if (discountAmount < 0 || discountAmount >= grossAmount) {
+        dialogAlert('O valor do desconto deve ser menor que o valor bruto da compra.', 'Atenção');
+        return;
+      }
+
+      const netAmount = round2(grossAmount - discountAmount);
 
       if (!finTransactionForm.category_id) {
         dialogAlert('Por favor, selecione uma categoria.', 'Atenção');
@@ -1156,7 +1256,7 @@ Escalas GMNL ${year}`;
 
       // Validate splits if provided
       if (finTransactionForm.splits && finTransactionForm.splits.length > 0) {
-        const splitsSum = Number(finTransactionForm.splits.reduce((acc, s) => acc + (Number(s.amount) || 0), 0).toFixed(2));
+        const splitsSum = round2(finTransactionForm.splits.reduce((acc, s) => acc + (Number(s.amount) || 0), 0));
         if (Math.abs(splitsSum - netAmount) > 0.05) {
           const proceed = await dialogConfirm(
             `A soma dos responsáveis (R$ ${splitsSum.toFixed(2)}) difere do valor líquido (R$ ${netAmount.toFixed(2)}). Deseja continuar mesmo assim?`
@@ -1165,68 +1265,140 @@ Escalas GMNL ${year}`;
         }
       }
 
-      let payload: any = { 
-        ...finTransactionForm,
-        amount: netAmount
+      const instCount = finTransactionForm.is_installment
+        ? Math.max(2, Math.floor(Number(finTransactionForm.total_installments) || 2))
+        : 1;
+
+      const payload: any = {
+        description: finTransactionForm.description.trim(),
+        amount: netAmount,
+        gross_amount: grossAmount,
+        discount_amount: discountAmount,
+        type: finTransactionForm.type,
+        category_id: finTransactionForm.category_id,
+        account_id: finTransactionForm.account_id,
+        date: finTransactionForm.date,
+        due_date: finTransactionForm.due_date === '' ? null : finTransactionForm.due_date,
+        is_installment: finTransactionForm.is_installment && instCount > 1,
+        total_installments: instCount,
+        splits: finTransactionForm.splits,
       };
-      if (payload.due_date === '') {
-        payload.due_date = null;
-      }
 
       let scope = 'single';
-      if (editingFinTransaction && editingFinTransaction.is_installment && (Number(editingFinTransaction.total_installments || 1) > 1)) {
-        const choice = await askOptions({
-          title: 'Editar Compra Parcelada',
-          message: `Esta é a parcela ${editingFinTransaction.installment_number || 1}/${editingFinTransaction.total_installments || 1}. Onde deseja aplicar as alterações?`,
-          options: [
-            { label: 'Apenas nesta parcela', value: 'single' },
-            { label: 'Em todas as parcelas da compra', value: 'all' },
-            { label: 'Nesta e nas parcelas futuras', value: 'future' }
-          ]
-        });
-        if (!choice) return;
-        scope = choice;
-      }
+      let res: Response;
 
-      let res;
       if (editingFinTransaction) {
+        const wasInstallment = Boolean(
+          editingFinTransaction.is_installment && Number(editingFinTransaction.total_installments || 1) > 1
+        );
+        const changedInstallmentStructure =
+          (wasInstallment && (!payload.is_installment || instCount !== Number(editingFinTransaction.total_installments || 1))) ||
+          (!wasInstallment && payload.is_installment);
+
+        if (wasInstallment) {
+          if (changedInstallmentStructure) {
+            // Structural change (e.g., 6x -> 10x, 6x -> 4x, or Nx -> 1x) always applies to the whole purchase
+            if (editingPurchaseGroup && instCount < editingPurchaseGroup.siblings.length) {
+              const removedPaid = editingPurchaseGroup.siblings.slice(instCount).some((s) => s.status === 'pago');
+              if (removedPaid) {
+                const okReduce = await dialogConfirm(
+                  `Ao reduzir para ${instCount} parcela(s), parcelas excedentes que já estão marcadas como PAGAS serão removidas. Deseja continuar?`
+                );
+                if (!okReduce) return;
+              }
+            }
+            scope = 'all';
+          } else {
+            const choice = await askOptions({
+              title: 'Editar Compra Parcelada',
+              message: `Esta é a parcela ${editingFinTransaction.installment_number || 1}/${editingFinTransaction.total_installments || 1}. Onde deseja aplicar as alterações?`,
+              options: [
+                { label: 'Em toda a compra (recalcula todas as parcelas mantendo pagas)', value: 'all' },
+                { label: 'Nesta e nas parcelas futuras (divide o valor informado nas restantes)', value: 'future' },
+                { label: 'Apenas nesta parcela (valor informado será desta parcela)', value: 'single' },
+              ]
+            });
+            if (!choice) return;
+            scope = choice;
+          }
+
+          if (scope !== 'single') {
+            payload.apply_mode = 'total';
+            // Preserve individual installment statuses on the backend
+          } else {
+            payload.status = finTransactionForm.status;
+          }
+        } else {
+          // Single transaction (possibly upgrading 1x -> Nx)
+          if (payload.is_installment) {
+            scope = 'all';
+            payload.apply_mode = 'total';
+          } else {
+            payload.status = finTransactionForm.status;
+          }
+        }
+
         res = await fetchWithAuth(`/api/finance/transactions/${editingFinTransaction.id}?scope=${scope}`, {
           method: 'PUT',
           body: JSON.stringify(payload)
         });
       } else {
+        // Rule 8: All new installment purchases MUST initialize automatically as 'pendente'
+        payload.status = payload.is_installment ? 'pendente' : finTransactionForm.status;
         res = await fetchWithAuth('/api/finance/transactions', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
       }
-      
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: res.statusText }));
         dialogAlert(`Erro ao salvar lançamento: ${err.message || err.error || JSON.stringify(err)}`);
         return;
       }
 
-      setFinTransactionForm({ 
-        description: '', 
-        amount: '', 
-        discount: '',
-        type: 'despesa', 
-        category_id: '', 
-        account_id: '', 
-        date: new Date().toISOString().split('T')[0], 
-        due_date: '',
-        status: 'pago',
-        is_installment: false,
-        total_installments: '1',
-        splits: []
-      });
+      setFinTransactionForm(createEmptyFinTxForm());
       setEditingFinTransaction(null);
+      setEditingPurchaseGroup(null);
       fetchFinancialData();
       dialogAlert('Lançamento salvo com sucesso!', 'Sucesso');
     } catch (e) {
       console.error("Error saving transaction:", e);
       dialogAlert("Erro de conexão ao salvar lançamento.");
+    }
+  };
+
+  const handleConfirmPayInvoice = async () => {
+    if (!payInvoiceModal) return;
+    if (!payInvoiceModal.payingAccountId) {
+      dialogAlert('Selecione a conta corrente ou carteira de onde sairá o pagamento.', 'Atenção');
+      return;
+    }
+    try {
+      const res = await fetchWithAuth('/api/finance/pay-invoice', {
+        method: 'POST',
+        body: JSON.stringify({
+          card_account_id: payInvoiceModal.cardId,
+          paying_account_id: payInvoiceModal.payingAccountId,
+          month: finFilter.month,
+          year: finFilter.year,
+          payment_date: payInvoiceModal.paymentDate,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        dialogAlert(data.error || 'Não foi possível quitar a fatura.', 'Erro');
+        return;
+      }
+      setPayInvoiceModal(null);
+      await fetchFinancialData();
+      dialogAlert(
+        `Fatura quitada com sucesso! ${data.paid_items_count} item(ns) baixado(s), total de R$ ${Number(data.total_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+        'Fatura Paga'
+      );
+    } catch (err) {
+      console.error('Error paying invoice:', err);
+      dialogAlert('Erro de conexão ao pagar fatura.', 'Erro');
     }
   };
 
@@ -1655,6 +1827,7 @@ Escalas GMNL ${year}`;
       ]
     });
     if (!orientation) return;
+    const dashData = activeFinDashboard;
     const monthName = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][finFilter.month];
     const title = `Relatório Financeiro - ${monthName} ${finFilter.year}`;
     
@@ -1662,39 +1835,47 @@ Escalas GMNL ${year}`;
       <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 24px;">${title}</h1>
       
       <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Resumo do Mês</h2>
-      <table style="width: 100%; max-width: 400px; border-collapse: collapse; margin-bottom: 32px; font-size: 14px;">
+      <table style="width: 100%; max-width: 440px; border-collapse: collapse; margin-bottom: 32px; font-size: 14px;">
         <tr>
           <td style="padding: 8px 0; font-weight: 700; border-bottom: 1px solid #e5e7eb;">Receitas</td>
-          <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${(finDashboard?.month_income || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${(dashData.month_income || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
         </tr>
         <tr>
           <td style="padding: 8px 0; font-weight: 700; border-bottom: 1px solid #e5e7eb;">Despesas</td>
-          <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${(finDashboard?.month_expense || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${(dashData.month_expense || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; font-weight: 700;">Saldo Final</td>
-          <td style="padding: 8px 0; text-align: right;">R$ ${((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 8px 0; font-weight: 700; border-bottom: 1px solid #e5e7eb;">Saldo em Conta (Realizado)</td>
+          <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${(dashData.cash_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-weight: 700;">Saldo Final Previsto</td>
+          <td style="padding: 8px 0; text-align: right;">R$ ${(dashData.total_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
         </tr>
       </table>
     `;
 
-    if (finDashboard?.accounts_summary && finDashboard.accounts_summary.length > 0) {
+    if (dashData.accounts_summary && dashData.accounts_summary.length > 0) {
       html += `
-        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Saldos das Contas</h2>
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Saldos das Contas e Faturas</h2>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px; font-size: 12px;">
           <thead>
             <tr style="background-color: #4f46e5; color: white;">
-              <th style="padding: 10px; text-align: left;">Conta</th>
+              <th style="padding: 10px; text-align: left;">Conta / Cartão</th>
               <th style="padding: 10px; text-align: left;">Tipo</th>
-              <th style="padding: 10px; text-align: right;">Saldo</th>
+              <th style="padding: 10px; text-align: right;">Saldo / Fatura</th>
             </tr>
           </thead>
           <tbody>
-            ${finDashboard.accounts_summary.map((acc: any, i: number) => `
+            ${dashData.accounts_summary.map((acc: any, i: number) => `
               <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : '#ffffff'};">
                 <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${acc.name}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${acc.type.toUpperCase()}</td>
-                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e7eb;">${
+                  acc.type === 'credito'
+                    ? `Fatura: R$ ${Number(acc.invoice_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : `R$ ${Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                }</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1702,9 +1883,9 @@ Escalas GMNL ${year}`;
       `;
     }
 
-    if (finDashboard?.responsibility_summary && Object.keys(finDashboard.responsibility_summary).length > 0) {
+    if (dashData.responsibility_summary && Object.keys(dashData.responsibility_summary).length > 0) {
       html += `
-        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Responsabilidade (Despesas do Mês)</h2>
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Responsabilidade (Em Aberto no Mês)</h2>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px; font-size: 12px;">
           <thead>
             <tr style="background-color: #4f46e5; color: white;">
@@ -1713,7 +1894,7 @@ Escalas GMNL ${year}`;
             </tr>
           </thead>
           <tbody>
-            ${Object.entries(finDashboard.responsibility_summary).map(([name, amount]: [string, any], i: number) => `
+            ${Object.entries(dashData.responsibility_summary).map(([name, amount]: [string, any], i: number) => `
               <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : '#ffffff'};">
                 <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${name}</td>
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
@@ -1734,31 +1915,19 @@ Escalas GMNL ${year}`;
       }
     }
 
-    if (finDashboard?.transactions && finDashboard.transactions.length > 0) {
-      const expenses = finDashboard.transactions.filter((t: any) => {
+    if (finTransactions.length > 0) {
+      const expenses = finTransactions.filter((t) => {
         if (t.type !== 'despesa') return false;
-        if (t.is_installment) return false; 
-        
-        const account = finDashboard.accounts?.find((a: any) => String(a.id) === String(t.account_id));
-        const accType = account?.type;
-        
-        if (accType === 'credito') {
-          const closingDay = account?.closing_day || 1;
-          const [y, m, d] = t.date.split('-').map(Number);
-          const tDate = new Date(y, m - 1, d);
-          
-          const invoiceEnd = new Date(finFilter.year, finFilter.month, closingDay);
-          const invoiceStart = new Date(finFilter.year, finFilter.month - 1, closingDay + 1);
-          
-          return tDate >= invoiceStart && tDate <= invoiceEnd;
-        } else {
-          const [tYear, tMonth] = t.date.split('-').map(Number);
-          return tYear === finFilter.year && tMonth - 1 === finFilter.month;
-        }
+        const catName = finCategories.find((c) => String(c.id) === String(t.category_id))?.name || '';
+        if (isInvoicePaymentTransaction(t, catName) || isTransferTransaction(t, catName)) return false;
+        const account = finAccounts.find((a) => String(a.id) === String(t.account_id));
+        return doesTransactionBelongToCompetence(t, account, finFilter.year, finFilter.month);
       });
 
       if (expenses.length > 0) {
-        const expensesData = expenses.sort((a: any, b: any) => new Date(a.due_date || a.date).getTime() - new Date(b.due_date || b.date).getTime());
+        const expensesData = expenses.sort((a, b) =>
+          (a.due_date || a.date).localeCompare(b.due_date || b.date)
+        );
 
         html += `
           <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Detalhamento de Despesas</h2>
@@ -1772,10 +1941,10 @@ Escalas GMNL ${year}`;
               </tr>
             </thead>
             <tbody>
-              ${expensesData.map((t: any, i: number) => `
+              ${expensesData.map((t, i: number) => `
                 <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : '#ffffff'};">
-                  <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : formatDateString(t.date)}</td>
-                  <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${t.description}</td>
+                  <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${formatDateString(t.due_date || t.date)}</td>
+                  <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${t.description}${t.is_installment ? ` (${t.installment_number}/${t.total_installments})` : ''}</td>
                   <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${finCategories.find(c => String(c.id) === String(t.category_id))?.name || 'Sem Categoria'}</td>
                   <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e7eb;">R$ ${Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                 </tr>
@@ -3393,6 +3562,8 @@ Escalas GMNL ${year}`;
                     <button
                       onClick={() => {
                         setEditingFinTransaction(null);
+                        setEditingPurchaseGroup(null);
+                        setFinTransactionForm(createEmptyFinTxForm());
                         setActiveTab('fin_transactions');
                       }}
                       className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs font-bold shadow-sm shadow-emerald-200 dark:shadow-none"
@@ -3430,40 +3601,40 @@ Escalas GMNL ${year}`;
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <FinancialMetricCard
                   title="Receitas (Mês)"
-                  value={finDashboard?.month_income || 0}
+                  value={activeFinDashboard.month_income || 0}
                   icon={TrendingUp}
                   variant="emerald"
-                  subtitle="Entradas confirmadas no mês"
+                  subtitle={`Confirmado: R$ ${(activeFinDashboard.month_income_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Pend: R$ ${(activeFinDashboard.month_income_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 />
 
                 <FinancialMetricCard
                   title="Despesas (Mês)"
-                  value={finDashboard?.month_expense || 0}
+                  value={activeFinDashboard.month_expense || 0}
                   icon={TrendingDown}
                   variant="red"
-                  subtitle="Saídas e gastos do mês"
+                  subtitle={`Pago: R$ ${(activeFinDashboard.month_expense_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Pend: R$ ${(activeFinDashboard.month_expense_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 />
 
                 <FinancialMetricCard
                   title="Saldo Final Previsto"
-                  value={((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0))}
+                  value={activeFinDashboard.total_balance || 0}
                   icon={Wallet}
-                  variant={((finDashboard?.previous_balance || 0) + (finDashboard?.month_income || 0) - (finDashboard?.month_expense || 0)) < 0 ? 'red' : 'indigo'}
-                  subtitle={`Saldo anterior: R$ ${(finDashboard?.previous_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  variant={(activeFinDashboard.total_balance || 0) < 0 ? 'red' : 'indigo'}
+                  subtitle={`Em conta: R$ ${(activeFinDashboard.cash_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Ant: R$ ${(activeFinDashboard.previous_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 />
 
                 <FinancialMetricCard
                   title="Faturas de Cartão"
-                  value={finDashboard?.credit_card_total || 0}
+                  value={activeFinDashboard.credit_card_total || 0}
                   icon={CreditCard}
                   variant="amber"
-                  subtitle={`Pendente: R$ ${(finDashboard?.credit_card_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  subtitle={`Pago: R$ ${(activeFinDashboard.credit_card_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Pend: R$ ${(activeFinDashboard.credit_card_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   onClick={() => setActiveTab('fin_credit')}
                 />
               </div>
 
               {/* Alerts */}
-              {(finDashboard?.month_expense > finDashboard?.month_income) && (
+              {(activeFinDashboard.month_expense > activeFinDashboard.month_income) && (
                 <div className="mb-6 bg-red-50/80 dark:bg-red-500/15 border border-red-200/80 dark:border-red-500/25 p-4 rounded-2xl flex items-center gap-3 text-red-800 dark:text-red-200 text-sm shadow-sm">
                   <div className="p-2 bg-red-100 dark:bg-red-500/20 rounded-xl shrink-0">
                     <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
@@ -3471,39 +3642,23 @@ Escalas GMNL ${year}`;
                   <div className="min-w-0">
                     <p className="font-bold text-red-900 dark:text-red-200 text-sm">Atenção ao Déficit Mensal</p>
                     <p className="text-xs text-red-700 dark:text-red-300">
-                      As despesas superam as receitas deste mês em R$ {(finDashboard.month_expense - finDashboard.month_income).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.
+                      As despesas da competência superam as receitas em R$ {(activeFinDashboard.month_expense - activeFinDashboard.month_income).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Expenses Chart in Dashboard */}
+              {/* Expenses Chart in Dashboard (Unified Competence & Non-Transfer) */}
               {(() => {
-                const currentMonthTransactions = finTransactions.filter(t => {
-                  const [y, m] = t.date.split('-');
-                  return Number(y) === finFilter.year && Number(m) - 1 === finFilter.month;
-                });
-
-                const expensesByCategory = currentMonthTransactions
-                  .filter(t => t.type === 'despesa')
-                  .reduce((acc, t) => {
-                    const catName = finCategories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
-                    acc[catName] = (acc[catName] || 0) + Number(t.amount);
-                    return acc;
-                  }, {} as Record<string, number>);
-
-                const chartData = Object.entries(expensesByCategory)
-                  .map(([name, value]) => ({ name, value: Number(value) }))
-                  .sort((a, b) => b.value - a.value);
-
+                const chartData = activeFinDashboard.expenses_by_category || [];
                 const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#14b8a6'];
 
                 if (chartData.length === 0) return null;
 
-                const totalExp = chartData.reduce((sum, item) => sum + item.value, 0);
+                const totalExp = chartData.reduce((sum: number, item: any) => sum + Number(item.value || 0), 0);
 
                 return (
-                  <div className="bg-white dark:bg-[#1c1c1e] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6">
+                  <div className="bg-white dark:bg-[#1c1c1e] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6" id="expenses-pie-chart-container">
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
                       <div className="flex items-center gap-2">
                         <PieChart size={18} className="text-indigo-600 dark:text-indigo-400" />
@@ -3527,7 +3682,7 @@ Escalas GMNL ${year}`;
                               paddingAngle={4}
                               dataKey="value"
                             >
-                              {chartData.map((entry, index) => (
+                              {chartData.map((_entry: any, index: number) => (
                                 <Cell key={`cell-dash-${index}`} fill={COLORS[index % COLORS.length]} />
                               ))}
                             </Pie>
@@ -3541,7 +3696,7 @@ Escalas GMNL ${year}`;
                       </div>
 
                       <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-56 pr-1">
-                        {chartData.map((entry, index) => {
+                        {chartData.map((entry: any, index: number) => {
                           const pct = totalExp > 0 ? ((entry.value / totalExp) * 100).toFixed(0) : '0';
                           return (
                             <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] text-xs">
@@ -3564,29 +3719,51 @@ Escalas GMNL ${year}`;
               
               {/* Accounts Summary & Responsibility */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card title="Saldos das Contas" icon={CreditCard}>
+                <Card title="Saldos das Contas e Cartões" icon={CreditCard}>
                   <div className="space-y-3">
-                    {finDashboard?.accounts_summary && finDashboard.accounts_summary.length > 0 ? (
-                      finDashboard.accounts_summary.map((acc: any, index: number) => (
-                        <div 
-                          key={index} 
-                          onClick={() => setSelectedAccountForDetails(acc)}
-                          className="flex justify-between items-center p-3.5 bg-gray-50/70 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 shadow-sm border border-gray-100 dark:border-white/[0.08] flex items-center justify-center text-gray-500 dark:text-zinc-300 shrink-0">
-                              {acc.type === 'dinheiro' ? <Banknote size={16} /> : <CreditCard size={16} />}
+                    {activeFinDashboard.accounts_summary && activeFinDashboard.accounts_summary.length > 0 ? (
+                      activeFinDashboard.accounts_summary.map((acc: any, index: number) => {
+                        const isCard = acc.type === 'credito';
+                        return (
+                          <div 
+                            key={index} 
+                            onClick={() => setSelectedAccountForDetails(acc)}
+                            className="flex justify-between items-center p-3.5 bg-gray-50/70 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 shadow-sm border border-gray-100 dark:border-white/[0.08] flex items-center justify-center text-gray-500 dark:text-zinc-300 shrink-0">
+                                {acc.type === 'dinheiro' ? <Banknote size={16} /> : <CreditCard size={16} />}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm block truncate">{acc.name}</span>
+                                <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-wider block">
+                                  {isCard
+                                    ? acc.credit_limit > 0
+                                      ? `Crédito • Disp: R$ ${Number(acc.credit_available ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / Lim: R$ ${Number(acc.credit_limit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                      : `Cartão de Crédito • Vence: ${formatDateString(acc.invoice_due_date)}`
+                                    : `${acc.type} • Previsto: R$ ${Number(acc.projected_balance ?? acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                                </span>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm block truncate">{acc.name}</span>
-                              <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-wider">{acc.type}</span>
+                            <div className="text-right shrink-0 ml-2 tabular-nums">
+                              {isCard ? (
+                                <>
+                                  <span className={cn("font-bold text-sm block", acc.invoice_pending > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
+                                    Fatura: R$ {Number(acc.invoice_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-semibold">
+                                    Pend: R$ {Number(acc.invoice_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className={cn("font-bold text-sm", acc.balance < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
+                                  R$ {Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <span className={cn("font-bold text-sm shrink-0 ml-2 tabular-nums", acc.balance < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
-                            R$ {Number(acc.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <div className="text-center py-8 text-gray-400 dark:text-zinc-500">
                         <CreditCard size={32} className="mx-auto mb-2 opacity-20" />
@@ -3598,17 +3775,24 @@ Escalas GMNL ${year}`;
 
                 <Card title="Responsabilidade (Mês)" icon={Users}>
                   <div className="space-y-3">
-                    {finDashboard?.responsibility_summary && Object.entries(finDashboard.responsibility_summary).length > 0 ? (
-                      Object.entries(finDashboard.responsibility_summary).map(([name, amount]: [string, any]) => (
-                        <div key={name} className="flex justify-between items-center p-3.5 bg-indigo-50/30 dark:bg-indigo-500/10 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
+                    {activeFinDashboard.responsibility_details && activeFinDashboard.responsibility_details.length > 0 ? (
+                      activeFinDashboard.responsibility_details.map((item: any) => (
+                        <div key={item.name} className="flex justify-between items-center p-3.5 bg-indigo-50/30 dark:bg-indigo-500/10 rounded-xl border border-indigo-100/50 dark:border-indigo-500/20">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xs shrink-0">
-                              {name.charAt(0).toUpperCase()}
+                              {item.name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm truncate">{name}</span>
+                            <div className="min-w-0">
+                              <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm truncate block">{item.name}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-zinc-400 font-medium tabular-nums">
+                                Total: R$ {Number(item.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Pago: R$ {Number(item.paid).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
                           </div>
-                          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-sm shrink-0 ml-2 tabular-nums">
-                            R$ {Number(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          <span className={cn("font-bold text-sm shrink-0 ml-2 tabular-nums", item.pending > 0 ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>
+                            {item.pending > 0
+                              ? `Pend: R$ ${Number(item.pending).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                              : 'Quitado'}
                           </span>
                         </div>
                       ))
@@ -3802,102 +3986,14 @@ Escalas GMNL ${year}`;
                 </div>
               </div>
 
-              {/* Chart Section */}
-              {(() => {
-                const filteredTransactions = finTransactions.filter(t => {
-                  if (!finExtractFilter.showAllMonths) {
-                    const [year, month] = t.date.split('-');
-                    if (Number(year) !== finFilter.year || Number(month) - 1 !== finFilter.month) return false;
-                  }
-                  if (finExtractFilter.type !== 'all' && t.type !== finExtractFilter.type) return false;
-                  if (finExtractFilter.category_id !== 'all' && t.category_id?.toString() !== finExtractFilter.category_id) return false;
-                  if (finExtractFilter.account_id !== 'all' && t.account_id?.toString() !== finExtractFilter.account_id) return false;
-                  if (finExtractFilter.status !== 'all' && t.status !== finExtractFilter.status) return false;
-                  if (finExtractFilter.responsible !== 'all') {
-                    const hasResponsible = t.splits?.some(s => s.name === finExtractFilter.responsible);
-                    if (!hasResponsible) return false;
-                  }
-                  if (finExtractFilter.search && !t.description.toLowerCase().includes(finExtractFilter.search.toLowerCase())) return false;
-                  
-                  return true;
-                });
-
-                const expensesByCategory = filteredTransactions
-                  .filter(t => t.type === 'despesa')
-                  .reduce((acc, t) => {
-                    const categoryName = finCategories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
-                    acc[categoryName] = (acc[categoryName] || 0) + Number(t.amount);
-                    return acc;
-                  }, {} as Record<string, number>);
-
-                const chartData = Object.entries(expensesByCategory)
-                  .map(([name, value]) => ({ name, value: Number(value) }))
-                  .sort((a, b) => b.value - a.value);
-
-                const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#14b8a6'];
-
-                if (chartData.length === 0) return null;
-
-                return (
-                  <div className="bg-white dark:bg-[#1c1c1e] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6" id="expenses-pie-chart-container">
-                    <div className="flex items-center gap-2 mb-5">
-                      <PieChart size={18} className="text-indigo-600 dark:text-indigo-400" />
-                      <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-zinc-100 tracking-tight">Despesas por Categoria (Filtradas)</h3>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
-                      <div className="lg:col-span-5 h-60 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RechartsPieChart>
-                            <Pie
-                              data={chartData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={56}
-                              outerRadius={80}
-                              paddingAngle={4}
-                              dataKey="value"
-                            >
-                              {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip 
-                              contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#18181b', color: '#f4f4f5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)' }}
-                              itemStyle={{ color: '#f4f4f5' }}
-                              formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
-                            />
-                          </RechartsPieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-56 pr-1">
-                        {chartData.map((entry, index) => (
-                          <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] text-xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                              <span className="text-gray-700 dark:text-zinc-300 font-medium truncate">{entry.name}</span>
-                            </div>
-                            <span className="font-bold text-gray-900 dark:text-zinc-100 shrink-0 ml-2 tabular-nums">
-                              R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Transactions List */}
+              {/* Extract Filtered Data + Chart & List */}
               {(() => {
                 const filteredTransactions = finTransactions
                   .filter(t => {
-                    // Month/Year filter
+                    const account = finAccounts.find(a => a.id === t.account_id);
                     if (!finExtractFilter.showAllMonths) {
-                      const [year, month] = t.date.split('-');
-                      if (Number(year) !== finFilter.year || Number(month) - 1 !== finFilter.month) return false;
+                      if (!doesTransactionBelongToCompetence(t, account, finFilter.year, finFilter.month)) return false;
                     }
-                    
-                    // Advanced filters
                     if (finExtractFilter.type !== 'all' && t.type !== finExtractFilter.type) return false;
                     if (finExtractFilter.category_id !== 'all' && t.category_id?.toString() !== finExtractFilter.category_id) return false;
                     if (finExtractFilter.account_id !== 'all' && t.account_id?.toString() !== finExtractFilter.account_id) return false;
@@ -3907,123 +4003,193 @@ Escalas GMNL ${year}`;
                       if (!hasResponsible) return false;
                     }
                     if (finExtractFilter.search && !t.description.toLowerCase().includes(finExtractFilter.search.toLowerCase())) return false;
-                    
                     return true;
                   })
                   .sort((a, b) => {
                     if (finExtractFilter.sortBy === 'id') {
                       return b.id - a.id;
-                    } else {
-                      return new Date(b.date).getTime() - new Date(a.date).getTime();
                     }
+                    return (b.due_date || b.date).localeCompare(a.due_date || a.date);
                   });
 
-                const totalIncome = filteredTransactions.filter(t => t.type === 'receita').reduce((sum, t) => sum + Number(t.amount), 0);
-                const totalExpense = filteredTransactions.filter(t => t.type === 'despesa').reduce((sum, t) => sum + Number(t.amount), 0);
+                const nonNeutralTxs = filteredTransactions.filter(t => {
+                  const catName = finCategories.find(c => c.id === t.category_id)?.name || '';
+                  return !isTransferTransaction(t, catName) && !isInvoicePaymentTransaction(t, catName);
+                });
+
+                const expensesByCategory = nonNeutralTxs
+                  .filter(t => t.type === 'despesa')
+                  .reduce((acc, t) => {
+                    const categoryName = finCategories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
+                    acc[categoryName] = round2((acc[categoryName] || 0) + Number(t.amount));
+                    return acc;
+                  }, {} as Record<string, number>);
+
+                const chartData = Object.entries(expensesByCategory)
+                  .map(([name, value]) => ({ name, value: Number(value) }))
+                  .sort((a, b) => b.value - a.value);
+
+                const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#14b8a6'];
+
+                const totalIncome = round2(nonNeutralTxs.filter(t => t.type === 'receita').reduce((sum, t) => sum + Number(t.amount), 0));
+                const totalExpense = round2(nonNeutralTxs.filter(t => t.type === 'despesa').reduce((sum, t) => sum + Number(t.amount), 0));
 
                 return (
-                  <div className="space-y-4">
-                    {/* Header List Summary */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider tabular-nums">
-                        {filteredTransactions.length} {filteredTransactions.length === 1 ? 'Lançamento Encontrado' : 'Lançamentos Encontrados'}
-                      </span>
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold tabular-nums">
-                        <span className="text-emerald-600 dark:text-emerald-400">+ R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span className="text-red-600 dark:text-red-400">- R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span className={cn(totalIncome - totalExpense >= 0 ? "text-indigo-600 dark:text-indigo-400" : "text-amber-600 dark:text-amber-400")}>
-                          Saldo: R$ {(totalIncome - totalExpense).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {filteredTransactions.length === 0 ? (
-                      <div className="bg-white dark:bg-[#1c1c1e] p-12 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm text-center">
-                        <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-3 text-gray-400 dark:text-zinc-500">
-                          <Search size={24} />
+                  <>
+                    {chartData.length > 0 && (
+                      <div className="bg-white dark:bg-[#1c1c1e] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/[0.08] mb-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <PieChart size={18} className="text-indigo-600 dark:text-indigo-400" />
+                          <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-zinc-100 tracking-tight">Despesas por Categoria (Filtradas)</h3>
                         </div>
-                        <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-base mb-1">Nenhum lançamento encontrado</h4>
-                        <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-sm mx-auto mb-4">
-                          Não foram encontrados registros para os filtros selecionados ou no período consultado.
-                        </p>
-                        <button
-                          onClick={() => {
-                            setEditingFinTransaction(null);
-                            setActiveTab('fin_transactions');
-                          }}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
-                        >
-                          <Plus size={16} />
-                          Cadastrar Novo Lançamento
-                        </button>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
+                          <div className="lg:col-span-5 h-60 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RechartsPieChart>
+                                <Pie
+                                  data={chartData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={56}
+                                  outerRadius={80}
+                                  paddingAngle={4}
+                                  dataKey="value"
+                                >
+                                  {chartData.map((_entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip 
+                                  contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#18181b', color: '#f4f4f5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)' }}
+                                  itemStyle={{ color: '#f4f4f5' }}
+                                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
+                                />
+                              </RechartsPieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-56 pr-1">
+                            {chartData.map((entry, index) => (
+                              <div key={index} className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                  <span className="text-gray-700 dark:text-zinc-300 font-medium truncate">{entry.name}</span>
+                                </div>
+                                <span className="font-bold text-gray-900 dark:text-zinc-100 shrink-0 ml-2 tabular-nums">
+                                  R$ {entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      filteredTransactions.map(t => {
-                        const isExpanded = expandedTransactions.has(t.id);
-                        const isLongDescription = t.description.length > 40;
-                        const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
-                        const category = finCategories.find(c => c.id === t.category_id);
-                        const account = finAccounts.find(a => a.id === t.account_id);
-                        
-                        return (
-                          <div key={t.id} className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden group hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all">
-                            <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0",
-                                  t.type === 'receita' ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400"
-                                )}>
-                                  {t.type === 'receita' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-sm truncate max-w-full">{displayDescription}</h4>
-                                    {isLongDescription && (
-                                      <button onClick={() => toggleTransaction(t.id)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 shrink-0">
-                                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                      </button>
-                                    )}
-                                    {t.is_installment && (
-                                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2 py-0.5 rounded-full shrink-0">
-                                        Parcela {t.installment_number}/{t.total_installments}
-                                      </span>
-                                    )}
+                    )}
+
+                    <div className="space-y-4">
+                      {/* Header List Summary */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                        <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider tabular-nums">
+                          {filteredTransactions.length} {filteredTransactions.length === 1 ? 'Lançamento Encontrado' : 'Lançamentos Encontrados'}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-3 text-xs font-bold tabular-nums">
+                          <span className="text-emerald-600 dark:text-emerald-400">+ R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className="text-red-600 dark:text-red-400">- R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className={cn(totalIncome - totalExpense >= 0 ? "text-indigo-600 dark:text-indigo-400" : "text-amber-600 dark:text-amber-400")}>
+                            Saldo: R$ {(totalIncome - totalExpense).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {filteredTransactions.length === 0 ? (
+                        <div className="bg-white dark:bg-[#1c1c1e] p-12 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm text-center">
+                          <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-3 text-gray-400 dark:text-zinc-500">
+                            <Search size={24} />
+                          </div>
+                          <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-base mb-1">Nenhum lançamento encontrado</h4>
+                          <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-sm mx-auto mb-4">
+                            Não foram encontrados registros para os filtros selecionados ou no período consultado.
+                          </p>
+                          <button
+                            onClick={() => {
+                              setEditingFinTransaction(null);
+                              setEditingPurchaseGroup(null);
+                              setFinTransactionForm(createEmptyFinTxForm());
+                              setActiveTab('fin_transactions');
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
+                          >
+                            <Plus size={16} />
+                            Cadastrar Novo Lançamento
+                          </button>
+                        </div>
+                      ) : (
+                        filteredTransactions.map(t => {
+                          const isExpanded = expandedTransactions.has(t.id);
+                          const isLongDescription = t.description.length > 40;
+                          const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
+                          const category = finCategories.find(c => c.id === t.category_id);
+                          const account = finAccounts.find(a => a.id === t.account_id);
+                          const isTransfer = isTransferTransaction(t, category?.name || '');
+                          const isInvPay = isInvoicePaymentTransaction(t, category?.name || '');
+                          
+                          return (
+                            <div key={t.id} className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden group hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all">
+                              <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                                  <div className={cn(
+                                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0",
+                                    isTransfer ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400" :
+                                    t.type === 'receita' ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400"
+                                  )}>
+                                    {isTransfer ? <ArrowRightLeft size={18} /> : t.type === 'receita' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                                   </div>
-                                  <p className="text-[11px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                                    {category?.name || 'Sem Categoria'} • {account?.name || 'Sem Conta'} • Venc: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className="font-bold text-gray-800 dark:text-zinc-100 text-sm truncate max-w-full">{displayDescription}</h4>
+                                      {isLongDescription && (
+                                        <button onClick={() => toggleTransaction(t.id)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 shrink-0">
+                                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        </button>
+                                      )}
+                                      {t.is_installment && (
+                                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2 py-0.5 rounded-full shrink-0">
+                                          Parcela {t.installment_number}/{t.total_installments}
+                                        </span>
+                                      )}
+                                      {isTransfer && (
+                                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-0.5 rounded-full shrink-0">
+                                          Transferência
+                                        </span>
+                                      )}
+                                      {isInvPay && (
+                                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/15 px-2 py-0.5 rounded-full shrink-0">
+                                          Pag. Fatura
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                                      {category?.name || 'Sem Categoria'} • {account?.name || 'Sem Conta'} • Compra: {formatDateString(t.date)}{t.due_date ? ` • Venc: ${formatDateString(t.due_date)}` : ''}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-3 sm:pt-0">
+                                  <p className={cn("font-bold tracking-tight tabular-nums text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
+                                    {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </p>
-                                </div>
-                              </div>
-                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-3 sm:pt-0">
-                                <p className={cn("font-bold tracking-tight tabular-nums text-base sm:text-lg", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                                  {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </p>
-                                <div className="flex items-center justify-end gap-2 sm:mt-1">
-                                  <FinancialStatusBadge status={t.status} />
-                                  <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => {
-                                      setEditingFinTransaction(t);
-                                      setFinTransactionForm({
-                                        description: t.description,
-                                        amount: (Number(t.amount) * Number(t.total_installments || 1)).toString(),
-                                        discount: '',
-                                        type: t.type,
-                                        category_id: t.category_id?.toString() || '',
-                                        account_id: t.account_id?.toString() || '',
-                                        date: t.date,
-                                        due_date: t.due_date || '',
-                                        status: t.status,
-                                        is_installment: t.is_installment || false,
-                                        total_installments: t.total_installments?.toString() || '1',
-                                        splits: t.splits || []
-                                      });
-                                      setActiveTab('fin_transactions');
-                                    }} className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-colors" title="Editar"><Edit2 size={15} /></button>
-                                    <button onClick={() => handleDeleteFinTransaction(t.id)} className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-colors" title="Excluir"><Trash2 size={15} /></button>
+                                  <div className="flex items-center justify-end gap-2 sm:mt-1">
+                                    <button
+                                      onClick={() => handleToggleSingleInstallmentStatus(t)}
+                                      className="cursor-pointer"
+                                      title="Alternar status desta parcela/lançamento"
+                                    >
+                                      <FinancialStatusBadge status={t.status} />
+                                    </button>
+                                    <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => openEditFinTransaction(t)} className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-colors" title="Editar"><Edit2 size={15} /></button>
+                                      <button onClick={() => handleDeleteFinTransaction(t.id)} className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-colors" title="Excluir"><Trash2 size={15} /></button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
                             {t.splits && t.splits.length > 0 && (
                               <div className="px-4 pb-3 pt-2 bg-gray-50/50 dark:bg-white/[0.03] border-t border-gray-50 dark:border-white/[0.06] flex flex-wrap gap-2">
                                 {t.splits.map((s, i) => (
@@ -4056,6 +4222,7 @@ Escalas GMNL ${year}`;
                       })
                     )}
                   </div>
+                  </>
                 );
               })()}
             </motion.div>
@@ -4085,58 +4252,57 @@ Escalas GMNL ${year}`;
                       const currentMonth = finFilter.month;
                       const currentYear = finFilter.year;
 
-                      let invoiceItems: any[] = [];
+                      let invoiceItems: FinancialTransaction[] = [];
                       let invoiceStart: Date | null = null;
                       let invoiceEnd: Date | null = null;
-                      let dueDayDisplay: string | number = '--';
+                      let invoiceDueStr = '';
                       let cardName = 'Todos os Cartões';
+                      const selectedCard = selectedCreditCardId !== 'all'
+                        ? finAccounts.find(a => a.id === Number(selectedCreditCardId))
+                        : undefined;
+                      const isSingleCreditCard = Boolean(selectedCard && selectedCard.type === 'credito');
 
                       if (selectedCreditCardId === 'all') {
-                        invoiceStart = new Date(currentYear, currentMonth, 1);
-                        invoiceEnd = new Date(currentYear, currentMonth + 1, 0);
-                        dueDayDisplay = 'Vários';
-                        
+                        invoiceStart = new Date(currentYear, currentMonth, 1, 12, 0, 0);
+                        invoiceEnd = new Date(currentYear, currentMonth + 1, 0, 12, 0, 0);
                         invoiceItems = finTransactions.filter(t => {
                           const account = finAccounts.find(a => a.id === t.account_id);
                           if (!account || account.type !== 'credito') return false;
-
-                          const closingDay = account.closing_day || 1;
-                          
-                          const cardInvoiceEnd = new Date(currentYear, currentMonth, closingDay);
-                          const cardInvoiceStart = new Date(currentYear, currentMonth - 1, closingDay + 1);
-
-                          const [y, m, d] = t.date.split('T')[0].split('-').map(Number);
-                          const tDate = new Date(y, m - 1, d);
-                          
-                          return tDate >= cardInvoiceStart && tDate <= cardInvoiceEnd;
+                          const catName = finCategories.find(c => c.id === t.category_id)?.name || '';
+                          if (isTransferTransaction(t, catName) || isInvoicePaymentTransaction(t, catName)) return false;
+                          return doesTransactionBelongToCompetence(t, account, currentYear, currentMonth);
                         });
-                      } else {
-                        const card = finAccounts.find(a => a.id === Number(selectedCreditCardId));
-                        cardName = card?.name || '';
-                        const isCreditCard = card?.type === 'credito';
-                        
-                        if (isCreditCard) {
-                          const closingDay = card?.closing_day || 1;
-                          const dueDay = card?.due_day || 10;
-                          dueDayDisplay = dueDay;
-                          
-                          invoiceEnd = new Date(currentYear, currentMonth, closingDay);
-                          invoiceStart = new Date(currentYear, currentMonth - 1, closingDay + 1);
+                      } else if (selectedCard) {
+                        cardName = selectedCard.name;
+                        if (selectedCard.type === 'credito') {
+                          const win = getCreditCardInvoiceWindow(
+                            currentYear,
+                            currentMonth,
+                            Number(selectedCard.closing_day || 1),
+                            Number(selectedCard.due_day || 10)
+                          );
+                          invoiceStart = win.startDate;
+                          invoiceEnd = win.endDate;
+                          invoiceDueStr = win.dueStr;
                         } else {
-                          invoiceStart = new Date(currentYear, currentMonth, 1);
-                          invoiceEnd = new Date(currentYear, currentMonth + 1, 0);
-                          dueDayDisplay = 'N/A';
+                          invoiceStart = new Date(currentYear, currentMonth, 1, 12, 0, 0);
+                          invoiceEnd = new Date(currentYear, currentMonth + 1, 0, 12, 0, 0);
                         }
 
                         invoiceItems = finTransactions.filter(t => {
                           if (t.account_id !== Number(selectedCreditCardId)) return false;
-
-                          const [y, m, d] = t.date.split('T')[0].split('-').map(Number);
-                          const tDate = new Date(y, m - 1, d);
-                          
-                          return tDate >= invoiceStart! && tDate <= invoiceEnd!;
+                          const catName = finCategories.find(c => c.id === t.category_id)?.name || '';
+                          if (isTransferTransaction(t, catName) || isInvoicePaymentTransaction(t, catName)) return false;
+                          return doesTransactionBelongToCompetence(t, selectedCard, currentYear, currentMonth);
                         });
                       }
+
+                      // Sort by transaction date descending then installment_number
+                      invoiceItems = [...invoiceItems].sort((a, b) => {
+                        const cmp = normalizeDateStr(a.date).localeCompare(normalizeDateStr(b.date));
+                        if (cmp !== 0) return cmp;
+                        return (Number(a.installment_number || 1) - Number(b.installment_number || 1));
+                      });
 
                       // Extract unique people from transactions for the filter
                       const peopleMap = new Map<string, string>();
@@ -4161,43 +4327,111 @@ Escalas GMNL ${year}`;
                         });
                       }
 
-                      const totalInvoice = invoiceItems.reduce((sum, t) => {
+                      const totalInvoice = round2(invoiceItems.reduce((sum, t) => {
+                        const sign = t.type === 'receita' ? -1 : 1;
                         if (selectedPersonFilter !== 'all') {
                           const personSplit = t.splits?.find((s: any) => s.name.toLowerCase() === selectedPersonFilter.toLowerCase());
-                          return sum + Number(personSplit?.amount || 0);
+                          return sum + sign * Number(personSplit?.amount || 0);
                         }
-                        return sum + Number(t.amount);
-                      }, 0);
+                        return sum + sign * Number(t.amount || 0);
+                      }, 0));
                       
-                      const totalPaid = invoiceItems.reduce((sum, t) => {
+                      const totalPaid = round2(invoiceItems.reduce((sum, t) => {
+                        const sign = t.type === 'receita' ? -1 : 1;
                         if (selectedPersonFilter !== 'all') {
                           const personSplit = t.splits?.find((s: any) => s.name.toLowerCase() === selectedPersonFilter.toLowerCase());
-                          return sum + (personSplit?.status === 'pago' ? Number(personSplit.amount) : 0);
+                          return sum + (personSplit?.status === 'pago' ? sign * Number(personSplit.amount || 0) : 0);
                         }
-                        // If no filter, sum all paid splits or the whole amount if no splits
-                        if (t.splits && t.splits.length > 0) {
-                          const paidSplitsSum = t.splits.reduce((sSum: number, s: any) => sSum + (s.status === 'pago' ? Number(s.amount) : 0), 0);
-                          return sum + paidSplitsSum;
+                        if (t.status === 'pago') {
+                          return sum + sign * Number(t.amount || 0);
                         }
-                        return sum + (t.status === 'pago' ? Number(t.amount) : 0);
-                      }, 0);
+                        if (t.type === 'despesa' && t.splits && t.splits.length > 0) {
+                          const paidSplitsSum = t.splits.reduce((sSum: number, s: any) => sSum + (s.status === 'pago' ? Number(s.amount || 0) : 0), 0);
+                          return sum + Math.min(Number(t.amount || 0), paidSplitsSum);
+                        }
+                        return sum;
+                      }, 0));
                       
-                      const totalPending = totalInvoice - totalPaid;
+                      const totalPending = round2(Math.max(0, totalInvoice - totalPaid));
+
+                      const cardSummary = selectedCard
+                        ? activeFinDashboard.accounts_summary?.find((a: any) => a.id === selectedCard.id)
+                        : null;
+                      const cardLimit = cardSummary?.credit_limit || (selectedCard ? getAccountCreditLimit(selectedCard) : 0);
+                      const cardUsed = cardSummary?.credit_used || 0;
+                      const cardAvailable = cardLimit > 0 ? round2(cardLimit - cardUsed) : null;
+                      const cardUsagePct = cardLimit > 0 ? Math.min(100, Math.max(0, Math.round((cardUsed / cardLimit) * 100))) : 0;
+
+                      const liquidAccounts = finAccounts.filter(a => a.type !== 'credito');
 
                       return (
                         <div className="space-y-6">
+                          {isSingleCreditCard && (cardLimit > 0 || cardUsed > 0) && (
+                            <div className="bg-white dark:bg-[#1c1c1e] p-4 rounded-xl border border-gray-100 dark:border-white/[0.08] space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span className="font-bold text-gray-700 dark:text-zinc-200 uppercase tracking-wider">
+                                  Limite do Cartão ({cardName})
+                                </span>
+                                <div className="flex flex-wrap items-center gap-3 tabular-nums">
+                                  {cardLimit > 0 && (
+                                    <span className="text-gray-500 dark:text-zinc-400">
+                                      Limite Total: <strong className="text-gray-900 dark:text-zinc-100">R$ {cardLimit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                    </span>
+                                  )}
+                                  <span className="text-amber-600 dark:text-amber-400">
+                                    Comprometido: <strong>R$ {cardUsed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                  </span>
+                                  {cardAvailable !== null && (
+                                    <span className={cn("font-bold", cardAvailable < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
+                                      Disponível: R$ {cardAvailable.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {cardLimit > 0 && (
+                                <div className="w-full h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={cn(
+                                      "h-full transition-all rounded-full",
+                                      cardUsagePct >= 90 ? "bg-red-500" : cardUsagePct >= 70 ? "bg-amber-500" : "bg-indigo-500"
+                                    )}
+                                    style={{ width: `${cardUsagePct}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           <div className="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/20 flex flex-col gap-4">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                               <div className="flex flex-col gap-1 tabular-nums">
                                 <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">Período da Fatura</p>
                                 <p className="text-base md:text-lg font-bold tracking-tight text-indigo-900 dark:text-indigo-200">
-                                  {invoiceStart?.toLocaleDateString()} até {invoiceEnd?.toLocaleDateString()}
+                                  {invoiceStart?.toLocaleDateString('pt-BR')} até {invoiceEnd?.toLocaleDateString('pt-BR')}
                                 </p>
                                 <p className="text-xs text-indigo-500 dark:text-indigo-300/80 font-medium">
-                                  Vencimento: {selectedCreditCardId === 'all' ? 'Vários' : new Date(currentYear, currentMonth, Number(dueDayDisplay)).toLocaleDateString()}
+                                  Vencimento: {selectedCreditCardId === 'all' ? 'Vários' : (invoiceDueStr ? formatDateString(invoiceDueStr) : 'N/A')}
                                 </p>
                               </div>
-                              <div className="flex gap-2 w-full md:w-auto">
+                              <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                                {isSingleCreditCard && totalPending > 0 && selectedPersonFilter === 'all' && (
+                                  <button
+                                    onClick={() => {
+                                      setPayInvoiceModal({
+                                        cardId: selectedCard!.id,
+                                        cardName: selectedCard!.name,
+                                        totalPending,
+                                        payingAccountId: liquidAccounts[0]?.id ? String(liquidAccounts[0].id) : '',
+                                        paymentDate: new Date().toISOString().split('T')[0],
+                                      });
+                                    }}
+                                    className="h-10 px-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                                  >
+                                    <CheckCircle2 size={15} />
+                                    <span>Pagar Fatura</span>
+                                  </button>
+                                )}
+
                                 <button
                                   id="btn-export-fin-credit"
                                   onClick={async () => {
@@ -4213,55 +4447,49 @@ Escalas GMNL ${year}`;
                                     const doc = new jsPDF(orientation as 'p'|'l', 'mm', 'a4');
                                     doc.text(`Relatório de Parcelas - ${cardName}`, 14, 15);
                                     doc.setFontSize(10);
-                                    doc.text(`Período: ${invoiceStart?.toLocaleDateString()} a ${invoiceEnd?.toLocaleDateString()}`, 14, 22);
-                                    const vencimentoStr = selectedCreditCardId === 'all' ? 'Vários' : new Date(currentYear, currentMonth, Number(dueDayDisplay)).toLocaleDateString();
+                                    doc.text(`Período: ${invoiceStart?.toLocaleDateString('pt-BR')} a ${invoiceEnd?.toLocaleDateString('pt-BR')}`, 14, 22);
+                                    const vencimentoStr = selectedCreditCardId === 'all' ? 'Vários' : (invoiceDueStr ? formatDateString(invoiceDueStr) : 'N/A');
                                     doc.text(`Vencimento: ${vencimentoStr}`, 14, 28);
                                     
-                                    // Draw summary cards
                                     const cardWidth = 55;
                                     const cardHeight = 20;
                                     const startX = 14;
                                     const gap = 5;
                                     
-                                    // Total Card
                                     doc.setDrawColor(200, 200, 200);
-                                    doc.setFillColor(249, 250, 251); // gray-50
+                                    doc.setFillColor(249, 250, 251);
                                     doc.roundedRect(startX, 35, cardWidth, cardHeight, 2, 2, 'FD');
                                     doc.setFontSize(8);
-                                    doc.setTextColor(107, 114, 128); // gray-500
+                                    doc.setTextColor(107, 114, 128);
                                     doc.text("TOTAL", startX + 5, 42);
                                     doc.setFontSize(12);
-                                    doc.setTextColor(17, 24, 39); // gray-900
+                                    doc.setTextColor(17, 24, 39);
                                     doc.text(`R$ ${totalInvoice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, startX + 5, 50);
 
-                                    // Paid Card
-                                    doc.setDrawColor(167, 243, 208); // emerald-200
-                                    doc.setFillColor(236, 253, 245); // emerald-50
+                                    doc.setDrawColor(167, 243, 208);
+                                    doc.setFillColor(236, 253, 245);
                                     doc.roundedRect(startX + cardWidth + gap, 35, cardWidth, cardHeight, 2, 2, 'FD');
                                     doc.setFontSize(8);
-                                    doc.setTextColor(5, 150, 105); // emerald-600
+                                    doc.setTextColor(5, 150, 105);
                                     doc.text("PAGO", startX + cardWidth + gap + 5, 42);
                                     doc.setFontSize(12);
-                                    doc.setTextColor(5, 150, 105); // emerald-600
+                                    doc.setTextColor(5, 150, 105);
                                     doc.text(`R$ ${totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, startX + cardWidth + gap + 5, 50);
 
-                                    // Pending Card
-                                    doc.setDrawColor(254, 202, 202); // red-200
-                                    doc.setFillColor(254, 242, 242); // red-50
+                                    doc.setDrawColor(254, 202, 202);
+                                    doc.setFillColor(254, 242, 242);
                                     doc.roundedRect(startX + (cardWidth + gap) * 2, 35, cardWidth, cardHeight, 2, 2, 'FD');
                                     doc.setFontSize(8);
-                                    doc.setTextColor(220, 38, 38); // red-600
+                                    doc.setTextColor(220, 38, 38);
                                     doc.text("PENDENTE", startX + (cardWidth + gap) * 2 + 5, 42);
                                     doc.setFontSize(12);
-                                    doc.setTextColor(220, 38, 38); // red-600
+                                    doc.setTextColor(220, 38, 38);
                                     doc.text(`R$ ${totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, startX + (cardWidth + gap) * 2 + 5, 50);
 
-                                    // Reset text color for the rest of the document
                                     doc.setTextColor(0, 0, 0);
 
                                     let currentY = 65;
 
-                                    // Helper to add a table for a set of items with a title
                                     const addTable = (title: string, items: any[]) => {
                                       if (items.length === 0) return;
                                       
@@ -4282,7 +4510,7 @@ Escalas GMNL ${year}`;
                                         startY: currentY,
                                         head: headers,
                                         body: items.map(i => {
-                                          const displayDueDate = i.due_date ? new Date(i.due_date + 'T12:00:00').toLocaleDateString() : `Dia ${i.dueDay}`;
+                                          const displayDueDate = i.due_date ? formatDateString(i.due_date) : `Dia ${i.dueDay}`;
                                           if (selectedCreditCardId === 'all') {
                                             return [
                                               displayDueDate,
@@ -4298,13 +4526,13 @@ Escalas GMNL ${year}`;
                                             i.description,
                                             i.installment,
                                             `R$ ${i.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                                            new Date(i.date + 'T12:00:00').toLocaleDateString(),
+                                            formatDateString(i.date),
                                             i.status === 'pago' ? 'Paga' : 'Pendente'
                                           ];
                                         }),
                                         foot: [[
                                           '', 
-                                          selectedCreditCardId === 'all' ? '' : '', 
+                                          '', 
                                           '', 
                                           'Total', 
                                           `R$ ${items.reduce((acc: any, i: any) => acc + i.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
@@ -4335,9 +4563,10 @@ Escalas GMNL ${year}`;
                                         const tCard = finAccounts.find(a => a.id === t.account_id);
                                         const tCardName = tCard?.name || 'N/A';
                                         const tDueDay = tCard?.due_day || '--';
+                                        const signedFactor = t.type === 'receita' ? -1 : 1;
                                         
                                         if (hasSplits) {
-                                            t.splits.forEach((s: any) => {
+                                            t.splits!.forEach((s: any) => {
                                                 if (s.name && s.name.trim()) {
                                                     const personName = s.name.trim();
                                                     const displayName = availablePeople.find(p => p.toLowerCase() === personName.toLowerCase()) || personName;
@@ -4349,9 +4578,9 @@ Escalas GMNL ${year}`;
                                                         cardName: tCardName,
                                                         description: t.description,
                                                         installment: t.is_installment ? `${t.installment_number}/${t.total_installments}` : '-',
-                                                        amount: Number(s.amount),
+                                                        amount: signedFactor * Number(s.amount),
                                                         dueDay: tDueDay,
-                                                        status: t.status
+                                                        status: s.status || t.status
                                                     });
                                                 }
                                             });
@@ -4362,7 +4591,7 @@ Escalas GMNL ${year}`;
                                                 cardName: tCardName,
                                                 description: t.description,
                                                 installment: t.is_installment ? `${t.installment_number}/${t.total_installments}` : '-',
-                                                amount: Number(t.amount),
+                                                amount: signedFactor * Number(t.amount),
                                                 dueDay: tDueDay,
                                                 status: t.status
                                             });
@@ -4370,18 +4599,13 @@ Escalas GMNL ${year}`;
                                     });
 
                                     if (selectedPersonFilter === 'all') {
-                                        // 1. Add tables for each person found in this invoice
                                         Object.keys(tablesData).sort().forEach(person => {
                                             addTable(person, tablesData[person]);
                                         });
-
-                                        // 2. Add general table
                                         if (generalItems.length > 0) {
                                             addTable('Geral / Sem Divisão', generalItems);
                                         }
-
                                     } else {
-                                        // Specific person filter
                                         const personItems = tablesData[availablePeople.find(p => p.toLowerCase() === selectedPersonFilter.toLowerCase()) || ''] || [];
                                         addTable(selectedPersonFilter, personItems);
                                     }
@@ -4445,7 +4669,8 @@ Escalas GMNL ${year}`;
                                         <div className="flex-1 min-w-0">
                                           <p className="font-medium text-gray-900 dark:text-zinc-100 truncate">{t.description}</p>
                                           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-400 flex-wrap mt-1 sm:mt-0 tabular-nums">
-                                            <span>Vencimento: {t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString() : 'N/A'}</span>
+                                            <span>Compra: {formatDateString(t.date)}</span>
+                                            <span>• Venc: {t.due_date ? formatDateString(t.due_date) : 'N/A'}</span>
                                             {t.is_installment && (
                                               <span className="bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0">
                                                 {t.installment_number}/{t.total_installments}
@@ -4454,7 +4679,7 @@ Escalas GMNL ${year}`;
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 flex-shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-2 sm:pt-0">
+                                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 flex-shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-2 sm:pt-0">
                                         {(() => {
                                           const personSplit = selectedPersonFilter !== 'all' 
                                             ? t.splits?.find((s: any) => s.name.toLowerCase() === selectedPersonFilter.toLowerCase())
@@ -4471,25 +4696,10 @@ Escalas GMNL ${year}`;
                                               <button
                                                 onClick={async () => {
                                                   if (personSplit) {
-                                                    const splitIndex = t.splits.findIndex((s: any) => s.name.toLowerCase() === selectedPersonFilter.toLowerCase());
+                                                    const splitIndex = t.splits!.findIndex((s: any) => s.name.toLowerCase() === selectedPersonFilter.toLowerCase());
                                                     handleToggleSplitStatus(t, splitIndex);
                                                   } else {
-                                                    const newStatus = t.status === 'pago' ? 'pendente' : 'pago';
-                                                    // Update all splits too to match the transaction status
-                                                    const newSplits = t.splits?.map((s: any) => ({ ...s, status: newStatus })) || [];
-                                                    
-                                                    // Optimistic update
-                                                    const updatedTransactions = finTransactions.map(tr => tr.id === t.id ? { ...tr, status: newStatus, splits: newSplits } : tr);
-                                                    setFinTransactions(updatedTransactions);
-                                                    
-                                                    await fetchWithAuth(`/api/finance/transactions/${t.id}`, {
-                                                      method: 'PUT',
-                                                      body: JSON.stringify({ 
-                                                        status: newStatus,
-                                                        splits: newSplits
-                                                      })
-                                                    });
-                                                    fetchFinancialData(); 
+                                                    await handleToggleSingleInstallmentStatus(t);
                                                   }
                                                 }}
                                                 className={cn(
@@ -4505,7 +4715,14 @@ Escalas GMNL ${year}`;
                                           );
                                         })()}
                                         <button 
-                                          onClick={() => handleDeleteFinTransaction(t.id)}
+                                          onClick={() => openEditFinTransaction(t)}
+                                          className="p-2 text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-all"
+                                          title={t.is_installment ? "Editar compra parcelada" : "Editar lançamento"}
+                                        >
+                                          <Edit2 size={16} />
+                                        </button>
+                                        <button 
+                                          onClick={() => handleDeleteFinTransaction(t)}
                                           className="p-2 text-gray-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-all"
                                           title="Excluir lançamento"
                                         >
@@ -4551,427 +4768,626 @@ Escalas GMNL ${year}`;
 
           {activeTab === 'fin_transactions' && (
             <motion.div key="fin_transactions" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }} className="space-y-6">
-              <Card title={editingFinTransaction ? "Editar Lançamento" : "Novo Lançamento"} icon={editingFinTransaction ? Edit2 : Plus}>
+              <Card title={editingFinTransaction ? (editingPurchaseGroup ? "Editar Compra Parcelada" : "Editar Lançamento") : "Novo Lançamento"} icon={editingFinTransaction ? Edit2 : Plus}>
                 {editingFinTransaction && (
-                  <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-xl flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                      <span className="font-bold text-amber-900 dark:text-amber-200 truncate">
-                        Editando lançamento #{editingFinTransaction.id}: "{editingFinTransaction.description}"
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setEditingFinTransaction(null);
-                        setFinTransactionForm({
-                          description: '',
-                          amount: '',
-                          discount: '',
-                          type: 'despesa',
-                          category_id: '',
-                          account_id: '',
-                          date: new Date().toISOString().split('T')[0],
-                          due_date: '',
-                          status: 'pago',
-                          is_installment: false,
-                          total_installments: '1',
-                          splits: []
-                        });
-                      }}
-                      className="text-xs font-bold text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-amber-100 underline cursor-pointer shrink-0 ml-2"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                  <Input 
-                    label="Descrição" 
-                    noMargin
-                    value={finTransactionForm.description} 
-                    onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, description: e.target.value })} 
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input 
-                      label="Valor Bruto (R$)" 
-                      noMargin
-                      type="number" 
-                      step="0.01"
-                      value={finTransactionForm.amount} 
-                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, amount: e.target.value })} 
-                    />
-                    <Input 
-                      label="Desconto (R$)" 
-                      noMargin
-                      type="number" 
-                      step="0.01"
-                      placeholder="0.00"
-                      value={finTransactionForm.discount} 
-                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, discount: e.target.value })} 
-                    />
-                  </div>
-                  {Number(finTransactionForm.discount) > 0 && (
-                    <div className="md:col-span-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 rounded-xl flex items-center justify-between text-xs">
-                      <span className="font-semibold text-emerald-800 dark:text-emerald-200">Valor Líquido com Desconto:</span>
-                      <span className="font-bold text-emerald-700 dark:text-emerald-300 text-sm tabular-nums">
-                        R$ {Math.max(0, (Number(finTransactionForm.amount) || 0) - (Number(finTransactionForm.discount) || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  )}
-                  <div className="w-full">
-                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Tipo</label>
-                    <select
-                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
-                      value={finTransactionForm.type}
-                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, type: e.target.value })}
-                    >
-                      <option value="despesa">Despesa</option>
-                      <option value="receita">Receita</option>
-                    </select>
-                  </div>
-                  <div className="w-full">
-                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Categoria</label>
-                    <select
-                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
-                      value={finTransactionForm.category_id}
-                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, category_id: e.target.value })}
-                    >
-                      <option value="">Selecione...</option>
-                      {finCategories.filter(c => c.type === finTransactionForm.type).map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-full">
-                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Conta</label>
-                    <select
-                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
-                      value={finTransactionForm.account_id}
-                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, account_id: e.target.value })}
-                    >
-                      <option value="">Selecione...</option>
-                      {finAccounts.map(a => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <Input 
-                    label="Data" 
-                    noMargin
-                    className="h-[42px]"
-                    type="date" 
-                    value={finTransactionForm.date} 
-                    onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, date: e.target.value })} 
-                  />
-                  <div className="w-full">
-                    <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Status</label>
-                    <select
-                      className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
-                      value={finTransactionForm.status}
-                      onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, status: e.target.value })}
-                    >
-                      <option value="pago">Pago / Recebido</option>
-                      <option value="pendente">Pendente</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Installment Options */}
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-white/[0.04] rounded-2xl border border-gray-100 dark:border-white/[0.08]">
-                  <div className="flex items-center gap-2 mb-4">
-                    <input 
-                      type="checkbox" 
-                      id="is_installment"
-                      checked={finTransactionForm.is_installment}
-                      onChange={(e) => setFinTransactionForm({ ...finTransactionForm, is_installment: e.target.checked })}
-                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                    />
-                    <label htmlFor="is_installment" className="text-sm font-semibold text-gray-700 dark:text-zinc-200">Compra Parcelada</label>
-                  </div>
-                  
-                  {finTransactionForm.is_installment && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input 
-                        label="Número de Parcelas" 
-                        type="number" 
-                        min="2"
-                        value={finTransactionForm.total_installments} 
-                        onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, total_installments: e.target.value })} 
-                      />
-                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-6 italic">
-                        * Serão criados {finTransactionForm.total_installments} lançamentos mensais automáticos.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Split Responsibility */}
-                <div className="mt-4 p-4 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Users size={18} className="text-indigo-600 dark:text-indigo-400" />
-                      <h4 className="text-sm font-bold text-gray-800 dark:text-zinc-100">Divisão de Responsabilidade</h4>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const newSplits = [...finTransactionForm.splits, { name: '', amount: 0 }];
-                        setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                      }}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1"
-                    >
-                      <Plus size={14} /> Adicionar Pessoa
-                    </button>
-                  </div>
-
-                  <div className="space-y-4 sm:space-y-3">
-                    {finTransactionForm.splits.map((split, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end bg-white dark:bg-[#1c1c1e] sm:bg-transparent dark:sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-indigo-100 dark:border-indigo-500/20 shadow-sm sm:shadow-none">
-                        <div className="flex-1">
-                          <label className="block text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-2 ml-1">Responsável</label>
-                          <select
-                            className="w-full px-5 py-3 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                            value={split.name}
-                            onChange={async (e) => {
-                              if (e.target.value === 'ADD_NEW') {
-                                const name = prompt('Nome do novo responsável:');
-                                if (name && name.trim()) {
-                                  try {
-                                    const res = await fetchWithAuth('/api/finance/responsibles', {
-                                      method: 'POST',
-                                      body: JSON.stringify({ name: name.trim() })
-                                    });
-                                    if (res.ok) {
-                                      await fetchResponsibles();
-                                      const newSplits = [...finTransactionForm.splits];
-                                      newSplits[index].name = name.trim();
-                                      setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                                    } else {
-                                      const err = await res.json().catch(() => ({ message: res.statusText }));
-                                      dialogAlert(err.message || 'Erro ao adicionar responsável');
-                                    }
-                                  } catch (error) {
-                                    console.error('Error adding responsible:', error);
-                                    dialogAlert('Erro de conexão ao adicionar responsável');
-                                  }
-                                }
-                              } else {
-                                const newSplits = [...finTransactionForm.splits];
-                                newSplits[index].name = e.target.value;
-                                setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                              }
-                            }}
-                          >
-                            <option value="">Selecione...</option>
-                            {finResponsibles.map(r => (
-                              <option key={r.id} value={r.name}>{r.name}</option>
-                            ))}
-                            <option value="ADD_NEW" className="font-bold text-indigo-600">+ Adicionar Novo...</option>
-                          </select>
-                        </div>
-                        <div className="w-full sm:w-36">
-                          <Input 
-                            label="Valor" 
-                            type="number"
-                            noMargin={true}
-                            value={split.amount}
-                            onChange={(e: any) => {
-                              const newSplits = [...finTransactionForm.splits];
-                              newSplits[index].amount = Number(e.target.value);
-                              setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                            }}
-                          />
-                        </div>
-                        <div className="w-full sm:w-36">
-                          <label className="block text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-2 ml-1">Status</label>
-                          <select
-                            className="w-full px-5 py-3 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                            value={split.status || 'pendente'}
-                            onChange={(e: any) => {
-                              const newSplits = [...finTransactionForm.splits];
-                              newSplits[index].status = e.target.value;
-                              setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                            }}
-                          >
-                            <option value="pendente">Pendente</option>
-                            <option value="pago">Pago</option>
-                          </select>
-                        </div>
-                        <div className="flex justify-end sm:pb-1">
-                          <button 
-                            onClick={() => {
-                              const newSplits = finTransactionForm.splits.filter((_, i) => i !== index);
-                              setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
-                            }}
-                            className="p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-xl flex items-center justify-center transition-colors"
-                            title="Remover responsável"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {finTransactionForm.splits.length > 0 && (
-                      <div className="pt-2 border-t border-indigo-100 dark:border-indigo-500/20 flex justify-between items-center">
-                        <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">Total Dividido:</span>
-                        <span className={cn("font-bold tabular-nums", 
-                          finTransactionForm.splits.reduce((sum, s) => sum + s.amount, 0) === Number(finTransactionForm.amount) 
-                            ? "text-emerald-600 dark:text-emerald-400" 
-                            : "text-amber-600 dark:text-amber-400"
-                        )}>
-                          R$ {finTransactionForm.splits.reduce((sum, s) => sum + s.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <div className="mb-4 p-3.5 bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-xl space-y-3 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span className="font-bold text-amber-900 dark:text-amber-200 truncate">
+                          {editingPurchaseGroup
+                            ? `Editando compra parcelada "${editingPurchaseGroup.anchor.description}" (aberta pela parcela ${editingFinTransaction.installment_number || 1}/${editingPurchaseGroup.totalInstallments})`
+                            : `Editando lançamento #${editingFinTransaction.id}: "${editingFinTransaction.description}"`}
                         </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingFinTransaction(null);
+                          setEditingPurchaseGroup(null);
+                          setFinTransactionForm(createEmptyFinTxForm());
+                        }}
+                        className="text-xs font-bold text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-amber-100 underline cursor-pointer shrink-0 ml-2"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+
+                    {editingPurchaseGroup && (
+                      <div className="pt-2.5 border-t border-amber-200/70 dark:border-amber-500/20 space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-amber-900 dark:text-amber-100 tabular-nums">
+                            <span>
+                              Total Original: <strong>R$ {editingPurchaseGroup.netAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                            </span>
+                            <span>
+                              Parcelas Pagas: <strong>{editingPurchaseGroup.paidCount}/{editingPurchaseGroup.totalInstallments}</strong>
+                            </span>
+                            <span>
+                              Em Aberto: <strong>R$ {editingPurchaseGroup.remainingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                            </span>
+                          </div>
+                          <span className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                            editingPurchaseGroup.consolidatedStatus === 'quitada'
+                              ? "bg-emerald-100 dark:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300"
+                              : editingPurchaseGroup.consolidatedStatus === 'parcial'
+                              ? "bg-blue-100 dark:bg-blue-500/25 text-blue-700 dark:text-blue-300"
+                              : "bg-amber-200/70 dark:bg-amber-500/30 text-amber-900 dark:text-amber-200"
+                          )}>
+                            {editingPurchaseGroup.consolidatedStatus === 'quitada'
+                              ? 'Quitada'
+                              : editingPurchaseGroup.consolidatedStatus === 'parcial'
+                              ? `Parcial (${editingPurchaseGroup.paidCount}/${editingPurchaseGroup.totalInstallments} pagas)`
+                              : 'Pendente'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-800/90 dark:text-amber-200/80">
+                          Os campos abaixo exibem o <strong>valor total da compra</strong> e a soma total da divisão por pessoa. Ao alterar o valor ou o número de parcelas, as parcelas já pagas têm o seu status preservado.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                          {editingPurchaseGroup.siblings.map((sib) => (
+                            <div
+                              key={sib.id}
+                              className={cn(
+                                "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-[11px] tabular-nums",
+                                sib.status === 'pago'
+                                  ? "bg-emerald-50/90 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
+                                  : "bg-white/90 dark:bg-zinc-900/80 border-amber-200/70 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200"
+                              )}
+                            >
+                              <div className="min-w-0 truncate">
+                                <span className="font-bold">{sib.installment_number}/{sib.total_installments}</span>
+                                <span className="mx-1 opacity-50">•</span>
+                                <span>{formatDateString(sib.due_date || sib.date)}</span>
+                                <span className="mx-1 opacity-50">•</span>
+                                <span className="font-semibold">R$ {Number(sib.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSingleInstallmentStatus(sib)}
+                                className={cn(
+                                  "px-2 py-0.5 rounded font-bold text-[10px] shrink-0 cursor-pointer transition-colors",
+                                  sib.status === 'pago'
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                    : "bg-gray-200 dark:bg-white/[0.1] text-gray-700 dark:text-zinc-200 hover:bg-emerald-600 hover:text-white"
+                                )}
+                                title="Alternar pagamento apenas desta parcela"
+                              >
+                                {sib.status === 'pago' ? 'Paga' : 'Pagar'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-                  {editingFinTransaction && (
-                    <button
-                      onClick={() => {
-                        setEditingFinTransaction(null);
-                        setFinTransactionForm({
-                          description: '',
-                          amount: '',
-                          discount: '',
-                          type: 'despesa',
-                          category_id: '',
-                          account_id: '',
-                          date: new Date().toISOString().split('T')[0],
-                          due_date: '',
-                          status: 'pago',
-                          is_installment: false,
-                          total_installments: '1',
-                          splits: []
-                        });
-                      }}
-                      className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                  <button 
-                    onClick={handleSaveFinTransaction}
-                    disabled={!finTransactionForm.description || !finTransactionForm.amount || !finTransactionForm.category_id || !finTransactionForm.account_id}
-                    className="flex-1 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 dark:shadow-none disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Save size={16} />
-                    {editingFinTransaction ? 'Atualizar Lançamento' : 'Salvar Lançamento'}
-                  </button>
-                </div>
-              </Card>
+                )}
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Lançamentos do Mês ({finTransactions.filter(t => {
-                      const [year, month] = t.date.split('-');
-                      return Number(year) === finFilter.year && Number(month) - 1 === finFilter.month;
-                    }).length})
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab('fin_extract')}
-                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Ver Extrato Completo</span>
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-                {finTransactions
-                  .filter(t => {
-                    const [year, month] = t.date.split('-');
-                    return Number(year) === finFilter.year && Number(month) - 1 === finFilter.month;
-                  })
-                  .map(t => {
-                  const isExpanded = expandedTransactions.has(t.id);
-                  const isLongDescription = t.description.length > 40;
-                  const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
+                {(() => {
+                  const grossVal = round2(Number(finTransactionForm.amount) || 0);
+                  const discountVal = round2(Number(finTransactionForm.discount) || 0);
+                  const netVal = round2(Math.max(0, grossVal - discountVal));
+                  const isTransfer = !editingFinTransaction && finTransactionForm.is_transfer;
+                  const isNewInstallment = !editingFinTransaction && !isTransfer && finTransactionForm.is_installment;
+                  const instCountPreview = finTransactionForm.is_installment
+                    ? Math.max(2, Math.floor(Number(finTransactionForm.total_installments) || 2))
+                    : 1;
+                  const installmentPreview = finTransactionForm.is_installment && netVal > 0
+                    ? distributeInstallmentsCents(netVal, instCountPreview)
+                    : [];
+                  const liquidAccounts = finAccounts.filter(a => a.type !== 'credito');
+                  const splitsSum = round2(finTransactionForm.splits.reduce((sum, s) => sum + (Number(s.amount) || 0), 0));
 
                   return (
-                    <div key={t.id} className={cn("bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col gap-3 group transition-all", t.status === 'pendente' ? 'opacity-70' : '')}>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
-                          <div className={cn("p-3 rounded-xl shrink-0 mt-1 sm:mt-0", t.type === 'receita' ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400")}>
-                            {t.type === 'receita' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <Input 
+                          label={isTransfer ? "Descrição (opcional)" : "Descrição"}
+                          placeholder={isTransfer ? "Ex: Transferência para reserva" : undefined}
+                          noMargin
+                          value={finTransactionForm.description} 
+                          onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, description: e.target.value })} 
+                        />
+                        {isTransfer ? (
+                          <Input 
+                            label="Valor da Transferência (R$)" 
+                            noMargin
+                            type="number" 
+                            step="0.01"
+                            value={finTransactionForm.amount} 
+                            onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, amount: e.target.value })} 
+                          />
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <Input 
+                              label={finTransactionForm.is_installment ? "Valor Bruto Total (R$)" : "Valor Bruto (R$)"}
+                              noMargin
+                              type="number" 
+                              step="0.01"
+                              value={finTransactionForm.amount} 
+                              onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, amount: e.target.value })} 
+                            />
+                            <Input 
+                              label={finTransactionForm.is_installment ? "Desconto Total (R$)" : "Desconto (R$)"}
+                              noMargin
+                              type="number" 
+                              step="0.01"
+                              placeholder="0.00"
+                              value={finTransactionForm.discount} 
+                              onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, discount: e.target.value })} 
+                            />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 
-                                className={cn("font-bold text-gray-800 dark:text-zinc-100 cursor-pointer truncate max-w-full", isLongDescription ? "hover:text-indigo-600 dark:hover:text-indigo-400" : "")}
-                                onClick={() => isLongDescription && toggleTransaction(t.id)}
+                        )}
+                        {!isTransfer && discountVal > 0 && (
+                          <div className="md:col-span-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 rounded-xl flex items-center justify-between text-xs">
+                            <span className="font-semibold text-emerald-800 dark:text-emerald-200">Valor Líquido com Desconto:</span>
+                            <span className="font-bold text-emerald-700 dark:text-emerald-300 text-sm tabular-nums">
+                              R$ {netVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                        <div className="w-full">
+                          <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Tipo</label>
+                          <select
+                            className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
+                            value={isTransfer ? 'transferencia' : finTransactionForm.type}
+                            onChange={(e: any) => {
+                              const val = e.target.value;
+                              if (val === 'transferencia') {
+                                setFinTransactionForm({
+                                  ...finTransactionForm,
+                                  is_transfer: true,
+                                  type: 'despesa',
+                                  category_id: '',
+                                  is_installment: false,
+                                  total_installments: '1',
+                                  splits: [],
+                                });
+                              } else {
+                                setFinTransactionForm({
+                                  ...finTransactionForm,
+                                  is_transfer: false,
+                                  type: val,
+                                  to_account_id: '',
+                                });
+                              }
+                            }}
+                          >
+                            <option value="despesa">Despesa</option>
+                            <option value="receita">Receita</option>
+                            {!editingFinTransaction && (
+                              <option value="transferencia">Transferência entre Contas</option>
+                            )}
+                          </select>
+                        </div>
+
+                        {isTransfer ? (
+                          <>
+                            <div className="w-full">
+                              <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Conta de Origem</label>
+                              <select
+                                className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
+                                value={finTransactionForm.account_id}
+                                onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, account_id: e.target.value })}
                               >
-                                {displayDescription}
-                              </h4>
-                              {isLongDescription && (
-                                <button 
-                                  onClick={() => toggleTransaction(t.id)}
-                                  className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 px-3 py-1 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-colors shrink-0"
-                                >
-                                  {isExpanded ? 'Ver menos' : 'Ver mais'}
-                                </button>
-                              )}
-                              {t.is_installment && (
-                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2 py-0.5 rounded-full shrink-0">
-                                  Parcela {t.installment_number}/{t.total_installments}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 truncate">
-                              {formatDateString(t.date)} • {finCategories.find(c => c.id === t.category_id)?.name} • {finAccounts.find(a => a.id === t.account_id)?.name}
-                            </p>
-                            {t.splits && t.splits.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {t.splits.map((s, idx) => (
-                                  <span key={idx} className="text-[9px] font-medium text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
-                                    {s.name}: R$ {Number(s.amount).toFixed(2)}
-                                  </span>
+                                <option value="">Selecione a origem...</option>
+                                {liquidAccounts.map(a => (
+                                  <option key={a.id} value={a.id}>{a.name}</option>
                                 ))}
+                              </select>
+                            </div>
+                            <div className="w-full">
+                              <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Conta de Destino</label>
+                              <select
+                                className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
+                                value={finTransactionForm.to_account_id}
+                                onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, to_account_id: e.target.value })}
+                              >
+                                <option value="">Selecione o destino...</option>
+                                {liquidAccounts.filter(a => String(a.id) !== finTransactionForm.account_id).map(a => (
+                                  <option key={a.id} value={a.id}>{a.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-full">
+                              <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Categoria</label>
+                              <select
+                                className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
+                                value={finTransactionForm.category_id}
+                                onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, category_id: e.target.value })}
+                              >
+                                <option value="">Selecione...</option>
+                                {finCategories.filter(c => c.type === finTransactionForm.type).map(c => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="w-full">
+                              <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Conta ou Cartão</label>
+                              <select
+                                className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer"
+                                value={finTransactionForm.account_id}
+                                onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, account_id: e.target.value })}
+                              >
+                                <option value="">Selecione...</option>
+                                {finAccounts.map(a => (
+                                  <option key={a.id} value={a.id}>{a.name}{a.type === 'credito' ? ' (Crédito)' : ''}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </>
+                        )}
+
+                        <Input 
+                          label={finTransactionForm.is_installment ? "Data da Compra" : "Data"}
+                          noMargin
+                          className="h-[42px]"
+                          type="date" 
+                          value={finTransactionForm.date} 
+                          onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, date: e.target.value })} 
+                        />
+
+                        {(!editingPurchaseGroup) && (
+                          <div className="w-full">
+                            <label className="block text-xs font-medium text-[#86868b] dark:text-zinc-400 tracking-tight mb-1.5 ml-0.5">Status</label>
+                            <select
+                              disabled={isNewInstallment}
+                              className="w-full h-[42px] px-3.5 py-2.5 bg-[#f5f5f7] dark:bg-zinc-900 border border-black/[0.08] dark:border-white/[0.08] rounded-xl text-xs sm:text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] focus:bg-white dark:focus:bg-zinc-800 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                              value={isNewInstallment ? 'pendente' : finTransactionForm.status}
+                              onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, status: e.target.value })}
+                            >
+                              {!isNewInstallment && <option value="pago">Pago / Recebido</option>}
+                              <option value="pendente">Pendente</option>
+                            </select>
+                            {isNewInstallment && (
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 ml-0.5 font-medium">
+                                Compras parceladas iniciam automaticamente como Pendentes.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {!isTransfer && (
+                        <>
+                          {/* Installment Options */}
+                          <div className="mt-4 p-4 bg-gray-50 dark:bg-white/[0.04] rounded-2xl border border-gray-100 dark:border-white/[0.08]">
+                            <div className="flex items-center gap-2 mb-4">
+                              <input 
+                                type="checkbox" 
+                                id="is_installment"
+                                checked={finTransactionForm.is_installment}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setFinTransactionForm((prev) => ({
+                                    ...prev,
+                                    is_installment: checked,
+                                    total_installments: checked
+                                      ? (Number(prev.total_installments) >= 2 ? prev.total_installments : '2')
+                                      : '1',
+                                    status: !editingFinTransaction && checked ? 'pendente' : prev.status,
+                                    splits: !editingFinTransaction && checked
+                                      ? prev.splits.map((s) => ({ ...s, status: 'pendente' }))
+                                      : prev.splits,
+                                  }));
+                                }}
+                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                              />
+                              <label htmlFor="is_installment" className="text-sm font-semibold text-gray-700 dark:text-zinc-200">Compra Parcelada</label>
+                            </div>
+                            
+                            {finTransactionForm.is_installment && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                <Input 
+                                  label="Número de Parcelas" 
+                                  type="number" 
+                                  min="2"
+                                  noMargin
+                                  value={finTransactionForm.total_installments} 
+                                  onChange={(e: any) => setFinTransactionForm({ ...finTransactionForm, total_installments: e.target.value })} 
+                                />
+                                <div className="text-xs text-gray-500 dark:text-zinc-400 space-y-1 tabular-nums">
+                                  <p className="italic">
+                                    * Serão mantidos {instCountPreview} lançamentos mensais automáticos com ajuste exato de centavos.
+                                  </p>
+                                  {installmentPreview.length > 0 && (
+                                    <p className="font-semibold text-indigo-600 dark:text-indigo-400">
+                                      Previsão: {instCountPreview}x de R$ {installmentPreview[installmentPreview.length - 1].toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                      {installmentPreview[0] !== installmentPreview[installmentPreview.length - 1]
+                                        ? ` (1ª de R$ ${installmentPreview[0].toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`
+                                        : ''}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             )}
-                            <div className="mt-1">
-                              <FinancialStatusBadge status={t.status} />
+                          </div>
+
+                          {/* Split Responsibility */}
+                          <div className="mt-4 p-4 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-2">
+                                <Users size={18} className="text-indigo-600 dark:text-indigo-400" />
+                                <h4 className="text-sm font-bold text-gray-800 dark:text-zinc-100">
+                                  {finTransactionForm.is_installment ? 'Divisão de Responsabilidade (Total da Compra)' : 'Divisão de Responsabilidade'}
+                                </h4>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  const newSplits = [...finTransactionForm.splits, { name: '', amount: 0, status: 'pendente' as const }];
+                                  setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                                }}
+                                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1"
+                              >
+                                <Plus size={14} /> Adicionar Pessoa
+                              </button>
+                            </div>
+
+                            <div className="space-y-4 sm:space-y-3">
+                              {finTransactionForm.splits.map((split, index) => (
+                                <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end bg-white dark:bg-[#1c1c1e] sm:bg-transparent dark:sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-indigo-100 dark:border-indigo-500/20 shadow-sm sm:shadow-none">
+                                  <div className="flex-1">
+                                    <label className="block text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-2 ml-1">Responsável</label>
+                                    <select
+                                      className="w-full px-5 py-3 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                                      value={split.name}
+                                      onChange={async (e) => {
+                                        if (e.target.value === 'ADD_NEW') {
+                                          const name = prompt('Nome do novo responsável:');
+                                          if (name && name.trim()) {
+                                            try {
+                                              const res = await fetchWithAuth('/api/finance/responsibles', {
+                                                method: 'POST',
+                                                body: JSON.stringify({ name: name.trim() })
+                                              });
+                                              if (res.ok) {
+                                                await fetchResponsibles();
+                                                const newSplits = [...finTransactionForm.splits];
+                                                newSplits[index].name = name.trim();
+                                                setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                                              } else {
+                                                const err = await res.json().catch(() => ({ message: res.statusText }));
+                                                dialogAlert(err.message || 'Erro ao adicionar responsável');
+                                              }
+                                            } catch (error) {
+                                              console.error('Error adding responsible:', error);
+                                              dialogAlert('Erro de conexão ao adicionar responsável');
+                                            }
+                                          }
+                                        } else {
+                                          const newSplits = [...finTransactionForm.splits];
+                                          newSplits[index].name = e.target.value;
+                                          setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                                        }
+                                      }}
+                                    >
+                                      <option value="">Selecione...</option>
+                                      {finResponsibles.map(r => (
+                                        <option key={r.id} value={r.name}>{r.name}</option>
+                                      ))}
+                                      <option value="ADD_NEW" className="font-bold text-indigo-600">+ Adicionar Novo...</option>
+                                    </select>
+                                  </div>
+                                  <div className="w-full sm:w-36">
+                                    <Input 
+                                      label={finTransactionForm.is_installment ? "Valor Total" : "Valor"}
+                                      type="number"
+                                      step="0.01"
+                                      noMargin={true}
+                                      value={split.amount}
+                                      onChange={(e: any) => {
+                                        const newSplits = [...finTransactionForm.splits];
+                                        newSplits[index].amount = Number(e.target.value);
+                                        setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                                      }}
+                                    />
+                                  </div>
+                                  {!isNewInstallment && !editingPurchaseGroup && (
+                                    <div className="w-full sm:w-36">
+                                      <label className="block text-[11px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-widest mb-2 ml-1">Status</label>
+                                      <select
+                                        className="w-full px-5 py-3 bg-gray-50/50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
+                                        value={split.status || 'pendente'}
+                                        onChange={(e: any) => {
+                                          const newSplits = [...finTransactionForm.splits];
+                                          newSplits[index].status = e.target.value;
+                                          setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                                        }}
+                                      >
+                                        <option value="pendente">Pendente</option>
+                                        <option value="pago">Pago</option>
+                                      </select>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-end sm:pb-1">
+                                    <button 
+                                      onClick={() => {
+                                        const newSplits = finTransactionForm.splits.filter((_, i) => i !== index);
+                                        setFinTransactionForm({ ...finTransactionForm, splits: newSplits });
+                                      }}
+                                      className="p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-xl flex items-center justify-center transition-colors"
+                                      title="Remover responsável"
+                                    >
+                                      <Trash2 size={18} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              {finTransactionForm.splits.length > 0 && (
+                                <div className="pt-2 border-t border-indigo-100 dark:border-indigo-500/20 flex justify-between items-center">
+                                  <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">Total Dividido:</span>
+                                  <span className={cn("font-bold tabular-nums", 
+                                    Math.abs(splitsSum - netVal) <= 0.01
+                                      ? "text-emerald-600 dark:text-emerald-400" 
+                                      : "text-amber-600 dark:text-amber-400"
+                                  )}>
+                                    R$ {splitsSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ {netVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                        {editingFinTransaction && (
+                          <button
+                            onClick={() => {
+                              setEditingFinTransaction(null);
+                              setEditingPurchaseGroup(null);
+                              setFinTransactionForm(createEmptyFinTxForm());
+                            }}
+                            className="w-full sm:w-auto px-6 py-3.5 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                        <button 
+                          onClick={handleSaveFinTransaction}
+                          disabled={
+                            isTransfer
+                              ? (!finTransactionForm.amount || !finTransactionForm.account_id || !finTransactionForm.to_account_id)
+                              : (!finTransactionForm.description || !finTransactionForm.amount || !finTransactionForm.category_id || !finTransactionForm.account_id)
+                          }
+                          className="flex-1 w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 dark:shadow-none disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Save size={16} />
+                          {editingFinTransaction ? 'Atualizar Lançamento' : isTransfer ? 'Registrar Transferência' : 'Salvar Lançamento'}
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </Card>
+
+              {(() => {
+                const monthTransactions = finTransactions.filter((t) => {
+                  const acc = finAccounts.find((a) => a.id === t.account_id);
+                  return doesTransactionBelongToCompetence(t, acc, finFilter.year, finFilter.month);
+                });
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+                        Lançamentos do Mês ({monthTransactions.length})
+                      </h3>
+                      <button
+                        onClick={() => setActiveTab('fin_extract')}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Ver Extrato Completo</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                    {monthTransactions.map(t => {
+                      const isExpanded = expandedTransactions.has(t.id);
+                      const isLongDescription = t.description.length > 40;
+                      const displayDescription = isExpanded || !isLongDescription ? t.description : `${t.description.substring(0, 40)}...`;
+                      const acc = finAccounts.find(a => a.id === t.account_id);
+                      const catName = finCategories.find(c => c.id === t.category_id)?.name || '';
+                      const isTransferRow = isTransferTransaction(t, catName);
+
+                      return (
+                        <div key={t.id} className={cn("bg-white dark:bg-[#1c1c1e] p-4 rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-sm flex flex-col gap-3 group transition-all", t.status === 'pendente' ? 'opacity-80' : '')}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+                              <div className={cn(
+                                "p-3 rounded-xl shrink-0 mt-1 sm:mt-0",
+                                isTransferRow
+                                  ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                                  : t.type === 'receita'
+                                  ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400"
+                              )}>
+                                {isTransferRow ? <ArrowRightLeft size={20} /> : t.type === 'receita' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 
+                                    className={cn("font-bold text-gray-800 dark:text-zinc-100 cursor-pointer truncate max-w-full", isLongDescription ? "hover:text-indigo-600 dark:hover:text-indigo-400" : "")}
+                                    onClick={() => isLongDescription && toggleTransaction(t.id)}
+                                  >
+                                    {displayDescription}
+                                  </h4>
+                                  {isLongDescription && (
+                                    <button 
+                                      onClick={() => toggleTransaction(t.id)}
+                                      className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/15 px-3 py-1 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/25 transition-colors shrink-0"
+                                    >
+                                      {isExpanded ? 'Ver menos' : 'Ver mais'}
+                                    </button>
+                                  )}
+                                  {t.is_installment && (
+                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 px-2 py-0.5 rounded-full shrink-0">
+                                      Parcela {t.installment_number}/{t.total_installments}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 truncate">
+                                  {formatDateString(t.date)}
+                                  {t.due_date && acc?.type === 'credito' ? ` (Venc: ${formatDateString(t.due_date)})` : ''}
+                                  {catName ? ` • ${catName}` : ''}
+                                  {acc?.name ? ` • ${acc.name}` : ''}
+                                </p>
+                                {t.splits && t.splits.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {t.splits.map((s, idx) => (
+                                      <span key={idx} className={cn(
+                                        "text-[9px] font-medium px-1.5 py-0.5 rounded",
+                                        s.status === 'pago'
+                                          ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                          : "text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-white/[0.06]"
+                                      )}>
+                                        {s.name}: R$ {Number(s.amount).toFixed(2)} {s.status === 'pago' ? '✓' : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="mt-1">
+                                  <FinancialStatusBadge status={t.status} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-3 sm:pt-0">
+                              <span className={cn(
+                                "font-bold text-sm md:text-base tabular-nums",
+                                isTransferRow
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : t.type === 'receita'
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-red-600 dark:text-red-400"
+                              )}>
+                                {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                              <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={() => openEditFinTransaction(t)}
+                                  className="p-2 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-50 dark:bg-white/[0.06] md:bg-transparent dark:md:bg-transparent rounded-lg transition-all"
+                                  title={t.is_installment ? "Editar compra parcelada" : "Editar"}
+                                >
+                                  <Edit2 size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteFinTransaction(t)}
+                                  className="p-2 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-white/[0.06] md:bg-transparent dark:md:bg-transparent rounded-lg transition-all"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                          <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-white/[0.06] pt-3 sm:pt-0">
-                            <span className={cn("font-bold text-sm md:text-base tabular-nums", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                              {t.type === 'receita' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                            <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => { 
-                                  setEditingFinTransaction(t); 
-                                  setFinTransactionForm({ 
-                                    description: t.description, 
-                                    amount: t.amount.toString(), 
-                                    type: t.type, 
-                                    category_id: t.category_id.toString(), 
-                                    account_id: t.account_id.toString(), 
-                                    date: t.date, 
-                                    due_date: t.due_date || '',
-                                    status: t.status,
-                                    is_installment: t.is_installment || false,
-                                    total_installments: (t.total_installments || 1).toString(),
-                                    splits: t.splits || []
-                                  }); 
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                                className="p-2 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-50 dark:bg-white/[0.06] md:bg-transparent dark:md:bg-transparent rounded-lg transition-all"
-                              >
-                                <Edit2 size={18} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteFinTransaction(t.id)}
-                                className="p-2 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-white/[0.06] md:bg-transparent dark:md:bg-transparent rounded-lg transition-all"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
 
@@ -4986,31 +5402,32 @@ Escalas GMNL ${year}`;
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <button 
                     onClick={async () => {
-                      if (await dialogConfirm('Deseja recalcular e atualizar a data de vencimento de TODOS os lançamentos em cartões de crédito? Isso será feito com base nos dias de fechamento e vencimento de cada cartão.')) {
-                        setIsUpdatingDueDates(true);
-                        try {
-                          let updatedCount = 0;
-                          for (const transaction of finTransactions) {
-                            const account = finAccounts.find(a => a.id === transaction.account_id);
-                            if (account && account.type === 'credito' && account.closing_day && account.due_day) {
-                              const installmentOffset = transaction.is_installment ? Math.max(0, (Number(transaction.installment_number) || 1) - 1) : 0;
-                              const newDueDate = calculateDueDate(transaction.date, Number(account.closing_day), Number(account.due_day), installmentOffset);
-                              if (newDueDate && newDueDate !== transaction.due_date) {
-                                await fetchWithAuth(`/api/finance/transactions/${transaction.id}`, {
-                                  method: 'PUT',
-                                  body: JSON.stringify({ due_date: newDueDate })
-                                });
-                                updatedCount++;
-                              }
-                            }
-                          }
-                          dialogAlert(`Atualização concluída! ${updatedCount} lançamentos foram atualizados.`);
+                      const mode = await askOptions({
+                        title: 'Recalcular Vencimentos de Cartão',
+                        message: 'Deseja recalcular os vencimentos de acordo com o dia de fechamento e vencimento atuais de cada cartão?',
+                        options: [
+                          { label: 'Somente parcelas pendentes (recomendado)', value: 'pending' },
+                          { label: 'Todos os lançamentos de cartão', value: 'all' }
+                        ]
+                      });
+                      if (!mode) return;
+                      setIsUpdatingDueDates(true);
+                      try {
+                        const res = await fetchWithAuth('/api/finance/recalculate-credit-dates', {
+                          method: 'POST',
+                          body: JSON.stringify({ mode })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (res.ok) {
+                          dialogAlert(`Atualização concluída! ${data.updated_count ?? 0} lançamento(s) recalculado(s).`, 'Sucesso');
                           fetchFinancialData();
-                        } catch (e) {
-                          dialogAlert('Erro durante a atualização em massa.');
-                        } finally {
-                          setIsUpdatingDueDates(false);
+                        } else {
+                          dialogAlert(`Erro ao recalcular: ${data.error || 'Falha no servidor'}`);
                         }
+                      } catch (e) {
+                        dialogAlert('Erro durante a atualização em massa.');
+                      } finally {
+                        setIsUpdatingDueDates(false);
                       }
                     }}
                     disabled={isUpdatingDueDates}
@@ -5101,12 +5518,6 @@ Escalas GMNL ${year}`;
                       value={finAccountForm.name} 
                       onChange={(e: any) => setFinAccountForm({ ...finAccountForm, name: e.target.value })} 
                     />
-                    <Input 
-                      label="Saldo Inicial" 
-                      type="number" 
-                      value={finAccountForm.initial_balance} 
-                      onChange={(e: any) => setFinAccountForm({ ...finAccountForm, initial_balance: e.target.value })} 
-                    />
                     <div className="mb-1">
                       <Select
                         label="Tipo"
@@ -5119,54 +5530,97 @@ Escalas GMNL ${year}`;
                         ]}
                       />
                     </div>
+                    {finAccountForm.type === 'credito' ? (
+                      <Input 
+                        label="Limite do Cartão (R$)" 
+                        type="number" 
+                        step="0.01"
+                        value={finAccountForm.credit_limit} 
+                        onChange={(e: any) => setFinAccountForm({ ...finAccountForm, credit_limit: e.target.value })} 
+                      />
+                    ) : (
+                      <Input 
+                        label="Saldo Inicial (R$)" 
+                        type="number" 
+                        step="0.01"
+                        value={finAccountForm.initial_balance} 
+                        onChange={(e: any) => setFinAccountForm({ ...finAccountForm, initial_balance: e.target.value })} 
+                      />
+                    )}
 
                     {finAccountForm.type === 'credito' && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <Input 
-                          label="Dia do Fechamento" 
-                          type="number" 
+                          label="Dia do Fechamento (1-31)" 
+                          type="number"
+                          min="1"
+                          max="31"
                           value={finAccountForm.closing_day} 
                           onChange={(e: any) => setFinAccountForm({ ...finAccountForm, closing_day: e.target.value })} 
                         />
                         <Input 
-                          label="Dia do Vencimento" 
-                          type="number" 
+                          label="Dia do Vencimento (1-31)" 
+                          type="number"
+                          min="1"
+                          max="31"
                           value={finAccountForm.due_day} 
                           onChange={(e: any) => setFinAccountForm({ ...finAccountForm, due_day: e.target.value })} 
                         />
                       </div>
                     )}
 
-                    <button 
-                      onClick={handleSaveFinAccount}
-                      disabled={!finAccountForm.name}
-                      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-indigo-200 dark:shadow-none"
-                    >
-                      {editingFinAccount ? 'Atualizar Conta' : 'Adicionar Conta'}
-                    </button>
+                    <div className="flex gap-2">
+                      {editingFinAccount && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingFinAccount(null);
+                            setFinAccountForm({ name: '', initial_balance: '', credit_limit: '', type: 'corrente', closing_day: '', due_day: '' });
+                          }}
+                          className="px-4 py-2.5 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 rounded-xl font-bold text-xs hover:bg-gray-200 dark:hover:bg-white/[0.14] transition-colors cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                      <button 
+                        onClick={handleSaveFinAccount}
+                        disabled={!finAccountForm.name}
+                        className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-indigo-200 dark:shadow-none"
+                      >
+                        {editingFinAccount ? 'Atualizar Conta' : 'Adicionar Conta'}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {finAccounts.map(a => (
-                      <div key={a.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] group">
-                        <div>
-                          <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm block">{a.name}</span>
-                          <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase">{a.type} • Inicial: R$ {Number(a.initial_balance).toFixed(2)}</span>
+                    {finAccounts.map(a => {
+                      const limitVal = getAccountCreditLimit(a);
+                      return (
+                        <div key={a.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] group">
+                          <div>
+                            <span className="font-bold text-gray-800 dark:text-zinc-100 text-sm block">{a.name}</span>
+                            <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                              {a.type === 'credito'
+                                ? `Crédito • Limite: R$ ${limitVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Fecha ${a.closing_day || '--'} / Vence ${a.due_day || '--'}`
+                                : `${a.type} • Inicial: R$ ${Number(a.initial_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { 
+                              setEditingFinAccount(a); 
+                              setFinAccountForm({ 
+                                name: a.name, 
+                                initial_balance: String(a.initial_balance ?? 0),
+                                credit_limit: a.type === 'credito' ? String(getAccountCreditLimit(a)) : '',
+                                type: a.type,
+                                closing_day: a.closing_day?.toString() || '',
+                                due_day: a.due_day?.toString() || ''
+                              }); 
+                            }} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Editar"><Edit2 size={14} /></button>
+                            <button onClick={() => handleDeleteFinAccount(a.id)} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Excluir"><Trash2 size={14} /></button>
+                          </div>
                         </div>
-                        <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { 
-                            setEditingFinAccount(a); 
-                            setFinAccountForm({ 
-                              name: a.name, 
-                              initial_balance: a.initial_balance.toString(), 
-                              type: a.type,
-                              closing_day: a.closing_day?.toString() || '',
-                              due_day: a.due_day?.toString() || ''
-                            }); 
-                          }} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Editar"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDeleteFinAccount(a.id)} className="p-1.5 text-gray-400 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white dark:hover:bg-white/[0.08]" title="Excluir"><Trash2 size={14} /></button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </Card>
               </div>
@@ -5669,6 +6123,64 @@ Escalas GMNL ${year}`;
 
         </AnimatePresence>
       </main>
+
+      {payInvoiceModal && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setPayInvoiceModal(null)}>
+          <div className="bg-white dark:bg-[#1c1c1e] border border-transparent dark:border-white/[0.08] rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 md:p-6 border-b border-gray-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-100">Pagar Fatura</h3>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{payInvoiceModal.cardName}</p>
+              </div>
+              <button onClick={() => setPayInvoiceModal(null)} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 md:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="p-3.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl flex items-center justify-between">
+                <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase">Valor Pendente</span>
+                <span className="text-base font-bold text-indigo-900 dark:text-indigo-100 tabular-nums">
+                  R$ {payInvoiceModal.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Conta Pagadora</label>
+                <select
+                  value={payInvoiceModal.payingAccountId}
+                  onChange={(e) => setPayInvoiceModal({ ...payInvoiceModal, payingAccountId: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm text-gray-900 dark:text-zinc-100"
+                >
+                  <option value="">Selecione a conta corrente ou dinheiro...</option>
+                  {finAccounts.filter(a => a.type !== 'credito').map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                label="Data do Pagamento"
+                type="date"
+                value={payInvoiceModal.paymentDate}
+                onChange={(e: any) => setPayInvoiceModal({ ...payInvoiceModal, paymentDate: e.target.value })}
+              />
+            </div>
+            <div className="p-5 md:p-6 flex flex-col sm:flex-row gap-3 border-t border-gray-100 dark:border-white/[0.08] shrink-0">
+              <button
+                onClick={() => setPayInvoiceModal(null)}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmPayInvoice}
+                disabled={!payInvoiceModal.payingAccountId}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Confirmar Pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editingClientInstallment && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">

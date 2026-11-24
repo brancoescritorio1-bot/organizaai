@@ -4,6 +4,18 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import {
+  round2,
+  normalizeDateStr,
+  addMonthsPreservingDay,
+  calculateCreditCardInvoiceDates,
+  doesTransactionBelongToCompetence,
+  distributeInstallmentsCents,
+  distributeSplitsCents,
+  resolvePurchaseGroup,
+  getAccountCreditLimit,
+  computeFinancialDashboard,
+} from "./src/lib/financeMath";
 
 let currentDir = process.cwd();
 // Removing import.meta.url to prevent Vercel ncc build errors
@@ -693,40 +705,182 @@ app.get("/api/config", (req, res) => {
     res.json({ success: true });
   });
 
+  const isFinMissingColumnError = (err: any) => {
+    if (!err) return false;
+    const msg = String(err.message || '');
+    return err.code === '42703' || err.code === 'PGRST204' || msg.includes('column') || msg.includes('schema cache');
+  };
+
+  const FIN_OPTIONAL_TX_COLS = ['gross_amount', 'discount_amount', 'is_transfer', 'transfer_account_id', 'transfer_group_id'];
+  const FIN_OPTIONAL_ACC_COLS = ['credit_limit'];
+
+  const stripKeys = (obj: Record<string, any>, keys: string[]) => {
+    const copy: Record<string, any> = {};
+    Object.keys(obj).forEach((k) => {
+      if (!keys.includes(k) && obj[k] !== undefined) copy[k] = obj[k];
+    });
+    return copy;
+  };
+
+  const safeInsertFinTransactions = async (rows: any[]) => {
+    const firstAttempt = await supabase.from("financial_transactions").insert(rows).select();
+    if (!firstAttempt.error) return firstAttempt;
+    if (!isFinMissingColumnError(firstAttempt.error)) return firstAttempt;
+    const strippedRows = rows.map((r) => stripKeys(r, FIN_OPTIONAL_TX_COLS));
+    return await supabase.from("financial_transactions").insert(strippedRows).select();
+  };
+
+  const safeUpdateFinTransaction = async (id: any, userId: string, patch: Record<string, any>) => {
+    const firstAttempt = await supabase
+      .from("financial_transactions")
+      .update(patch)
+      .eq("id", id)
+      .eq("user_id", userId);
+    if (!firstAttempt.error) return firstAttempt;
+    if (!isFinMissingColumnError(firstAttempt.error)) return firstAttempt;
+    const stripped = stripKeys(patch, FIN_OPTIONAL_TX_COLS);
+    if (Object.keys(stripped).length === 0) return { data: null, error: null };
+    return await supabase
+      .from("financial_transactions")
+      .update(stripped)
+      .eq("id", id)
+      .eq("user_id", userId);
+  };
+
+  const recalculateCardPendingDueDates = async (userId: string, cardId: any, closingDay: number, dueDay: number, mode: 'pending' | 'all' = 'pending') => {
+    const { data: cardTxs, error } = await supabase
+      .from("financial_transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("account_id", cardId);
+    if (error || !cardTxs || cardTxs.length === 0) return 0;
+
+    let updatedCount = 0;
+    for (const tx of cardTxs) {
+      if (mode === 'pending' && tx.status === 'pago') continue;
+      const group = resolvePurchaseGroup(tx, cardTxs);
+      const anchorDate = group.purchaseDate || normalizeDateStr(tx.date);
+      const instOffset = tx.is_installment ? Math.max(0, Number(tx.installment_number || 1) - 1) : 0;
+      const info = calculateCreditCardInvoiceDates(anchorDate, closingDay, dueDay, instOffset);
+      if (info.dueDateStr && info.dueDateStr !== normalizeDateStr(tx.due_date)) {
+        const { error: uErr } = await supabase
+          .from("financial_transactions")
+          .update({ due_date: info.dueDateStr })
+          .eq("id", tx.id)
+          .eq("user_id", userId);
+        if (!uErr) updatedCount++;
+      }
+    }
+    return updatedCount;
+  };
+
   // Accounts
-  app.get("/api/finance/accounts", async (req, res) => { try { 
-    const user = (req as any).user;
-    const { data, error } = await supabase.from("financial_accounts").select("*").eq("user_id", user.id);
-    if (error) return res.status(500).json(error);
-     res.json(data || []); } catch (err: any) { res.status(500).json({ error: err.message }); } });
+  app.get("/api/finance/accounts", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { data, error } = await supabase.from("financial_accounts").select("*").eq("user_id", user.id);
+      if (error) return res.status(500).json(error);
+      const normalized = (data || []).map((acc: any) => ({
+        ...acc,
+        credit_limit: acc.type === 'credito' ? getAccountCreditLimit(acc) : (acc.credit_limit ?? null),
+      }));
+      res.json(normalized);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   app.post("/api/finance/accounts", async (req, res) => {
-    const user = (req as any).user;
-    const { name, initial_balance, type, closing_day, due_day } = req.body;
-    const { data, error } = await supabase.from("financial_accounts").insert([{ 
-      name, 
-      initial_balance, 
-      type, 
-      closing_day, 
-      due_day, 
-      user_id: user.id 
-    }]).select().single();
-    if (error) return res.status(500).json(error);
-    res.json(data);
+    try {
+      const user = (req as any).user;
+      const { name, initial_balance, credit_limit, type, closing_day, due_day } = req.body;
+      const cleanLimit = credit_limit !== undefined && credit_limit !== '' && credit_limit !== null
+        ? Number(credit_limit)
+        : Number(initial_balance || 0);
+      const insertPayload: any = {
+        name,
+        initial_balance: type === 'credito' ? cleanLimit : Number(initial_balance || 0),
+        credit_limit: type === 'credito' ? cleanLimit : null,
+        type,
+        closing_day: type === 'credito' && closing_day ? Math.max(1, Math.min(31, Number(closing_day))) : null,
+        due_day: type === 'credito' && due_day ? Math.max(1, Math.min(31, Number(due_day))) : null,
+        user_id: user.id
+      };
+
+      let result = await supabase.from("financial_accounts").insert([insertPayload]).select().single();
+      if (result.error && isFinMissingColumnError(result.error)) {
+        result = await supabase.from("financial_accounts").insert([stripKeys(insertPayload, FIN_OPTIONAL_ACC_COLS)]).select().single();
+      }
+      if (result.error) return res.status(500).json(result.error);
+      res.json({
+        ...result.data,
+        credit_limit: result.data?.type === 'credito' ? getAccountCreditLimit(result.data) : null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.put("/api/finance/accounts/:id", async (req, res) => {
-    const user = (req as any).user;
-    const { name, initial_balance, type, closing_day, due_day } = req.body;
-    const { error } = await supabase.from("financial_accounts").update({ 
-      name, 
-      initial_balance, 
-      type, 
-      closing_day, 
-      due_day 
-    }).eq("id", req.params.id).eq("user_id", user.id);
-    if (error) return res.status(500).json(error);
-    res.json({ success: true });
+    try {
+      const user = (req as any).user;
+      const { name, initial_balance, credit_limit, type, closing_day, due_day } = req.body;
+
+      const { data: oldAcc } = await supabase
+        .from("financial_accounts")
+        .select("*")
+        .eq("id", req.params.id)
+        .eq("user_id", user.id)
+        .single();
+
+      const cleanLimit = credit_limit !== undefined && credit_limit !== '' && credit_limit !== null
+        ? Number(credit_limit)
+        : Number(initial_balance ?? oldAcc?.credit_limit ?? oldAcc?.initial_balance ?? 0);
+
+      const cleanClosing = type === 'credito' && closing_day ? Math.max(1, Math.min(31, Number(closing_day))) : null;
+      const cleanDue = type === 'credito' && due_day ? Math.max(1, Math.min(31, Number(due_day))) : null;
+
+      const updatePayload: any = {
+        name,
+        initial_balance: type === 'credito' ? cleanLimit : Number(initial_balance || 0),
+        credit_limit: type === 'credito' ? cleanLimit : null,
+        type,
+        closing_day: cleanClosing,
+        due_day: cleanDue,
+      };
+
+      let result = await supabase
+        .from("financial_accounts")
+        .update(updatePayload)
+        .eq("id", req.params.id)
+        .eq("user_id", user.id);
+
+      if (result.error && isFinMissingColumnError(result.error)) {
+        result = await supabase
+          .from("financial_accounts")
+          .update(stripKeys(updatePayload, FIN_OPTIONAL_ACC_COLS))
+          .eq("id", req.params.id)
+          .eq("user_id", user.id);
+      }
+
+      if (result.error) return res.status(500).json(result.error);
+
+      let recalculatedDueDates = 0;
+      if (
+        type === 'credito' &&
+        cleanClosing &&
+        cleanDue &&
+        (Number(oldAcc?.closing_day) !== cleanClosing ||
+          Number(oldAcc?.due_day) !== cleanDue ||
+          oldAcc?.type !== 'credito')
+      ) {
+        recalculatedDueDates = await recalculateCardPendingDueDates(user.id, req.params.id, cleanClosing, cleanDue, 'pending');
+      }
+
+      res.json({ success: true, recalculated_due_dates: recalculatedDueDates });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.delete("/api/finance/accounts/:id", async (req, res) => {
@@ -758,89 +912,6 @@ app.get("/api/config", (req, res) => {
     res.json({ success: true });
   });
 
-  // --- Financial Module Helper Functions ---
-  const addMonthsPreservingDay = (dateStr, monthsToAdd) => {
-    if (!dateStr) return dateStr;
-    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
-    let targetYear = y;
-    let targetMonth = (m - 1) + monthsToAdd;
-    targetYear += Math.floor(targetMonth / 12);
-    targetMonth = ((targetMonth % 12) + 12) % 12;
-
-    const maxDays = new Date(targetYear, targetMonth + 1, 0).getDate();
-    const clampedDay = Math.min(d, maxDays);
-
-    return targetYear + '-' + String(targetMonth + 1).padStart(2, '0') + '-' + String(clampedDay).padStart(2, '0');
-  };
-
-  const calculateCreditCardInvoiceDates = (purchaseDateStr, closingDay, dueDay) => {
-    if (!purchaseDateStr) return { invoiceYear: new Date().getFullYear(), invoiceMonth: new Date().getMonth(), dueDateStr: '' };
-    const [y, m, d] = purchaseDateStr.split('T')[0].split('-').map(Number);
-    let invoiceMonth = m - 1; // 0-indexed
-    let invoiceYear = y;
-
-    // Rule: Purchases ON or BEFORE closingDay fall into current billing cycle.
-    // Purchases AFTER closingDay fall into next billing cycle.
-    if (d > closingDay) {
-      invoiceMonth += 1;
-    }
-    if (invoiceMonth > 11) {
-      invoiceYear += Math.floor(invoiceMonth / 12);
-      invoiceMonth = invoiceMonth % 12;
-    }
-
-    let dueMonth = invoiceMonth;
-    let dueYear = invoiceYear;
-    if (dueDay <= closingDay) {
-      dueMonth += 1;
-      if (dueMonth > 11) {
-        dueYear += Math.floor(dueMonth / 12);
-        dueMonth = dueMonth % 12;
-      }
-    }
-
-    const maxDueDays = new Date(dueYear, dueMonth + 1, 0).getDate();
-    const clampedDueDay = Math.min(dueDay, maxDueDays);
-
-    const dueDateStr = dueYear + '-' + String(dueMonth + 1).padStart(2, '0') + '-' + String(clampedDueDay).padStart(2, '0');
-    return { invoiceYear, invoiceMonth, dueDateStr };
-  };
-
-  const distributeInstallments = (totalAmount, totalInstallments) => {
-    const totalCents = Math.round(Number(totalAmount) * 100);
-    const n = Math.max(1, Math.floor(totalInstallments));
-    const baseCents = Math.floor(totalCents / n);
-    const remainderCents = totalCents % n;
-
-    const results = [];
-    for (let i = 1; i <= n; i++) {
-      const cents = baseCents + (i <= remainderCents ? 1 : 0);
-      results.push(Number((cents / 100).toFixed(2)));
-    }
-    return results;
-  };
-
-  const distributeSplits = (splits, totalInstallments) => {
-    if (!Array.isArray(splits) || splits.length === 0) return [];
-
-    const distributedPerPerson = splits.map(s => {
-      const amounts = distributeInstallments(s.amount, totalInstallments);
-      return { name: s.name, amounts, status: s.status || 'pendente' };
-    });
-
-    const perInstallmentSplits = [];
-    for (let i = 0; i < totalInstallments; i++) {
-      perInstallmentSplits.push(
-        distributedPerPerson.map(p => ({
-          name: p.name,
-          amount: p.amounts[i],
-          status: p.status
-        }))
-      );
-    }
-    return perInstallmentSplits;
-  };
-
   // Transactions
   app.get("/api/finance/transactions", async (req, res) => { 
     try { 
@@ -865,17 +936,33 @@ app.get("/api/config", (req, res) => {
   app.post("/api/finance/transactions", async (req, res) => {
     try {
       const user = (req as any).user;
-      const { 
-        description, amount, type, category_id, account_id, date, due_date, status,
-        is_installment, total_installments, splits 
+      const {
+        description,
+        amount,
+        gross_amount,
+        discount_amount,
+        type,
+        category_id,
+        account_id,
+        date,
+        due_date,
+        status,
+        is_installment,
+        total_installments,
+        splits,
+        is_transfer,
+        transfer_account_id,
+        transfer_group_id,
       } = req.body;
 
       const catId = category_id === '' ? null : category_id;
       const accId = account_id === '' ? null : account_id;
-      const parsedAmount = Number(amount) || 0;
-      const count = Number(total_installments) || 1;
+      const parsedNetAmount = round2(Number(amount) || 0);
+      const parsedDiscount = round2(Number(discount_amount) || 0);
+      const parsedGross = gross_amount != null ? round2(Number(gross_amount)) : round2(parsedNetAmount + parsedDiscount);
+      const count = Math.max(1, Math.floor(Number(total_installments) || 1));
+      const cleanDate = normalizeDateStr(date) || new Date().toISOString().split('T')[0];
 
-      // Get account to determine if credit card
       let account: any = null;
       if (accId) {
         const { data: accData } = await supabase
@@ -887,48 +974,65 @@ app.get("/api/config", (req, res) => {
         account = accData;
       }
 
+      const isCard = account?.type === 'credito' && account?.closing_day && account?.due_day;
+
       if (is_installment && count > 1) {
-        const installmentAmounts = distributeInstallments(parsedAmount, count);
-        const installmentSplits = distributeSplits(splits || [], count);
+        const installmentAmounts = distributeInstallmentsCents(parsedNetAmount, count);
+        // Rule 8: All new installment purchases MUST initialize automatically as 'pendente'
+        const installmentSplits = distributeSplitsCents(splits || [], count, undefined, true);
 
-        let firstDueDate = due_date;
-        if (!firstDueDate && account && account.type === 'credito' && account.closing_day && account.due_day) {
-          const invInfo = calculateCreditCardInvoiceDates(date, Number(account.closing_day), Number(account.due_day));
-          firstDueDate = invInfo.dueDateStr;
-        }
+        const computeDueForIndex = (idx0: number) => {
+          if (isCard) {
+            return calculateCreditCardInvoiceDates(
+              cleanDate,
+              Number(account.closing_day),
+              Number(account.due_day),
+              idx0
+            ).dueDateStr;
+          }
+          if (due_date) {
+            return addMonthsPreservingDay(normalizeDateStr(due_date), idx0);
+          }
+          return null;
+        };
 
-        // 1. Create first installment (parent)
-        const { data: firstInstallment, error: firstError } = await supabase.from("financial_transactions").insert([{
-          description, 
-          amount: installmentAmounts[0], 
-          type, 
-          category_id: catId, 
-          account_id: accId, 
-          date, 
-          status: status || 'pendente', 
+        const firstRow: any = {
+          description,
+          amount: installmentAmounts[0],
+          gross_amount: parsedGross,
+          discount_amount: parsedDiscount,
+          type,
+          category_id: catId,
+          account_id: accId,
+          date: cleanDate,
+          due_date: computeDueForIndex(0),
+          status: 'pendente',
           user_id: user.id,
           is_installment: true,
           installment_number: 1,
           total_installments: count,
+          parent_transaction_id: null,
           splits: installmentSplits[0] || [],
-          due_date: firstDueDate
-        }]).select().single();
+        };
 
-        if (firstError) return res.status(500).json(firstError);
+        const { data: firstInserted, error: firstError } = await safeInsertFinTransactions([firstRow]);
+        if (firstError || !firstInserted?.[0]) {
+          return res.status(500).json(firstError || { error: "Failed to create installment #1" });
+        }
+        const firstInstallment = firstInserted[0];
 
-        // 2. Create subsequent installments
-        const subsequentInstallments = [];
+        const subsequentInstallments: any[] = [];
         for (let i = 2; i <= count; i++) {
-          const installmentDate = addMonthsPreservingDay(date, i - 1);
-          const installmentDueDate = firstDueDate ? addMonthsPreservingDay(firstDueDate, i - 1) : null;
-
           subsequentInstallments.push({
             description,
             amount: installmentAmounts[i - 1],
+            gross_amount: null,
+            discount_amount: 0,
             type,
             category_id: catId,
             account_id: accId,
-            date: installmentDate,
+            date: addMonthsPreservingDay(cleanDate, i - 1),
+            due_date: computeDueForIndex(i - 1),
             status: 'pendente',
             user_id: user.id,
             is_installment: true,
@@ -936,42 +1040,173 @@ app.get("/api/config", (req, res) => {
             total_installments: count,
             parent_transaction_id: firstInstallment.id,
             splits: installmentSplits[i - 1] || [],
-            due_date: installmentDueDate
           });
         }
 
         if (subsequentInstallments.length > 0) {
-          const { error: bulkError } = await supabase.from("financial_transactions").insert(subsequentInstallments);
+          const { error: bulkError } = await safeInsertFinTransactions(subsequentInstallments);
           if (bulkError) console.error("Error creating subsequent installments:", bulkError);
         }
 
         return res.json(firstInstallment);
       } else {
-        // Single transaction
-        let calculatedDueDate = due_date;
-        if (!calculatedDueDate && account && account.type === 'credito' && account.closing_day && account.due_day) {
-          const invInfo = calculateCreditCardInvoiceDates(date, Number(account.closing_day), Number(account.due_day));
-          calculatedDueDate = invInfo.dueDateStr;
+        let calculatedDueDate = due_date ? normalizeDateStr(due_date) : null;
+        if (!calculatedDueDate && isCard) {
+          calculatedDueDate = calculateCreditCardInvoiceDates(
+            cleanDate,
+            Number(account.closing_day),
+            Number(account.due_day),
+            0
+          ).dueDateStr;
         }
 
-        const { data, error } = await supabase.from("financial_transactions").insert([{
-          description, 
-          amount: parsedAmount, 
-          type, 
-          category_id: catId, 
-          account_id: accId, 
-          date, 
-          due_date: calculatedDueDate, 
-          status: status || 'pago', 
-          user_id: user.id,
-          splits: splits || []
-        }]).select().single();
+        const singleStatus = status === 'pendente' ? 'pendente' : 'pago';
+        const cleanSplits = (Array.isArray(splits) ? splits : []).map((s: any) => ({
+          name: String(s.name || '').trim(),
+          amount: round2(Number(s.amount || 0)),
+          status: s.status === 'pago' ? 'pago' : 'pendente',
+        }));
 
-        if (error) return res.status(500).json(error);
-        res.json(data);
+        const singleRow: any = {
+          description,
+          amount: parsedNetAmount,
+          gross_amount: parsedGross,
+          discount_amount: parsedDiscount,
+          type,
+          category_id: catId,
+          account_id: accId,
+          date: cleanDate,
+          due_date: calculatedDueDate,
+          status: singleStatus,
+          user_id: user.id,
+          is_installment: false,
+          installment_number: 1,
+          total_installments: 1,
+          parent_transaction_id: null,
+          splits: cleanSplits,
+          is_transfer: Boolean(is_transfer),
+          transfer_account_id: transfer_account_id || null,
+          transfer_group_id: transfer_group_id || null,
+        };
+
+        const { data, error } = await safeInsertFinTransactions([singleRow]);
+        if (error || !data?.[0]) return res.status(500).json(error || { error: "Failed to insert transaction" });
+        res.json(data[0]);
       }
     } catch (err: any) {
       console.error("Error in POST /api/finance/transactions:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
+  // Explicit Account-to-Account Transfer (neutralizes income/expense inflation)
+  app.post("/api/finance/transfers", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { from_account_id, to_account_id, amount, date, description, status } = req.body;
+      const transferAmount = round2(Number(amount) || 0);
+      if (!from_account_id || !to_account_id) {
+        return res.status(400).json({ error: "Selecione as contas de origem e destino." });
+      }
+      if (String(from_account_id) === String(to_account_id)) {
+        return res.status(400).json({ error: "As contas de origem e destino devem ser diferentes." });
+      }
+      if (transferAmount <= 0) {
+        return res.status(400).json({ error: "O valor da transferência deve ser maior que zero." });
+      }
+
+      const { data: accs } = await supabase
+        .from("financial_accounts")
+        .select("*")
+        .eq("user_id", user.id)
+        .in("id", [from_account_id, to_account_id]);
+
+      const fromAcc = (accs || []).find((a: any) => String(a.id) === String(from_account_id));
+      const toAcc = (accs || []).find((a: any) => String(a.id) === String(to_account_id));
+      if (!fromAcc || !toAcc) {
+        return res.status(404).json({ error: "Conta de origem ou destino não encontrada." });
+      }
+      if (fromAcc.type === 'credito' || toAcc.type === 'credito') {
+        return res.status(400).json({ error: "Transferências só podem ocorrer entre contas correntes ou dinheiro. Para cartão, use Pagar Fatura." });
+      }
+
+      // Ensure Transferência categories exist for expense/income tagging & legacy detection
+      const { data: userCats } = await supabase
+        .from("financial_categories")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const ensureTransferCat = async (catType: 'despesa' | 'receita') => {
+        const existing = (userCats || []).find(
+          (c: any) => c.type === catType && String(c.name || '').toLowerCase().includes('transfer')
+        );
+        if (existing) return existing.id;
+        const { data: created } = await supabase
+          .from("financial_categories")
+          .insert([{ name: 'Transferência', type: catType, user_id: user.id }])
+          .select()
+          .single();
+        return created?.id || null;
+      };
+
+      const [outCatId, inCatId] = await Promise.all([
+        ensureTransferCat('despesa'),
+        ensureTransferCat('receita'),
+      ]);
+
+      const cleanDate = normalizeDateStr(date) || new Date().toISOString().split('T')[0];
+      const cleanStatus = status === 'pendente' ? 'pendente' : 'pago';
+      const noteSuffix = description && String(description).trim() ? ` - ${String(description).trim()}` : '';
+      const groupId = `TRF-${Date.now()}`;
+
+      const rows = [
+        {
+          user_id: user.id,
+          description: `Transferência para ${toAcc.name}${noteSuffix}`,
+          amount: transferAmount,
+          gross_amount: transferAmount,
+          discount_amount: 0,
+          type: 'despesa',
+          category_id: outCatId,
+          account_id: fromAcc.id,
+          date: cleanDate,
+          due_date: cleanDate,
+          status: cleanStatus,
+          is_installment: false,
+          installment_number: 1,
+          total_installments: 1,
+          splits: [],
+          is_transfer: true,
+          transfer_account_id: toAcc.id,
+          transfer_group_id: groupId,
+        },
+        {
+          user_id: user.id,
+          description: `Transferência de ${fromAcc.name}${noteSuffix}`,
+          amount: transferAmount,
+          gross_amount: transferAmount,
+          discount_amount: 0,
+          type: 'receita',
+          category_id: inCatId,
+          account_id: toAcc.id,
+          date: cleanDate,
+          due_date: cleanDate,
+          status: cleanStatus,
+          is_installment: false,
+          installment_number: 1,
+          total_installments: 1,
+          splits: [],
+          is_transfer: true,
+          transfer_account_id: fromAcc.id,
+          transfer_group_id: groupId,
+        },
+      ];
+
+      const { data: inserted, error: insErr } = await safeInsertFinTransactions(rows);
+      if (insErr) return res.status(500).json(insErr);
+      res.json({ success: true, transfer_group_id: groupId, transactions: inserted || [] });
+    } catch (err: any) {
+      console.error("Error in POST /api/finance/transfers:", err);
       res.status(500).json({ error: err.message || "Internal server error" });
     }
   });
@@ -984,8 +1219,23 @@ app.get("/api/config", (req, res) => {
       const applyMode = String(req.body.apply_mode || 'per_installment');
       const updateData: any = {};
 
-      const fields = ['description', 'amount', 'type', 'category_id', 'account_id', 'date', 'due_date', 'status', 'splits', 'is_installment', 'installment_number', 'total_installments'];
-      fields.forEach(field => {
+      const fields = [
+        'description',
+        'amount',
+        'gross_amount',
+        'discount_amount',
+        'type',
+        'category_id',
+        'account_id',
+        'date',
+        'due_date',
+        'status',
+        'splits',
+        'is_installment',
+        'installment_number',
+        'total_installments',
+      ];
+      fields.forEach((field) => {
         if (req.body[field] !== undefined) {
           if ((field === 'category_id' || field === 'account_id') && req.body[field] === '') {
             updateData[field] = null;
@@ -1006,11 +1256,25 @@ app.get("/api/config", (req, res) => {
         return res.status(404).json({ error: "Transaction not found" });
       }
 
-      if (scope === 'single' || !currentTx.is_installment) {
-        const targetAccId = updateData.account_id !== undefined ? updateData.account_id : currentTx.account_id;
-        const targetDate = updateData.date !== undefined ? updateData.date : currentTx.date;
+      const wasInstallment = Boolean(currentTx.is_installment && Number(currentTx.total_installments || 1) > 1);
+      const requestedInstallment =
+        updateData.is_installment !== undefined ? Boolean(updateData.is_installment) : Boolean(currentTx.is_installment);
+      const requestedTotalCount =
+        updateData.total_installments !== undefined
+          ? Math.max(1, Math.floor(Number(updateData.total_installments) || 1))
+          : Math.max(1, Number(currentTx.total_installments || 1));
 
-        if ((updateData.account_id !== undefined || updateData.date !== undefined) && updateData.due_date === undefined && targetAccId) {
+      const convertingSingleToInstallments = !wasInstallment && requestedInstallment && requestedTotalCount > 1;
+
+      if (scope === 'single' && !convertingSingleToInstallments) {
+        const targetAccId = updateData.account_id !== undefined ? updateData.account_id : currentTx.account_id;
+        const targetDate = normalizeDateStr(updateData.date !== undefined ? updateData.date : currentTx.date);
+
+        if (
+          (updateData.account_id !== undefined || updateData.date !== undefined) &&
+          updateData.due_date === undefined &&
+          targetAccId
+        ) {
           const { data: accData } = await supabase
             .from("financial_accounts")
             .select("*")
@@ -1018,36 +1282,66 @@ app.get("/api/config", (req, res) => {
             .eq("user_id", user.id)
             .single();
           if (accData?.type === 'credito' && accData.closing_day && accData.due_day) {
-            const invInfo = calculateCreditCardInvoiceDates(targetDate, Number(accData.closing_day), Number(accData.due_day));
+            const instOffset = currentTx.is_installment ? Math.max(0, Number(currentTx.installment_number || 1) - 1) : 0;
+            // If only this single installment's date or account moved, compute directly with offset 0 from targetDate when date was changed for non-installment or offset from anchor when installment
+            const invInfo = calculateCreditCardInvoiceDates(
+              targetDate,
+              Number(accData.closing_day),
+              Number(accData.due_day),
+              currentTx.is_installment && updateData.date === undefined ? instOffset : 0
+            );
             updateData.due_date = invInfo.dueDateStr;
           }
         }
 
-        const { error } = await supabase.from("financial_transactions")
-          .update(updateData)
-          .eq("id", id)
-          .eq("user_id", user.id);
+        if (updateData.amount !== undefined) {
+          updateData.amount = round2(Number(updateData.amount) || 0);
+        }
+        if (updateData.gross_amount !== undefined) {
+          updateData.gross_amount = round2(Number(updateData.gross_amount) || 0);
+        }
+        if (updateData.discount_amount !== undefined) {
+          updateData.discount_amount = round2(Number(updateData.discount_amount) || 0);
+        }
 
+        const { error } = await safeUpdateFinTransaction(id, user.id, updateData);
         if (error) return res.status(500).json(error);
         return res.json({ success: true });
       }
 
+      // Multi-installment or 1x <-> Nx purchase edit
       const parentId = currentTx.parent_transaction_id || currentTx.id;
-      const { data: allSiblings, error: sibErr } = await supabase
-        .from("financial_transactions")
-        .select("*")
-        .eq("user_id", user.id)
-        .or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`)
-        .order("installment_number", { ascending: true });
+      let allSiblings: any[] = [];
+      if (wasInstallment) {
+        const { data: sibData, error: sibErr } = await supabase
+          .from("financial_transactions")
+          .select("*")
+          .eq("user_id", user.id)
+          .or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`)
+          .order("installment_number", { ascending: true })
+          .order("id", { ascending: true });
 
-      if (sibErr || !allSiblings) {
-        return res.status(500).json(sibErr || { error: "Failed to load siblings" });
+        if (sibErr || !sibData) {
+          return res.status(500).json(sibErr || { error: "Failed to load siblings" });
+        }
+        allSiblings = sibData;
+      } else {
+        allSiblings = [currentTx];
       }
 
       const currentInstNum = Number(currentTx.installment_number || 1);
-      const targetSiblings = scope === 'future'
-        ? allSiblings.filter((s: any) => Number(s.installment_number || 1) >= currentInstNum)
-        : allSiblings;
+      const effectiveScope = convertingSingleToInstallments ? 'all' : scope;
+      const targetSiblings =
+        effectiveScope === 'future'
+          ? allSiblings.filter((s: any) => Number(s.installment_number || 1) >= currentInstNum)
+          : allSiblings;
+
+      const targetCount =
+        effectiveScope === 'all'
+          ? requestedInstallment && requestedTotalCount > 1
+            ? requestedTotalCount
+            : 1
+          : targetSiblings.length;
 
       const targetAccId = updateData.account_id !== undefined ? updateData.account_id : currentTx.account_id;
       let targetAccount: any = null;
@@ -1060,40 +1354,90 @@ app.get("/api/config", (req, res) => {
           .single();
         targetAccount = accData;
       }
+      const isCard = targetAccount?.type === 'credito' && targetAccount?.closing_day && targetAccount?.due_day;
 
-      // Compute amounts for each target sibling
+      // Determine anchor date: for 'all', updateData.date IS installment #1's purchase date; for 'future', updateData.date is currentTx's date
+      const baseAnchorDate =
+        effectiveScope === 'all'
+          ? normalizeDateStr(updateData.date || allSiblings[0].date)
+          : normalizeDateStr(updateData.date || currentTx.date);
+
       let distributedAmounts: number[] | null = null;
       if (updateData.amount !== undefined) {
-        const numericAmount = Number(updateData.amount) || 0;
-        if (applyMode === 'total') {
-          distributedAmounts = distributeInstallments(numericAmount, targetSiblings.length);
+        const numericAmount = round2(Number(updateData.amount) || 0);
+        if (applyMode === 'total' || convertingSingleToInstallments) {
+          distributedAmounts = distributeInstallmentsCents(numericAmount, targetCount);
         } else {
-          distributedAmounts = targetSiblings.map(() => Number(numericAmount.toFixed(2)));
+          distributedAmounts = Array.from({ length: targetCount }, () => numericAmount);
         }
       }
 
-      let distributedSplits: any[] | null = null;
+      let distributedSplits: any[][] | null = null;
       if (Array.isArray(updateData.splits)) {
-        if (applyMode === 'total') {
-          distributedSplits = distributeSplits(updateData.splits, targetSiblings.length);
+        const existingPerInst = Array.from({ length: targetCount }, (_, i) => targetSiblings[i]?.splits || []);
+        if (applyMode === 'total' || convertingSingleToInstallments) {
+          distributedSplits = distributeSplitsCents(updateData.splits, targetCount, existingPerInst, false);
         } else {
-          distributedSplits = targetSiblings.map(() => updateData.splits);
+          distributedSplits = Array.from({ length: targetCount }, (_, i) => {
+            const ex = existingPerInst[i] || [];
+            return updateData.splits.map((s: any) => {
+              const matched = ex.find((e: any) => String(e.name || '').trim().toLowerCase() === String(s.name || '').trim().toLowerCase());
+              return {
+                name: String(s.name || '').trim(),
+                amount: round2(Number(s.amount || 0)),
+                status: matched?.status || s.status || 'pendente',
+              };
+            });
+          });
         }
       }
 
-      const baseNewDate = updateData.date ? String(updateData.date).split('T')[0] : null;
-      let baseFirstDueDate: string | null = null;
-      if (baseNewDate && targetAccount?.type === 'credito' && targetAccount.closing_day && targetAccount.due_day) {
-        baseFirstDueDate = calculateCreditCardInvoiceDates(baseNewDate, Number(targetAccount.closing_day), Number(targetAccount.due_day)).dueDateStr;
-      } else if (updateData.due_date) {
-        baseFirstDueDate = String(updateData.due_date).split('T')[0];
-      }
+      const anchorSibling = targetSiblings[0] || currentTx;
+      const groupParentId = anchorSibling.id;
 
-      for (let idx = 0; idx < targetSiblings.length; idx++) {
+      const computeDateForIdx = (idx: number) => {
+        if (effectiveScope === 'all') {
+          return addMonthsPreservingDay(baseAnchorDate, idx);
+        }
+        const sibInstNum = Number(targetSiblings[idx]?.installment_number || currentInstNum + idx);
+        return addMonthsPreservingDay(baseAnchorDate, sibInstNum - currentInstNum);
+      };
+
+      const computeDueForIdx = (idx: number, sibDate: string, prevDue?: string | null) => {
+        if (isCard) {
+          if (effectiveScope === 'all') {
+            return calculateCreditCardInvoiceDates(
+              baseAnchorDate,
+              Number(targetAccount.closing_day),
+              Number(targetAccount.due_day),
+              idx
+            ).dueDateStr;
+          }
+          const sibInstNum = Number(targetSiblings[idx]?.installment_number || currentInstNum + idx);
+          const inferredPurchaseDate = addMonthsPreservingDay(baseAnchorDate, -(currentInstNum - 1));
+          return calculateCreditCardInvoiceDates(
+            inferredPurchaseDate,
+            Number(targetAccount.closing_day),
+            Number(targetAccount.due_day),
+            sibInstNum - 1
+          ).dueDateStr;
+        }
+        if (updateData.due_date) {
+          const offset = effectiveScope === 'all' ? idx : Number(targetSiblings[idx]?.installment_number || currentInstNum + idx) - currentInstNum;
+          return addMonthsPreservingDay(normalizeDateStr(updateData.due_date), offset);
+        }
+        return prevDue ?? sibDate;
+      };
+
+      const keepCount = Math.min(targetCount, targetSiblings.length);
+      let updatedCount = 0;
+
+      // 1. Update kept existing installments (ALWAYS preserving individual status!)
+      for (let idx = 0; idx < keepCount; idx++) {
         const sib = targetSiblings[idx];
         const patch: any = {};
 
-        ['description', 'category_id', 'account_id', 'type'].forEach(f => {
+        ['description', 'category_id', 'account_id', 'type'].forEach((f) => {
           if (updateData[f] !== undefined) patch[f] = updateData[f];
         });
 
@@ -1104,32 +1448,98 @@ app.get("/api/config", (req, res) => {
           patch.splits = distributedSplits[idx];
         }
 
-        const monthOffset = Number(sib.installment_number || 1) - currentInstNum;
-        if (baseNewDate) {
-          patch.date = addMonthsPreservingDay(baseNewDate, monthOffset);
-        }
-        if (baseFirstDueDate) {
-          patch.due_date = addMonthsPreservingDay(baseFirstDueDate, monthOffset);
-        } else if (updateData.account_id !== undefined && targetAccount?.type === 'credito' && targetAccount.closing_day && targetAccount.due_day) {
-          const sibDate = patch.date || sib.date;
-          patch.due_date = calculateCreditCardInvoiceDates(sibDate, Number(targetAccount.closing_day), Number(targetAccount.due_day)).dueDateStr;
+        if (idx === 0) {
+          if (updateData.gross_amount !== undefined) patch.gross_amount = round2(Number(updateData.gross_amount));
+          if (updateData.discount_amount !== undefined) patch.discount_amount = round2(Number(updateData.discount_amount));
+        } else {
+          if (updateData.gross_amount !== undefined) patch.gross_amount = null;
+          if (updateData.discount_amount !== undefined) patch.discount_amount = 0;
         }
 
-        if (sib.id === currentTx.id && updateData.status !== undefined) {
-          patch.status = updateData.status;
+        const newSibDate = updateData.date !== undefined || effectiveScope === 'all' ? computeDateForIdx(idx) : normalizeDateStr(sib.date);
+        patch.date = newSibDate;
+
+        if (isCard || updateData.due_date !== undefined || updateData.date !== undefined || updateData.account_id !== undefined) {
+          patch.due_date = computeDueForIdx(idx, newSibDate, sib.due_date);
         }
 
-        if (Object.keys(patch).length > 0) {
-          const { error: uErr } = await supabase
-            .from("financial_transactions")
-            .update(patch)
-            .eq("id", sib.id)
-            .eq("user_id", user.id);
-          if (uErr) return res.status(500).json(uErr);
+        if (effectiveScope === 'all') {
+          if (targetCount > 1) {
+            patch.is_installment = true;
+            patch.installment_number = idx + 1;
+            patch.total_installments = targetCount;
+            patch.parent_transaction_id = idx === 0 ? null : groupParentId;
+          } else {
+            // Converted Nx -> 1x
+            patch.is_installment = false;
+            patch.installment_number = 1;
+            patch.total_installments = 1;
+            patch.parent_transaction_id = null;
+          }
+        }
+
+        // Preserve existing payment status on kept installments when editing an installment purchase;
+        // if converted to single (targetCount === 1) or converting 1x -> Nx, rule 8 handles new installments as pendente.
+        if (convertingSingleToInstallments) {
+          patch.status = idx === 0 && sib.status === 'pago' ? 'pago' : 'pendente';
+        }
+
+        const { error: uErr } = await safeUpdateFinTransaction(sib.id, user.id, patch);
+        if (uErr) return res.status(500).json(uErr);
+        updatedCount++;
+      }
+
+      // 2. Insert new installments if count increased (all start as 'pendente' per Rule 8!)
+      if (effectiveScope === 'all' && targetCount > targetSiblings.length) {
+        const newRows: any[] = [];
+        for (let idx = targetSiblings.length; idx < targetCount; idx++) {
+          const newDate = computeDateForIdx(idx);
+          const newDue = computeDueForIdx(idx, newDate, null);
+          const fallbackAmt = distributedAmounts ? distributedAmounts[idx] : round2(Number(anchorSibling.amount || 0));
+          const fallbackSplits = distributedSplits
+            ? distributedSplits[idx].map((sp: any) => ({ ...sp, status: 'pendente' }))
+            : [];
+
+          newRows.push({
+            user_id: user.id,
+            description: updateData.description ?? anchorSibling.description,
+            amount: fallbackAmt,
+            gross_amount: null,
+            discount_amount: 0,
+            type: updateData.type ?? anchorSibling.type,
+            category_id: updateData.category_id !== undefined ? updateData.category_id : anchorSibling.category_id,
+            account_id: targetAccId,
+            date: newDate,
+            due_date: newDue,
+            status: 'pendente',
+            is_installment: true,
+            installment_number: idx + 1,
+            total_installments: targetCount,
+            parent_transaction_id: groupParentId,
+            splits: fallbackSplits,
+          });
+        }
+        if (newRows.length > 0) {
+          const { error: insErr } = await safeInsertFinTransactions(newRows);
+          if (insErr) return res.status(500).json(insErr);
+          updatedCount += newRows.length;
         }
       }
 
-      res.json({ success: true, updated_count: targetSiblings.length });
+      // 3. Remove excess installments if count decreased (e.g. 6x -> 4x or 3x -> 1x)
+      if (effectiveScope === 'all' && targetSiblings.length > targetCount) {
+        const excessIds = targetSiblings.slice(targetCount).map((s: any) => s.id);
+        if (excessIds.length > 0) {
+          const { error: delErr } = await supabase
+            .from("financial_transactions")
+            .delete()
+            .eq("user_id", user.id)
+            .in("id", excessIds);
+          if (delErr) return res.status(500).json(delErr);
+        }
+      }
+
+      res.json({ success: true, updated_count: updatedCount });
     } catch (err: any) {
       console.error("Error in PUT /api/finance/transactions:", err);
       res.status(500).json({ error: err.message || "Internal server error" });
@@ -1164,7 +1574,7 @@ app.get("/api/config", (req, res) => {
             const newParentId = children[0].id;
             await supabase.from("financial_transactions").update({ parent_transaction_id: null }).eq("id", newParentId);
             if (children.length > 1) {
-              const remainingChildIds = children.slice(1).map(c => c.id);
+              const remainingChildIds = children.slice(1).map((c: any) => c.id);
               await supabase.from("financial_transactions").update({ parent_transaction_id: newParentId }).in("id", remainingChildIds);
             }
           }
@@ -1202,6 +1612,43 @@ app.get("/api/config", (req, res) => {
     }
   });
 
+  // Bulk Recalculate Credit Card Due Dates
+  app.post("/api/finance/recalculate-credit-dates", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const mode: 'pending' | 'all' = req.body?.mode === 'all' ? 'all' : 'pending';
+      const targetAccountId = req.body?.account_id;
+
+      let accQuery = supabase
+        .from("financial_accounts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("type", "credito");
+      if (targetAccountId) accQuery = accQuery.eq("id", targetAccountId);
+
+      const { data: cards, error: cardErr } = await accQuery;
+      if (cardErr) return res.status(500).json(cardErr);
+
+      let totalUpdated = 0;
+      for (const card of cards || []) {
+        if (card.closing_day && card.due_day) {
+          totalUpdated += await recalculateCardPendingDueDates(
+            user.id,
+            card.id,
+            Number(card.closing_day),
+            Number(card.due_day),
+            mode
+          );
+        }
+      }
+
+      res.json({ success: true, updated_count: totalUpdated });
+    } catch (err: any) {
+      console.error("Error in /api/finance/recalculate-credit-dates:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
   // Credit Card Invoice Settlement
   app.post("/api/finance/pay-invoice", async (req, res) => {
     try {
@@ -1222,9 +1669,9 @@ app.get("/api/config", (req, res) => {
       if (!card) {
         return res.status(404).json({ error: "Cartão não encontrado" });
       }
-
-      const closingDay = Number(card?.closing_day || 1);
-      const dueDay = Number(card?.due_day || 10);
+      if (card.type !== 'credito') {
+        return res.status(400).json({ error: "A conta selecionada não é um cartão de crédito." });
+      }
 
       const { data: allTxs } = await supabase
         .from("financial_transactions")
@@ -1235,83 +1682,85 @@ app.get("/api/config", (req, res) => {
       const targetMonth = Number(month);
       const targetYear = Number(year);
 
-      const invoiceItemIds: number[] = [];
+      const invoiceItemsToPay: any[] = [];
       let totalAmountToPay = 0;
 
-      (allTxs || []).forEach(t => {
-        let belongs = false;
-        if (t.due_date) {
-          const [dY, dM] = String(t.due_date).split('T')[0].split('-').map(Number);
-          if (dY === targetYear && dM - 1 === targetMonth) belongs = true;
-        } else {
-          const inv = calculateCreditCardInvoiceDates(t.date, closingDay, dueDay);
-          let invDueMonth = inv.invoiceMonth;
-          let invDueYear = inv.invoiceYear;
-          if (dueDay <= closingDay) {
-            invDueMonth += 1;
-            if (invDueMonth > 11) {
-              invDueYear += Math.floor(invDueMonth / 12);
-              invDueMonth = invDueMonth % 12;
-            }
-          }
-          if (invDueYear === targetYear && invDueMonth === targetMonth) belongs = true;
-        }
-
+      (allTxs || []).forEach((t: any) => {
+        const belongs = doesTransactionBelongToCompetence(t, card, targetYear, targetMonth);
         if (belongs && t.status !== 'pago') {
-          invoiceItemIds.push(t.id);
-          totalAmountToPay += Number(t.amount || 0);
+          invoiceItemsToPay.push(t);
+          if (t.type === 'despesa') {
+            totalAmountToPay = round2(totalAmountToPay + Number(t.amount || 0));
+          } else {
+            totalAmountToPay = round2(totalAmountToPay - Number(t.amount || 0));
+          }
         }
       });
 
-      if (invoiceItemIds.length > 0) {
-        for (const tId of invoiceItemIds) {
-          const tx = allTxs?.find(t => t.id === tId);
-          const updatedSplits = (tx?.splits || []).map((s: any) => ({ ...s, status: 'pago' }));
-          await supabase.from("financial_transactions").update({
-            status: 'pago',
-            splits: updatedSplits
-          }).eq("id", tId).eq("user_id", user.id);
-        }
+      if (invoiceItemsToPay.length === 0) {
+        return res.status(400).json({ error: "Não há lançamentos pendentes nesta fatura." });
+      }
 
-        // Record liquid bank/cash outflow without double-counting monthly expenses
-        if (paying_account_id && String(paying_account_id) !== String(card_account_id) && totalAmountToPay > 0) {
-          const { data: payAcc } = await supabase
-            .from("financial_accounts")
-            .select("*")
-            .eq("id", paying_account_id)
+      for (const tx of invoiceItemsToPay) {
+        const updatedSplits = (tx.splits || []).map((s: any) => ({ ...s, status: 'pago' }));
+        await supabase
+          .from("financial_transactions")
+          .update({ status: 'pago', splits: updatedSplits })
+          .eq("id", tx.id)
+          .eq("user_id", user.id);
+      }
+
+      // Record liquid bank/cash outflow without double-counting monthly expenses
+      if (paying_account_id && String(paying_account_id) !== String(card_account_id) && totalAmountToPay > 0) {
+        const { data: payAcc } = await supabase
+          .from("financial_accounts")
+          .select("*")
+          .eq("id", paying_account_id)
+          .eq("user_id", user.id)
+          .single();
+
+        if (payAcc && payAcc.type !== 'credito') {
+          const payDate = normalizeDateStr(payment_date) || new Date().toISOString().split('T')[0];
+          const compLabel = `${String(targetMonth + 1).padStart(2, '0')}/${targetYear}`;
+          const { data: faturaCats } = await supabase
+            .from("financial_categories")
+            .select("id, name")
             .eq("user_id", user.id)
-            .single();
-
-          if (payAcc && payAcc.type !== 'credito') {
-            const payDate = payment_date || new Date().toISOString().split('T')[0];
-            const compLabel = `${String(targetMonth + 1).padStart(2, '0')}/${targetYear}`;
-            const { data: faturaCats } = await supabase
+            .eq("type", "despesa");
+          let matchedCat = (faturaCats || []).find((c: any) => c.name?.toLowerCase().includes('fatura'));
+          if (!matchedCat) {
+            const { data: createdCat } = await supabase
               .from("financial_categories")
-              .select("id, name")
-              .eq("user_id", user.id)
-              .eq("type", "despesa");
-            const matchedCat = (faturaCats || []).find((c: any) => c.name?.toLowerCase().includes('fatura'));
-
-            await supabase.from("financial_transactions").insert([{
-              user_id: user.id,
-              description: `Pagamento Fatura ${card.name} (${compLabel})`,
-              amount: Number(totalAmountToPay.toFixed(2)),
-              type: 'despesa',
-              category_id: matchedCat?.id || null,
-              account_id: payAcc.id,
-              date: payDate,
-              due_date: payDate,
-              status: 'pago',
-              splits: []
-            }]);
+              .insert([{ name: 'Pagamento de Fatura', type: 'despesa', user_id: user.id }])
+              .select()
+              .single();
+            matchedCat = createdCat;
           }
+
+          await safeInsertFinTransactions([{
+            user_id: user.id,
+            description: `Pagamento Fatura ${card.name} (${compLabel})`,
+            amount: round2(totalAmountToPay),
+            gross_amount: round2(totalAmountToPay),
+            discount_amount: 0,
+            type: 'despesa',
+            category_id: matchedCat?.id || null,
+            account_id: payAcc.id,
+            date: payDate,
+            due_date: payDate,
+            status: 'pago',
+            is_installment: false,
+            installment_number: 1,
+            total_installments: 1,
+            splits: []
+          }]);
         }
       }
 
-      res.json({ 
-        success: true, 
-        paid_items_count: invoiceItemIds.length, 
-        total_paid: Number(totalAmountToPay.toFixed(2))
+      res.json({
+        success: true,
+        paid_items_count: invoiceItemsToPay.length,
+        total_paid: round2(Math.max(0, totalAmountToPay)),
       });
     } catch (err: any) {
       console.error("Error in /api/finance/pay-invoice:", err);
@@ -1343,227 +1792,40 @@ app.get("/api/config", (req, res) => {
     }
   });
 
-  // Dashboard Summary
+  // Dashboard Summary (Canonical Engine)
   app.get("/api/finance/dashboard", async (req, res) => {
     try {
       const user = (req as any).user;
       const { month, year } = req.query;
-      
+
       const now = new Date();
       const filterMonth = month !== undefined ? Number(month) : now.getMonth();
       const filterYear = year !== undefined ? Number(year) : now.getFullYear();
 
-      const { data: accounts, error: aError } = await supabase
-        .from("financial_accounts")
-        .select("*")
-        .eq("user_id", user.id);
+      const [{ data: accounts, error: aError }, { data: categories }, { data: transactions, error: tError }] =
+        await Promise.all([
+          supabase.from("financial_accounts").select("*").eq("user_id", user.id),
+          supabase.from("financial_categories").select("*").eq("user_id", user.id),
+          supabase.from("financial_transactions").select("*").eq("user_id", user.id),
+        ]);
+
       if (aError) return res.status(500).json(aError);
-
-      const { data: categories } = await supabase
-        .from("financial_categories")
-        .select("*")
-        .eq("user_id", user.id);
-
-      const { data: transactions, error: tError } = await supabase
-        .from("financial_transactions")
-        .select("*")
-        .eq("user_id", user.id);
       if (tError) return res.status(500).json(tError);
 
-      const accountMap = new Map<number, any>();
-      (accounts || []).forEach(acc => accountMap.set(Number(acc.id), acc));
+      const normalizedAccounts = (accounts || []).map((acc: any) => ({
+        ...acc,
+        credit_limit: acc.type === 'credito' ? getAccountCreditLimit(acc) : (acc.credit_limit ?? null),
+      }));
 
-      const categoryMap = new Map<number, string>();
-      (categories || []).forEach(cat => categoryMap.set(Number(cat.id), cat.name.toLowerCase()));
-
-      let liquidInitialBalance = 0;
-      (accounts || []).forEach(acc => {
-        if (acc.type !== 'credito') {
-          liquidInitialBalance += Number(acc.initial_balance || 0);
-        }
+      const dashboard = computeFinancialDashboard({
+        transactions: (transactions || []) as any,
+        accounts: normalizedAccounts as any,
+        categories: (categories || []) as any,
+        month: filterMonth,
+        year: filterYear,
       });
 
-      let monthIncome = 0;
-      let monthExpense = 0;
-      let monthLiquidInvoicePayments = 0;
-      let previousLiquidBalance = liquidInitialBalance;
-
-      let pendingReceivablesMonth = 0;
-      let pendingPayablesMonth = 0;
-
-      let creditCardMonthTotal = 0;
-      let creditCardMonthPaid = 0;
-      let creditCardMonthPending = 0;
-
-      const responsibilitySummary: Record<string, number> = {};
-      const accountsSummaryMap = new Map<number, {
-        id: number;
-        name: string;
-        type: string;
-        balance: number;
-        invoice_total?: number;
-        invoice_paid?: number;
-        invoice_pending?: number;
-        responsibles: Record<string, number>;
-      }>();
-
-      (accounts || []).forEach(acc => {
-        accountsSummaryMap.set(Number(acc.id), {
-          id: Number(acc.id),
-          name: acc.name,
-          type: acc.type,
-          balance: Number(acc.initial_balance || 0),
-          invoice_total: 0,
-          invoice_paid: 0,
-          invoice_pending: 0,
-          responsibles: {}
-        });
-      });
-
-      (transactions || []).forEach(t => {
-        if (!t.date) return;
-        const amount = Number(t.amount || 0);
-        const acc = accountMap.get(Number(t.account_id));
-        const isCreditCard = acc?.type === 'credito';
-        const isPaid = t.status === 'pago';
-        const catName = categoryMap.get(Number(t.category_id)) || '';
-
-        const isInvoicePayment = catName.includes('fatura') || t.description?.toLowerCase().includes('pagamento fatura');
-
-        let belongsToMonth = false;
-        let isBeforeMonth = false;
-
-        if (isCreditCard) {
-          if (t.due_date) {
-            const [dY, dM] = String(t.due_date).split('T')[0].split('-').map(Number);
-            if (dY === filterYear && dM - 1 === filterMonth) {
-              belongsToMonth = true;
-            } else if (dY < filterYear || (dY === filterYear && dM - 1 < filterMonth)) {
-              isBeforeMonth = true;
-            }
-          } else {
-            const closingDay = Number(acc?.closing_day || 1);
-            const dueDay = Number(acc?.due_day || 10);
-            const inv = calculateCreditCardInvoiceDates(t.date, closingDay, dueDay);
-            let dueM = inv.invoiceMonth;
-            let dueY = inv.invoiceYear;
-            if (dueDay <= closingDay) {
-              dueM += 1;
-              if (dueM > 11) {
-                dueY += Math.floor(dueM / 12);
-                dueM = dueM % 12;
-              }
-            }
-            if (dueY === filterYear && dueM === filterMonth) {
-              belongsToMonth = true;
-            } else if (dueY < filterYear || (dueY === filterYear && dueM < filterMonth)) {
-              isBeforeMonth = true;
-            }
-          }
-        } else {
-          const [tY, tM] = String(t.date).split('T')[0].split('-').map(Number);
-          if (tY === filterYear && tM - 1 === filterMonth) {
-            belongsToMonth = true;
-          } else if (tY < filterYear || (tY === filterYear && tM - 1 < filterMonth)) {
-            isBeforeMonth = true;
-          }
-        }
-
-        const accSummary = accountsSummaryMap.get(Number(t.account_id));
-        if (accSummary) {
-          if (!isCreditCard) {
-            if (t.type === 'receita') {
-              accSummary.balance += amount;
-            } else {
-              accSummary.balance -= amount;
-            }
-          } else {
-            if (belongsToMonth) {
-              const paidPart = Array.isArray(t.splits) && t.splits.length > 0
-                ? t.splits.reduce((sSum: number, s: any) => sSum + (s.status === 'pago' ? Number(s.amount || 0) : 0), 0)
-                : (isPaid ? amount : 0);
-              const pendingPart = Math.max(0, amount - paidPart);
-              accSummary.invoice_total = (accSummary.invoice_total || 0) + amount;
-              accSummary.invoice_paid = (accSummary.invoice_paid || 0) + paidPart;
-              accSummary.invoice_pending = (accSummary.invoice_pending || 0) + pendingPart;
-            }
-          }
-        }
-
-        if (isBeforeMonth) {
-          if (!isCreditCard) {
-            if (t.type === 'receita') {
-              previousLiquidBalance += amount;
-            } else {
-              previousLiquidBalance -= amount;
-            }
-          }
-        }
-
-        if (belongsToMonth) {
-          if (t.type === 'receita') {
-            monthIncome += amount;
-            if (!isPaid) {
-              pendingReceivablesMonth += amount;
-            }
-          } else {
-            if (!isInvoicePayment && !isCreditCard) {
-              monthExpense += amount;
-            } else if (isInvoicePayment && !isCreditCard) {
-              monthLiquidInvoicePayments += amount;
-            }
-
-            if (!isPaid && !isCreditCard) {
-              pendingPayablesMonth += amount;
-            }
-
-            if (isCreditCard) {
-              const paidPart = Array.isArray(t.splits) && t.splits.length > 0
-                ? t.splits.reduce((sSum: number, s: any) => sSum + (s.status === 'pago' ? Number(s.amount || 0) : 0), 0)
-                : (isPaid ? amount : 0);
-              const pendingPart = Math.max(0, amount - paidPart);
-              creditCardMonthTotal += amount;
-              creditCardMonthPaid += paidPart;
-              creditCardMonthPending += pendingPart;
-            }
-
-            if (Array.isArray(t.splits)) {
-              t.splits.forEach((s: any) => {
-                const sName = s.name?.trim() || 'Outros';
-                const sAmount = Number(s.amount || 0);
-                if (s.status !== 'pago') {
-                  responsibilitySummary[sName] = (responsibilitySummary[sName] || 0) + sAmount;
-                  pendingReceivablesMonth += sAmount;
-                  if (accSummary) {
-                    accSummary.responsibles[sName] = (accSummary.responsibles[sName] || 0) + sAmount;
-                  }
-                }
-              });
-            }
-          }
-        }
-      });
-
-      const endLiquidBalance = previousLiquidBalance + monthIncome - monthExpense - monthLiquidInvoicePayments;
-
-      res.json({
-        total_balance: endLiquidBalance,
-        cash_balance: endLiquidBalance,
-        month_income: monthIncome,
-        month_expense: monthExpense,
-        month_invoice_payments: monthLiquidInvoicePayments,
-        month_net: monthIncome - monthExpense,
-        previous_balance: previousLiquidBalance,
-        pending_receivables: pendingReceivablesMonth,
-        pending_payables: pendingPayablesMonth,
-        credit_card_total: creditCardMonthTotal,
-        credit_card_paid: creditCardMonthPaid,
-        credit_card_pending: creditCardMonthPending,
-        responsibility_summary: responsibilitySummary,
-        accounts_summary: Array.from(accountsSummaryMap.values()),
-        transactions: transactions || [],
-        accounts: accounts || []
-      });
+      res.json(dashboard);
     } catch (error: any) {
       console.error("Error in /api/finance/dashboard:", error);
       res.status(500).json({ error: error.message || "Internal server error" });

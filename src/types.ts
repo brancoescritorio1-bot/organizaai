@@ -98,25 +98,40 @@ export interface FinancialAccount {
   id: number;
   name: string;
   initial_balance: number;
+  credit_limit?: number | null;
   type: 'corrente' | 'credito' | 'dinheiro';
-  closing_day?: number;
-  due_day?: number;
+  closing_day?: number | null;
+  due_day?: number | null;
+}
+
+export interface FinancialTransactionSplit {
+  name: string;
+  amount: number;
+  status?: 'pago' | 'pendente';
 }
 
 export interface FinancialTransaction {
   id: number;
   description: string;
   amount: number;
+  gross_amount?: number | null;
+  discount_amount?: number | null;
   type: 'receita' | 'despesa';
-  category_id: number;
-  account_id: number;
+  category_id: number | null;
+  account_id: number | null;
   date: string;
-  due_date?: string;
+  due_date?: string | null;
   status: 'pago' | 'pendente';
   is_installment?: boolean;
-  installment_number?: number;
-  total_installments?: number;
-  splits?: { name: string; amount: number; status?: 'pago' | 'pendente' }[];
+  installment_number?: number | null;
+  total_installments?: number | null;
+  parent_transaction_id?: number | null;
+  is_transfer?: boolean;
+  transfer_account_id?: number | null;
+  transfer_group_id?: string | null;
+  splits?: FinancialTransactionSplit[];
+  financial_categories?: { name: string } | null;
+  financial_accounts?: { name: string } | null;
 }
 
 export interface Client {

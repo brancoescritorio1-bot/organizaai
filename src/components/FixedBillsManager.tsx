@@ -264,10 +264,14 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
     }));
 
     filteredHistoryPayments.forEach(p => {
-      const m = new Date(p.due_date).getMonth();
-      months[m].total += Number(p.amount);
-      if (p.status === 'Pago') months[m].paid += Number(p.amount);
-      if (p.status === 'Vencida') months[m].overdue += Number(p.amount);
+      const cleanDate = String(p.due_date || '').split('T')[0];
+      const parts = cleanDate.split('-');
+      const parsedMonth = parts.length >= 2 ? Number(parts[1]) - 1 : new Date(p.due_date).getMonth();
+      if (parsedMonth >= 0 && parsedMonth < 12) {
+        months[parsedMonth].total += Number(p.amount);
+        if (p.status === 'Pago') months[parsedMonth].paid += Number(p.amount);
+        if (p.status === 'Vencida') months[parsedMonth].overdue += Number(p.amount);
+      }
     });
 
     return months;
@@ -348,7 +352,9 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       refYearRaw -= 1;
     }
     const reference_month = `${String(refMonthRaw).padStart(2, '0')}/${refYearRaw}`;
-    const due_date = `${year}-${String(month).padStart(2, '0')}-${String(bill.due_day).padStart(2, '0')}`;
+    const maxDayInMonth = new Date(year, month, 0).getDate();
+    const clampedDueDay = Math.max(1, Math.min(Number(bill.due_day) || 1, maxDayInMonth));
+    const due_date = `${year}-${String(month).padStart(2, '0')}-${String(clampedDueDay).padStart(2, '0')}`;
 
     setPaymentForm({
       bill_id: bill.id,
@@ -372,7 +378,9 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       if (!bill) return;
 
       const [year, month] = (filterMode === 'month' ? filterMonth : new Date().toISOString().slice(0, 7)).split('-').map(Number);
-      due_date = `${year}-${String(month).padStart(2, '0')}-${String(bill.due_day).padStart(2, '0')}`;
+      const maxDayInMonth = new Date(year, month, 0).getDate();
+      const clampedDueDay = Math.max(1, Math.min(Number(bill.due_day) || 1, maxDayInMonth));
+      due_date = `${year}-${String(month).padStart(2, '0')}-${String(clampedDueDay).padStart(2, '0')}`;
       
       let refMonthRaw = month - 1;
       let refYearRaw = year;
@@ -479,7 +487,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       if (baseName === 'CEMIG' || baseName === 'COPASA') {
         message += `*- ${baseName}:*\n`;
         items.forEach(item => {
-          const statusText = item.status === 'RETIDA' ? ' - RETIDA' : '';
+          const statusText = String(item.status || '').toUpperCase() === 'RETIDA' ? ' - RETIDA' : '';
           message += `${item.subName}: R$ ${Number(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}${statusText}\n`;
           message += `Ref: ${item.reference_month || ''} Venc: ${getFormattedDate(item.due_date)}\n`;
         });
@@ -490,13 +498,13 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
         
         if (allSameDate && items.length > 0) {
           items.forEach(item => {
-            const statusText = item.status === 'RETIDA' ? ' - RETIDA' : '';
+            const statusText = String(item.status || '').toUpperCase() === 'RETIDA' ? ' - RETIDA' : '';
             message += `${item.subName}: R$ ${Number(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}${statusText}\n`;
           });
           message += `Ref: ${items[0].reference_month || ''} Venc: ${getFormattedDate(items[0].due_date)}\n`;
         } else {
           items.forEach(item => {
-            const statusText = item.status === 'RETIDA' ? ' - RETIDA' : '';
+            const statusText = String(item.status || '').toUpperCase() === 'RETIDA' ? ' - RETIDA' : '';
             message += `${item.subName}: R$ ${Number(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}${statusText}\n`;
             message += `Ref: ${item.reference_month || ''} Venc: ${getFormattedDate(item.due_date)}\n`;
           });
@@ -504,7 +512,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
         message += `\n`;
       } else if (baseName === 'OI') {
         items.forEach(item => {
-          const statusText = item.status === 'RETIDA' ? ' - RETIDA' : '';
+          const statusText = String(item.status || '').toUpperCase() === 'RETIDA' ? ' - RETIDA' : '';
           message += `*-OI* -\nR$ ${Number(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}${statusText}\n`;
           message += `Ref: ${item.reference_month || ''} Venc: ${getFormattedFullYearDate(item.due_date)}\n`;
         });
@@ -512,7 +520,7 @@ export function FixedBillsManager({ supabase }: { supabase: any }) {
       } else {
         // Other single items like PLIM, etc.
         items.forEach(item => {
-          const statusText = item.status === 'RETIDA' ? ' - RETIDA' : '';
+          const statusText = String(item.status || '').toUpperCase() === 'RETIDA' ? ' - RETIDA' : '';
           // If the item subname is empty, format like PLIM
           if (!item.subName) {
             message += `*- ${baseName}:* - R$ ${Number(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}${statusText}\n`;

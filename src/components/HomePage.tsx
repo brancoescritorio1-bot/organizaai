@@ -58,6 +58,7 @@ import {
   sortDailyCheckinsDesc,
   filterAndSortPersonalTasks,
 } from '../lib/personalUtils';
+import { isTransferTransaction } from '../lib/financeMath';
 
 import coverMountains from '../assets/images/home_cover_mountains_1795197621990.jpg';
 import coverArchitecture from '../assets/images/home_cover_architecture_1795197621709.jpg';
@@ -307,7 +308,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const pendingExpenses = useMemo(
     () =>
       finTransactions.filter(
-        (t) => t.type === 'despesa' && t.status === 'pendente'
+        (t) => t.type === 'despesa' && t.status === 'pendente' && !isTransferTransaction(t)
       ),
     [finTransactions]
   );
